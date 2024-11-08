@@ -1,0 +1,23 @@
+name: personalization-privacy-and-explainability-of-recommendation-algorithms
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13.0
+  - black
+  - flake8
+  - isort
+  - pip
+  - typer
+  - loguru
+  - tqdm
+  - ipython
+  - jupyterlab
+  - matplotlib
+  - notebook
+  - numpy
+  - pandas
+  - scikit-learn
+  - pip:
+    - python-dotenv
+    - mkdocs
+    - -e .
