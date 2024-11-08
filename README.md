@@ -4,7 +4,23 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-The aim of the project is to analyse in depth the four main families of recommendation algorithms (collaborative filtering, content-based, learning2rank, reinforcement learning) in terms of their resilience to the data burden, their resistance to anonymisation, the ability of the algorithms to generate explanations, and the ethical risks associated with the implementation of a given algorithm. The last point is related to the AI Act recently adopted by the European Union and the introduction of a taxonomy of ethical risks, as well as the Omnibus Directive. The project plans to select different recommendation scenarios (datasets and application areas), implement metrics to assess the robustness of algorithms, and conduct extensive experiments investigating the behaviour of different algorithm families in the space of evaluated criteria.
+Celem projektu jest dogłębna analiza czterech głównych rodzin algorytmów rekomendacyjnych (collaborative filtering, content-based, learning2rank, reinforcement learning) pod kątem ich odporności na obciążenia występujące w danych, odporności na anonimizację, zdolność algorytmów do generowania wyjaśnień oraz ryzyka etyczne związane z wdrożeniem danego algorytmu. Ostatni punkt wiąże się z przyjętym niedawno przez Unię Europejską AI Act i wprowadzeniem taksonomii ryzyk etycznych, a także z dyrektywą Omnibus. W ramach projektu planuje się wybranie różnych scenariuszy rekomendacji (zbiorów danych i obszarów zastosowania), implementację metryk do oceny odporności algorytmów, oraz przeprowadzenie szeroko zakrojonych eksperymentów badających zachowanie się poszczególnych rodzin algorytmów w przestrzeni ocenianych kryteriów.
+
+W ramach projektu należy porównać cztery rodzaje rekomenderów:
+- R1: content-based
+- R2: collaborative filtering
+- R3: learning2rank
+- R4: reinforcement learning
+
+Do porównania należy wykorzystać trzy zbiory danych o zróżnicowanej charakterystyce:
+- D1: tradycyjny zbiór reprezentujący rekomendacje produktowe (np. filmy, produkty w sklepie, książki, itp.)
+- D2: zbiór danych reprezentujący konieczność rekomendacji ze strumienia (np. wyniki zapytań, strumienie informacji z sieci społecznościowych, itp.)
+- D3: zbiór danych reprezentujący rekomendacje "trudne", tj. rekomendacje akcji które są rzadkie i drogie (np. rekomendacje hoteli lub innych tego typu usług)
+
+Porównanie rekomenderów odbędzie się pod kątem trzech aspektów:
+- A1: wyjaśnialność (explainability): na ile dany algorytm jest w stanie wygenerować wyjaśnienie wybranych rekomendacji
+- A2: personalizacja (personalization): jak duża jest wariancja rekomendacji w zależności od podobieństwa między klientami
+- A3: prywatność (privacy): jak czuły jest algorytm na podniesienie poziomu prywatności (np. poprzez randomizację atrybutów klienta lub ograniczeniu historii klienta)
 
 ## Project Organization
 
