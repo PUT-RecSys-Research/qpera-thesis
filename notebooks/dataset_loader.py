@@ -97,8 +97,6 @@ class PostRecommendationsDataset(BaseDatasetLoader):
 
         self.merge_file = f"{self.data_path}/merge_file.csv"
 
-        self.test_path = "datasets/PostRecommendations/testDataset"
-        self.train_path = "datasets/PostRecommendations/trainDataset"
 
     def normalize_column_names(self, df):
         df = df.rename(columns={"user_id": "userID", "post_id": "itemID"})
@@ -112,6 +110,7 @@ class PostRecommendationsDataset(BaseDatasetLoader):
         merge_file = pd.merge(user_df, view_df, on="user_id", how="left")
         final_merge_file = pd.merge(merge_file, post_df, on="post_id", how="left")
         final_merge_file = self.normalize_column_names(final_merge_file)
+        final_merge_file.drop_duplicates(inplace=True)
 
         final_merge_file.to_csv(self.merge_file, index=False)
         return final_merge_file
@@ -137,5 +136,5 @@ def loader(dataset_name = "movielens", want_col= ['userID', 'itemID']):
     return dataset
 
 # prepare_dataset()
-# dataset = loader("amazonsales")
-# print(dataset)
+dataset = loader("amazonsales")
+print(dataset)
