@@ -50,6 +50,12 @@ class AmazonSalesDataset(BaseDatasetLoader):
     def merge_datasets(self) -> pd.DataFrame:
         df = pd.read_csv(self.dataset)
         df = self.normalize_column_names(df)
+
+        df = df.drop_duplicates(subset=['userID', 'itemID'], keep='first')
+        
+        print(df.duplicated().any())
+        print('amazon')
+
         df.to_csv(self.merge_file, index=False)
         return df
 
@@ -77,12 +83,16 @@ class MovieLensDataset(BaseDatasetLoader):
         
         tags_df = tags_df.rename(columns={'timestamp': 'tag_timestamp'})
 
-        merge_file = pd.merge(ratings_df, movies_df, on="movieId", how="left")
-        final_merge_file = pd.merge(merge_file, tags_df, on=["movieId", "userId"], how="left")
-        final_merge_file = self.normalize_column_names(final_merge_file)
+        merge_file_df = pd.merge(ratings_df, movies_df, on="movieId", how="left")
+        final_merge_file_df = pd.merge(merge_file_df, tags_df, on=["movieId", "userId", ], how="left")
+        final_merge_file_df = self.normalize_column_names(final_merge_file_df)
+        
+        final_merge_file_df = final_merge_file_df.drop_duplicates(subset=['userID', 'itemID', 'rating'], keep='first')
+        print(final_merge_file_df.duplicated().any())
+        print('movie')
 
-        final_merge_file.to_csv(self.merge_file, index=False)
-        return final_merge_file
+        final_merge_file_df.to_csv(self.merge_file, index=False)
+        return final_merge_file_df
     
 class PostRecommendationsDataset(BaseDatasetLoader):
     """
@@ -107,13 +117,18 @@ class PostRecommendationsDataset(BaseDatasetLoader):
         view_df = pd.read_csv(self.viewData_file)
         post_df = pd.read_csv(self.postData_file)
 
-        merge_file = pd.merge(user_df, view_df, on="user_id", how="left")
-        final_merge_file = pd.merge(merge_file, post_df, on="post_id", how="left")
-        final_merge_file = self.normalize_column_names(final_merge_file)
-        final_merge_file.drop_duplicates(inplace=True)
-
-        final_merge_file.to_csv(self.merge_file, index=False)
-        return final_merge_file
+        merge_file_df = pd.merge(user_df, view_df, on="user_id", how="left")
+        final_merge_file_df = pd.merge(merge_file_df, post_df, on="post_id", how="left")
+        # print("Columns BEFORE normalize_column_names:", final_merge_file_df.columns)
+        final_merge_file_df = self.normalize_column_names(final_merge_file_df)
+        # print("Columns AFTER normalize_column_names:", final_merge_file_df.columns)
+        # final_merge_file_df = final_merge_file_df.drop_duplicates()
+        final_merge_file_df = final_merge_file_df.drop_duplicates(subset=['userID', 'itemID'], keep='first')
+        
+        print(final_merge_file_df.duplicated().any())
+        print('post')
+        final_merge_file_df.to_csv(self.merge_file, index=False)
+        return final_merge_file_df
 
 def prepare_dataset():
     AmazonSalesDataset().load_dataset()
@@ -121,7 +136,7 @@ def prepare_dataset():
     PostRecommendationsDataset().load_dataset()
 
 
-def loader(dataset_name = "movielens", want_col= ['userID', 'itemID']):
+def loader(dataset_name = "movielens", want_col= ['userID', 'itemID', 'rating'],):
     prepare_dataset()
     if dataset_name == "amazonsales":
         loader = AmazonSalesDataset()
@@ -136,5 +151,5 @@ def loader(dataset_name = "movielens", want_col= ['userID', 'itemID']):
     return dataset
 
 # prepare_dataset()
-dataset = loader("amazonsales")
-print(dataset)
+# dataset = loader("amazonsales")
+# print(dataset)
