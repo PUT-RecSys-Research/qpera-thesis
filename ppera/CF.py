@@ -147,7 +147,7 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
         mlflow.log_metrics(metrics)
 
         # Set a tag that we can use to remind ourselves what this run was for
-        mlflow.set_tag("Metrics Info", "CF model for movielens dataset")
+        mlflow.set_tag("Metrics Info", f"CF model for {dataset} dataset")
 
         # Infer the model signature
         signature = infer_signature(train, model.fit(train))

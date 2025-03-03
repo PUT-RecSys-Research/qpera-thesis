@@ -156,7 +156,7 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
         mlflow.log_metrics(metrics)
 
         # Set a tag that we can use to remind ourselves what this run was for
-        mlflow.set_tag("Metrics Info", "CBF model for movielens dataset")
+        mlflow.set_tag("Metrics Info", f"CBF model for {dataset} dataset")
 
         # Infer the model signature
         signature = infer_signature(train, recommender.fit(tf, vectors_tokenized))

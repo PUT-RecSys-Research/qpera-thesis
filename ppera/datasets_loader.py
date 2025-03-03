@@ -78,12 +78,13 @@ class AmazonSalesDataset(BaseDatasetLoader):
     def __init__(self, data_path: str = "datasets/AmazonSales"):
         super().__init__(data_path)
         self.dataset = os.path.join(self.data_path, "amazon.csv")
-        self.column_mapping = {"user_id": "userID", "product_id": "itemID"}
+        self.column_mapping = {"user_id": "userID", "product_id": "itemID","category": "genres", 'product_name': 'title'}
 
     def merge_datasets(self) -> pd.DataFrame:
         df = pd.read_csv(self.dataset)
         df = self.normalize_column_names(df, self.column_mapping)
         df = df.drop_duplicates(subset=['userID', 'itemID'], keep='first')
+        df['rating'] = pd.to_numeric(df['rating'], errors='coerce')
         return df
 
 
