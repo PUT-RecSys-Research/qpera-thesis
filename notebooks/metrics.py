@@ -1,4 +1,6 @@
-from recommenders.evaluation import merge_rating_true_pred
+import numpy as np
+import pandas as pd
+from recommenders.evaluation.python_evaluation import merge_rating_true_pred, merge_ranking_true_pred, precision_at_k, recall_at_k
 from sklearn.metrics import (
     f1_score,
     label_ranking_average_precision_score,
@@ -23,18 +25,14 @@ def f1(
     rating_pred,
     col_user=DEFAULT_USER_COL,
     col_item=DEFAULT_ITEM_COL,
-    col_rating=DEFAULT_RATING_COL,
     col_prediction=DEFAULT_PREDICTION_COL,
+    relevancy_method="top_k",
+    k=1,
+    threshold=DEFAULT_THRESHOLD,
 ):
-    y_true, y_pred = merge_rating_true_pred(
-        rating_true=rating_true,
-        rating_pred=rating_pred,
-        col_user=col_user,
-        col_item=col_item,
-        col_rating=col_rating,
-        col_prediction=col_prediction,
-    )
-    return f1_score(y_true, y_pred)
+    precision = precision_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
+    recall = recall_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
+    return (2*precision*recall)/(precision+recall)
 
 def mrr(
     rating_true,
@@ -70,6 +68,7 @@ def accuracy(
         col_rating=col_rating,
         col_prediction=col_prediction,
     )
+    y_pred = np.round(y_pred)
     return accuracy_score(y_true, y_pred)
 
 def user_coverage(
@@ -102,12 +101,14 @@ def user_coverage(
         col_rating=col_rating,
         col_prediction=col_prediction,
     )
-    
-    user_errors = y_true.copy()
+
+    user_errors = rating_true.merge(rating_pred, on=[col_user, col_item])
     user_errors["error"] = abs(user_errors[col_rating] - user_errors[col_prediction])
     meaningful_recommendations = user_errors[user_errors["error"] <= threshold]
-    meaningful_users = meaningful_recommendations[col_user].nunique()
-    total_users = y_true[col_user].nunique()
+    meaningful_users_table = meaningful_recommendations[col_user].unique()
+    meaningful_users = len(meaningful_users_table)
+    total_users_table = rating_true[col_user].unique()
+    total_users = len(total_users_table)
     
     coverage = meaningful_users / total_users if total_users > 0 else 0
     return coverage
@@ -142,12 +143,14 @@ def item_coverage(
         col_rating=col_rating,
         col_prediction=col_prediction,
     )
-    
-    item_errors = y_true.copy()
+
+    item_errors = rating_true.merge(rating_pred, on=[col_user, col_item])
     item_errors["error"] = abs(item_errors[col_rating] - item_errors[col_prediction])
     meaningful_recommendations = item_errors[item_errors["error"] <= threshold]
-    meaningful_items = meaningful_recommendations[col_item].nunique()
-    total_items = y_true[col_item].nunique()
+    meaningful_items_table = meaningful_recommendations[col_item].unique()
+    meaningful_items = len(meaningful_items_table)
+    total_items_table = rating_true[col_item].unique()
+    total_items = len(total_items_table)
     
     coverage = meaningful_items / total_items if total_items > 0 else 0
     return coverage
