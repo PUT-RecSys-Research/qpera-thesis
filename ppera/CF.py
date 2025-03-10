@@ -41,8 +41,8 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     train, test = python_stratified_split(
         data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed
     )
-    train['timestamp'] = pd.to_datetime(train['timestamp'])
-    train['timestamp'] = train['timestamp'].astype('int64') // 10**9
+    # train['timestamp'] = pd.to_datetime(train['timestamp'])
+    # train['timestamp'] = train['timestamp'].astype('int64') // 10**9
 
     # Create an SAR model
     model = SAR(

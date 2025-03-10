@@ -78,13 +78,20 @@ class AmazonSalesDataset(BaseDatasetLoader):
     def __init__(self, data_path: str = "datasets/AmazonSales"):
         super().__init__(data_path)
         self.dataset = os.path.join(self.data_path, "amazon.csv")
-        self.column_mapping = {"user_id": "userID", "product_id": "itemID","category": "genres", 'product_name': 'title'}
+        self.column_mapping = {"user_id": "userID", "product_id": "itemID","category": "genres", 'product_name': 'title', 'predicted_rating': 'rating'}
 
     def merge_datasets(self) -> pd.DataFrame:
         df = pd.read_csv(self.dataset)
         df = self.normalize_column_names(df, self.column_mapping)
         df = df.drop_duplicates(subset=['userID', 'itemID'], keep='first')
         df['rating'] = pd.to_numeric(df['rating'], errors='coerce')
+
+
+        df['genres'] = df['genres'].str.replace('|', ' ', regex=False)
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['timestamp'] = df['timestamp'].astype('int64') // 10**9
+
+
         return df
 
 
@@ -105,6 +112,13 @@ class MovieLensDataset(BaseDatasetLoader):
       merge_file_df = pd.merge(ratings_df, movies_df, on="movieId", how="left")
       final_merge_file_df = pd.merge(merge_file_df, tags_df, on=["movieId", "userId"], how="left")
       final_merge_file_df = self.normalize_column_names(final_merge_file_df, self.column_mapping)
+
+
+      final_merge_file_df['genres'] = final_merge_file_df['genres'].str.replace('|', ' ', regex=False)
+      final_merge_file_df['timestamp'] = pd.to_datetime(final_merge_file_df['timestamp'])
+      final_merge_file_df['timestamp'] = final_merge_file_df['timestamp'].astype('int64') // 10**9
+
+
       final_merge_file_df = final_merge_file_df.drop_duplicates(subset=['userID', 'itemID', 'rating'], keep='first')
       return final_merge_file_df
 
@@ -126,6 +140,14 @@ class PostRecommendationsDataset(BaseDatasetLoader):
         merge_file_df = pd.merge(user_df, view_df, on="user_id", how="left")
         final_merge_file_df = pd.merge(merge_file_df, post_df, on="post_id", how="left")
         final_merge_file_df = self.normalize_column_names(final_merge_file_df, self.column_mapping)
+
+
+        # TODO: Uncomment this line after adding the genres column to the dataset
+        # final_merge_file_df['genres'] = final_merge_file_df['genres'].str.replace('|', ' ', regex=False)
+        # final_merge_file_df['timestamp'] = pd.to_datetime(final_merge_file_df['timestamp'])
+        # final_merge_file_df['timestamp'] = final_merge_file_df['timestamp'].astype('int64') // 10**9
+
+
         final_merge_file_df = final_merge_file_df.drop_duplicates(subset=['userID', 'itemID'], keep='first')
         return final_merge_file_df
 

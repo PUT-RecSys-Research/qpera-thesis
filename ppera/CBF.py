@@ -39,7 +39,7 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
 
     # Create a TF-IDF model
     recommender = TfidfRecommender(id_col='itemID', tokenization_method='bert')
-    data['genres'] = data['genres'].str.replace('|', ' ', regex=False)
+    # data['genres'] = data['genres'].str.replace('|', ' ', regex=False)
 
     df_clean = data.drop(columns=['userID', 'rating', 'timestamp'])
     df_clean = df_clean.drop_duplicates(subset=['itemID'])
