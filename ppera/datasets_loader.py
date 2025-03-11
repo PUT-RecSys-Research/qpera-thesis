@@ -78,7 +78,7 @@ class AmazonSalesDataset(BaseDatasetLoader):
     def __init__(self, data_path: str = "datasets/AmazonSales"):
         super().__init__(data_path)
         self.dataset = os.path.join(self.data_path, "amazon.csv")
-        self.column_mapping = {"user_id": "userID", "product_id": "itemID","category": "genres", 'product_name': 'title', 'predicted_rating': 'rating'}
+        self.column_mapping = {"user_id": "userID", "product_id": "itemID", "category": "genres", 'product_name': 'title', 'predicted_rating': 'rating'}
 
     def merge_datasets(self) -> pd.DataFrame:
         df = pd.read_csv(self.dataset)
@@ -87,7 +87,11 @@ class AmazonSalesDataset(BaseDatasetLoader):
         df['rating'] = pd.to_numeric(df['rating'], errors='coerce')
 
 
+        df['genres'] = df[['genres', 'about_product']].astype(str).agg(' | '.join, axis=1).str.strip(' |')
         df['genres'] = df['genres'].str.replace('|', ' ', regex=False)
+
+
+        df = df.drop(columns=['about_product'])
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['timestamp'] = df['timestamp'].astype('int64') // 10**9
 
@@ -115,8 +119,8 @@ class MovieLensDataset(BaseDatasetLoader):
 
 
       final_merge_file_df['genres'] = final_merge_file_df['genres'].str.replace('|', ' ', regex=False)
-      final_merge_file_df['timestamp'] = pd.to_datetime(final_merge_file_df['timestamp'])
-      final_merge_file_df['timestamp'] = final_merge_file_df['timestamp'].astype('int64') // 10**9
+    #   final_merge_file_df['timestamp'] = pd.to_datetime(final_merge_file_df['timestamp'])
+    #   final_merge_file_df['timestamp'] = final_merge_file_df['timestamp'].astype('int64') // 10**9
 
 
       final_merge_file_df = final_merge_file_df.drop_duplicates(subset=['userID', 'itemID', 'rating'], keep='first')
