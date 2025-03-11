@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import datasets_loader
@@ -138,8 +139,34 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     # Create a new MLflow Experiment
     mlflow.set_experiment("MLflow Colaborative Filtering v2")
 
+    if dataset == 'movielens':
+        file_path = f"datasets/MovieLens/merge_file_{num_rows}.csv"
+    elif dataset == 'amazonsales':
+        file_path = f"datasets/AmazonSales/merge_file_{num_rows}.csv"
+    elif dataset == 'postrecommendations':
+        file_path = f"datasets/PostRecommendations/merge_file_{num_rows}.csv"
+
     # Start an MLflow run
     with mlflow.start_run():
+        # Log dataset
+        if dataset == 'movielens':
+            mlflow.log_artifact(file_path, artifact_path="datasets/MovieLens")
+            # Log the dataset to make it appear in the "Dataset" column
+            dataset = mlflow.data.from_pandas(data, name="MovieLens Dataset", source=file_path)
+            mlflow.log_input(dataset, context="test")  # 'training' or 'evaluation'
+        elif dataset == 'amazonsales':
+            mlflow.log_artifact(file_path, artifact_path="datasets/AmazonSales")
+            # Log the dataset to make it appear in the "Dataset" column
+            dataset = mlflow.data.from_pandas(data, name="AmazonSales Dataset", source=file_path)
+            mlflow.log_input(dataset, context="test")  # 'training' or 'evaluation'
+        elif dataset == 'postrecommendations':
+            mlflow.log_artifact(file_path, artifact_path="datasets/PostRecommendations")
+            # Log the dataset to make it appear in the "Dataset" column
+            dataset = mlflow.data.from_pandas(data, name="PostRecommendations Dataset", source=file_path)
+            mlflow.log_input(dataset, context="test")
+
+
+
         # Log the hyperparameters
         mlflow.log_params(params)
 
