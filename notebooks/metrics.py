@@ -154,3 +154,113 @@ def item_coverage(
     
     coverage = meaningful_items / total_items if total_items > 0 else 0
     return coverage
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------
+# The code below was copied from recmetrics
+# https://github.com/statisticianinstilettos/recmetrics/blob/master/recmetrics/metrics.py
+
+import random
+from itertools import product
+from math import sqrt
+from typing import List
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import scipy.sparse as sp
+from sklearn.metrics import confusion_matrix, mean_squared_error
+from sklearn.metrics.pairwise import cosine_similarity
+import warnings
+
+def _single_list_similarity(predicted: list, feature_df: pd.DataFrame, u: int) -> float:
+    """
+    Computes the intra-list similarity for a single list of recommendations.
+    Parameters
+    ----------
+    predicted : a list
+        Ordered predictions
+        Example: ['X', 'Y', 'Z']
+    feature_df: dataframe
+        A dataframe with one hot encoded or latent features.
+        The dataframe should be indexed by the id used in the recommendations.
+    Returns:
+    -------
+    ils_single_user: float
+        The intra-list similarity for a single list of recommendations.
+    """
+    # exception predicted list empty
+    if not(predicted):
+        raise Exception('Predicted list is empty, index: {0}'.format(u))
+
+    #get features for all recommended items
+    recs_content = feature_df.loc[predicted]
+    recs_content = recs_content.dropna()
+    recs_content = sp.csr_matrix(recs_content.values)
+
+    #calculate similarity scores for all items in list
+    similarity = cosine_similarity(X=recs_content, dense_output=False)
+
+    #get indicies for upper right triangle w/o diagonal
+    upper_right = np.triu_indices(similarity.shape[0], k=1)
+
+    #calculate average similarity score of all recommended items in list
+    ils_single_user = np.mean(similarity[upper_right])
+    return ils_single_user
+
+def intra_list_similarity(predicted: List[list], feature_df: pd.DataFrame) -> float:
+    """
+    Computes the average intra-list similarity of all recommendations.
+    This metric can be used to measure diversity of the list of recommended items.
+    Parameters
+    ----------
+    predicted : a list of lists
+        Ordered predictions
+        Example: [['X', 'Y', 'Z'], ['X', 'Y', 'Z']]
+    feature_df: dataframe
+        A dataframe with one hot encoded or latent features.
+        The dataframe should be indexed by the id used in the recommendations.
+    Returns:
+    -------
+        The average intra-list similarity for recommendations.
+    """
+    feature_df = feature_df.fillna(0)
+    Users = range(len(predicted))
+    ils = [_single_list_similarity(predicted[u], feature_df, u) for u in Users]
+    return np.mean(ils)
+
+def personalization(predicted: List[list]) -> float:
+    """
+    Personalization measures recommendation similarity across users.
+    A high score indicates good personalization (user's lists of recommendations are different).
+    A low score indicates poor personalization (user's lists of recommendations are very similar).
+    A model is "personalizing" well if the set of recommendations for each user is different.
+    Parameters:
+    ----------
+    predicted : a list of lists
+        Ordered predictions
+        example: [['X', 'Y', 'Z'], ['X', 'Y', 'Z']]
+    Returns:
+    -------
+        The personalization score for all recommendations.
+    """
+
+    def make_rec_matrix(predicted: List[list]) -> sp.csr_matrix:
+        df = pd.DataFrame(data=predicted).reset_index().melt(
+            id_vars='index', value_name='item',
+        )
+        df = df[['index', 'item']].pivot(index='index', columns='item', values='item')
+        df = pd.notna(df)*1
+        rec_matrix = sp.csr_matrix(df.values)
+        return rec_matrix
+
+    #create matrix for recommendations
+    predicted = np.array(predicted)
+    rec_matrix_sparse = make_rec_matrix(predicted)
+
+    #calculate similarity for every user's recommendation list
+    similarity = cosine_similarity(X=rec_matrix_sparse, dense_output=False)
+
+    #calculate average similarity
+    dim = similarity.shape[0]
+    personalization = (similarity.sum() - dim) / (dim * (dim - 1))
+    return 1-personalization
