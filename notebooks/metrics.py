@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
-from recommenders.evaluation.python_evaluation import merge_rating_true_pred, merge_ranking_true_pred, precision_at_k, recall_at_k
+from recommenders.evaluation.python_evaluation import merge_rating_true_pred, merge_ranking_true_pred
 from sklearn.metrics import (
     precision_score,
     f1_score,
     label_ranking_average_precision_score,
     accuracy_score
 )
+from sklearn.metrics._classification import _prf_divide
 
 from recommenders.utils.constants import (
     DEFAULT_USER_COL,
@@ -21,19 +22,110 @@ from recommenders.utils.constants import (
     DEFAULT_THRESHOLD,
 )
 
-def f1(
+def precision_at_k(
     rating_true,
     rating_pred,
-    col_user=DEFAULT_USER_COL,
-    col_item=DEFAULT_ITEM_COL,
-    col_prediction=DEFAULT_PREDICTION_COL,
-    relevancy_method="top_k",
-    k=1,
-    threshold=DEFAULT_THRESHOLD,
+    col_user="user",
+    col_item="item",
+    col_rating="rating",
+    col_prediction="prediction",
+    k=10
 ):
-    precision = precision_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
-    recall = recall_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
-    return (2*precision*recall)/(precision+recall)
+    """
+    Oblicza precyzję na poziomie k dla rekomendacji.
+    
+    Args:
+        rating_true (pd.DataFrame): Zbiór rzeczywistych ocen zawierający kolumny [user, item, rating].
+        rating_pred (pd.DataFrame): Zbiór przewidywanych ocen zawierający kolumny [user, item, prediction].
+        col_user (str): Nazwa kolumny z identyfikatorem użytkownika.
+        col_item (str): Nazwa kolumny z identyfikatorem elementu.
+        col_rating (str): Nazwa kolumny z rzeczywistymi ocenami.
+        col_prediction (str): Nazwa kolumny z przewidywanymi ocenami.
+        k (int): Liczba rekomendacji do uwzględnienia w ocenie.
+    
+    Returns:
+        float: Wartość precyzji na poziomie k.
+    """
+    users = rating_true[col_user].unique()
+    precisions = []
+    
+    for user in users:
+        # Pobranie rzeczywistych pozytywnie ocenionych elementów
+        true_items = set(rating_true[(rating_true[col_user] == user) & (rating_true[col_rating] > 0)][col_item])
+        
+        # Pobranie k najlepszych rekomendacji
+        user_pred = rating_pred[rating_pred[col_user] == user].nlargest(k, col_prediction)
+        top_k_items = set(user_pred[col_item])
+        
+        # Jeśli użytkownik nie ma rekomendacji, pomijamy go
+        if not top_k_items:
+            continue
+        
+        # Obliczenie precyzji
+        precision = len(true_items & top_k_items)
+        precisions.append(precision)
+    
+    return sum(precisions) / len(precisions) if precisions else 0.0
+
+def recall_at_k(
+    rating_true,
+    rating_pred,
+    col_user="user",
+    col_item="item",
+    col_rating="rating",
+    col_prediction="prediction",
+    k=10
+):
+    """
+    Oblicza recall na poziomie k dla rekomendacji.
+    
+    Args:
+        rating_true (pd.DataFrame): Zbiór rzeczywistych ocen zawierający kolumny [user, item, rating].
+        rating_pred (pd.DataFrame): Zbiór przewidywanych ocen zawierający kolumny [user, item, prediction].
+        col_user (str): Nazwa kolumny z identyfikatorem użytkownika.
+        col_item (str): Nazwa kolumny z identyfikatorem elementu.
+        col_rating (str): Nazwa kolumny z rzeczywistymi ocenami.
+        col_prediction (str): Nazwa kolumny z przewidywanymi ocenami.
+        k (int): Liczba rekomendacji do uwzględnienia w ocenie.
+    
+    Returns:
+        float: Wartość recall na poziomie k.
+    """
+    users = rating_true[col_user].unique()
+    recalls = []
+    
+    for user in users:
+        # Pobranie rzeczywistych pozytywnie ocenionych elementów
+        true_items = set(rating_true[(rating_true[col_user] == user) & (rating_true[col_rating] > 0)][col_item])
+        
+        # Pobranie k najlepszych rekomendacji
+        user_pred = rating_pred[rating_pred[col_user] == user].nlargest(k, col_prediction)
+        top_k_items = set(user_pred[col_item])
+        
+        # Jeśli użytkownik nie ma prawdziwych pozytywnych ocen, pomijamy go
+        if not true_items:
+            continue
+        
+        # Obliczenie recall
+        recall = len(true_items & top_k_items) / len(true_items)
+        recalls.append(recall)
+    
+    return sum(recalls) / len(recalls) if recalls else 0.0
+
+
+# def f1(
+#     rating_true,
+#     rating_pred,
+#     col_user=DEFAULT_USER_COL,
+#     col_item=DEFAULT_ITEM_COL,
+#     col_prediction=DEFAULT_PREDICTION_COL,
+#     relevancy_method="top_k",
+#     k=1,
+#     threshold=DEFAULT_THRESHOLD,
+# ):
+#     precision = precision_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
+#     recall = recall_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
+#     return (2*precision*recall)/(precision+recall)
 
 def mrr(
     rating_true,
@@ -52,6 +144,8 @@ def mrr(
         col_prediction=col_prediction,
     )
     return label_ranking_average_precision_score(y_true, y_pred)
+
+
 
 def accuracy(
     rating_true,
