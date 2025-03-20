@@ -25,10 +25,10 @@ from recommenders.utils.constants import (
 def precision_at_k(
     rating_true,
     rating_pred,
-    col_user="user",
-    col_item="item",
-    col_rating="rating",
-    col_prediction="prediction",
+    col_user=DEFAULT_USER_COL,
+    col_item=DEFAULT_ITEM_COL,
+    col_rating=DEFAULT_RATING_COL,
+    col_prediction=DEFAULT_PREDICTION_COL,
     k=10
 ):
     """
@@ -70,10 +70,10 @@ def precision_at_k(
 def recall_at_k(
     rating_true,
     rating_pred,
-    col_user="user",
-    col_item="item",
-    col_rating="rating",
-    col_prediction="prediction",
+    col_user=DEFAULT_USER_COL,
+    col_item=DEFAULT_ITEM_COL,
+    col_rating=DEFAULT_RATING_COL,
+    col_prediction=DEFAULT_PREDICTION_COL,
     k=10
 ):
     """
