@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from recommenders.evaluation.python_evaluation import merge_rating_true_pred, merge_ranking_true_pred, precision_at_k, recall_at_k
 from sklearn.metrics import (
+    precision_score,
     f1_score,
     label_ranking_average_precision_score,
     accuracy_score
