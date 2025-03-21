@@ -34,7 +34,7 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     }
 
     # Load the MovieLens dataset
-    data = datasets_loader.loader(dataset, want_col, num_rows)
+    data = datasets_loader.loader(dataset, want_col, num_rows, seed)
     data["rating"] = data["rating"].astype(np.float32)
 
     # Create a TF-IDF model
@@ -128,6 +128,8 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
       "Catalog coverage:\t%f" % eval_catalog_coverage,
       "Distributional coverage:\t%f" % eval_distributional_coverage,
       sep='\n')
+    
+    
     # mlflow
     metrics = {
         "precision_at_K": eval_precision,
@@ -148,11 +150,11 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     mlflow.set_experiment("MLflow Content Based Filtering v2")
 
     if dataset == 'movielens':
-        file_path = f"datasets/MovieLens/merge_file_{num_rows}.csv"
+        file_path = f"datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == 'amazonsales':
-        file_path = f"datasets/AmazonSales/merge_file_{num_rows}.csv"
+        file_path = f"datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == 'postrecommendations':
-        file_path = f"datasets/PostRecommendations/merge_file_{num_rows}.csv"
+        file_path = f"datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
 
     # Start an MLflow run
     with mlflow.start_run():
@@ -192,12 +194,3 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
             input_example=train,
             registered_model_name="CBF-model test",
         )
-
-
-
-# if __name__ == "__main__":
-#     cbf_experiment_loop(TOP_K=10, dataset='movielens',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42)

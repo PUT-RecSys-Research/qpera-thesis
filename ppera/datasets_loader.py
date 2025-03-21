@@ -13,7 +13,7 @@ class BaseDatasetLoader(ABC):
         self.data_path = data_path
         self.merge_file = os.path.join(self.data_path, merge_file_name)
 
-    def load_dataset(self, columns: Optional[List[str]] = None, num_rows: Optional[int] = None) -> pd.DataFrame:
+    def load_dataset(self, columns: Optional[List[str]] = None, num_rows: Optional[int] = None, seed: Optional[int] = None) -> pd.DataFrame:
         """
         Loads the dataset, merges it if necessary, selects specified columns, and optionally limits the number of rows.
 
@@ -42,10 +42,10 @@ class BaseDatasetLoader(ABC):
             dataset_df = dataset_df[columns]
 
         # Apply row limit *after* merging and saving, but before column selection if merging happened
-        if num_rows is not None and not os.path.exists(self.merge_file.replace('.csv', f'_{num_rows}.csv')):
+        if num_rows is not None and not os.path.exists(self.merge_file.replace('.csv', f'_r{num_rows}_s{seed}.csv')):
           if len(dataset_df) > num_rows:
-            dataset_df = dataset_df.sample(n=num_rows, random_state=42).reset_index(drop=True)  # Consistent random sampling
-            dataset_df.to_csv(self.merge_file.replace('.csv', f'_{num_rows}.csv'), index=False) # Save limited dataset.
+            dataset_df = dataset_df.sample(n=num_rows, random_state=seed).reset_index(drop=True)  # Consistent random sampling
+            dataset_df.to_csv(self.merge_file.replace('.csv', f'_r{num_rows}_s{seed}.csv'), index=False) # Save limited dataset.
 
 
         return dataset_df
@@ -157,7 +157,7 @@ class PostRecommendationsDataset(BaseDatasetLoader):
 
 
 def loader(dataset_name: str = "movielens", want_col: Optional[List[str]] = None,
-           num_rows: Optional[int] = None) -> pd.DataFrame:
+           num_rows: Optional[int] = None, seed: Optional[int] = None) -> pd.DataFrame:
     """
     Loads a specified dataset.
 
@@ -182,25 +182,4 @@ def loader(dataset_name: str = "movielens", want_col: Optional[List[str]] = None
         raise ValueError(f"Invalid dataset name: {dataset_name}. Choose from {list(loaders.keys())}")
 
     loader_instance = loaders[dataset_name]()
-    return loader_instance.load_dataset(want_col, num_rows)
-
-# Example Usage
-# # Load the entire MovieLens dataset
-# full_movielens = loader("movielens", ["userID", "itemID", "rating"])
-# print(f"Full MovieLens dataset shape: {full_movielens.shape}")
-# print(full_movielens.head())
-
-# # Load only 100,000 rows of the MovieLens dataset
-# limited_movielens = loader("movielens", ["userID", "itemID", "rating"], num_rows=100000)
-# print(f"Limited MovieLens dataset shape: {limited_movielens.shape}")
-# print(limited_movielens.head())
-
-# # Load full amazon dataset
-# amazon_data = loader("amazonsales",  ["userID", "itemID"])
-# print(f"Full Amazon dataset shape: {amazon_data.shape}")
-# print(amazon_data.head())
-
-# # Load full post recommendations dataset
-# post_data = loader("postrecommendations",  ["userID", "itemID"])
-# print(f"Full Post Recommendations dataset shape: {post_data.shape}")
-# print(post_data.head())
+    return loader_instance.load_dataset(want_col, num_rows, seed)

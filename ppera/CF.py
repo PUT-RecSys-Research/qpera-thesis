@@ -36,7 +36,7 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     }
 
     # Load the MovieLens dataset
-    data = datasets_loader.loader(dataset, want_col, num_rows)
+    data = datasets_loader.loader(dataset, want_col, num_rows, seed)
 
     # Split the dataset to training and testing dataset
     train, test = python_stratified_split(
@@ -121,6 +121,11 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
       "Distributional coverage:\t%f" % eval_distributional_coverage,
       sep='\n')
 
+    # print(top_k_with_titles.head(10))
+    # print(data.dtypes)
+    # print(data[['rating', 'timestamp']].head(10))
+    
+    
     # mlflow
     metrics = {
         "precision_at_K": eval_precision,
@@ -140,11 +145,11 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     mlflow.set_experiment("MLflow Colaborative Filtering v2")
 
     if dataset == 'movielens':
-        file_path = f"datasets/MovieLens/merge_file_{num_rows}.csv"
+        file_path = f"datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == 'amazonsales':
-        file_path = f"datasets/AmazonSales/merge_file_{num_rows}.csv"
+        file_path = f"datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == 'postrecommendations':
-        file_path = f"datasets/PostRecommendations/merge_file_{num_rows}.csv"
+        file_path = f"datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
 
     # Start an MLflow run
     with mlflow.start_run():
@@ -187,10 +192,3 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
             input_example=train,
             registered_model_name="CF-model test",
         )
-
-# if __name__ == "__main__":
-#     cf_experiment_loop(TOP_K=10, dataset='movielens',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42)
