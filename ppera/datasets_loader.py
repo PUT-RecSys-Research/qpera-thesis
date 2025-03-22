@@ -1,5 +1,7 @@
 import os
 import pandas as pd
+import rating_timestamp_gen
+
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Union
 
@@ -81,6 +83,7 @@ class AmazonSalesDataset(BaseDatasetLoader):
         self.column_mapping = {"user_id": "userID", "product_id": "itemID", "category": "genres", 'product_name': 'title', 'predicted_rating': 'rating'}
 
     def merge_datasets(self) -> pd.DataFrame:
+        rating_timestamp_gen.rating_timestamp_gen(self.dataset, self.dataset)
         df = pd.read_csv(self.dataset)
         df = self.normalize_column_names(df, self.column_mapping)
         df = df.drop_duplicates(subset=['userID', 'itemID'], keep='first')
