@@ -40,7 +40,7 @@ class BaseDatasetLoader(ABC):
             dataset_df.to_csv(self.merge_file, index=False)  # Save after merging
 
         if columns is not None:
-            self._validate_columns(dataset_df, columns)
+            self.validate_columns(dataset_df, columns)
             dataset_df = dataset_df[columns]
 
         # Apply row limit *after* merging and saving, but before column selection if merging happened
@@ -67,7 +67,7 @@ class BaseDatasetLoader(ABC):
         return df.rename(columns=column_mapping)
 
     @staticmethod
-    def _validate_columns(df: pd.DataFrame, columns: List[str]):
+    def validate_columns(df: pd.DataFrame, columns: List[str]):
         if not all(isinstance(c, str) for c in columns):
             raise TypeError("The 'columns' argument must be a list of strings (column names).")
 
@@ -94,11 +94,12 @@ class AmazonSalesDataset(BaseDatasetLoader):
         df['genres'] = df['genres'].str.replace('|', ' ', regex=False)
 
 
-        df = df.drop(columns=['about_product'])
+        #df = df.drop(columns=['about_product'])
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['timestamp'] = df['timestamp'].astype('int64') // 10**9
 
-
+        # drop unnecessary columns
+        df = df.drop(columns=['discounted_price', 'actual_price', 'discount_percentage', 'rating_count', 'about_product', 'user_name', 'review_id', 'review_title', 'review_content', 'img_link', 'product_link'])
         return df
 
 
@@ -110,6 +111,12 @@ class MovieLensDataset(BaseDatasetLoader):
         self.tag_file = os.path.join(self.data_path, "tag.csv")
         self.column_mapping = {"userId": "userID", "movieId": "itemID"}
 
+        # remove unused files
+        files_to_remove = ["genome_scores.csv", "genome_tags.csv", "link.csv"]
+        for file_name in files_to_remove:
+            file_path = os.path.join(data_path, file_name)
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
     def merge_datasets(self) -> pd.DataFrame:
       ratings_df = pd.read_csv(self.ratings_file)
@@ -125,8 +132,10 @@ class MovieLensDataset(BaseDatasetLoader):
     #   final_merge_file_df['timestamp'] = pd.to_datetime(final_merge_file_df['timestamp'])
     #   final_merge_file_df['timestamp'] = final_merge_file_df['timestamp'].astype('int64') // 10**9
 
-
       final_merge_file_df = final_merge_file_df.drop_duplicates(subset=['userID', 'itemID', 'rating'], keep='first')
+    # drop unnecessary columns
+      final_merge_file_df = final_merge_file_df.drop(columns=['tag_timestamp', 'tag'])
+        
       return final_merge_file_df
 
 
