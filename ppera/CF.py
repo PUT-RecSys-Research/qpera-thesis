@@ -11,6 +11,7 @@ from recommenders.models.sar import SAR
 
 import mlflow
 from mlflow.models import infer_signature
+import log_mlflow
 
 
 def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
@@ -122,22 +123,6 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
       "Distributional coverage:\t%f" % eval_distributional_coverage,
       sep='\n')
 
-
-    top_k_prediction = top_k.head(10)
-    print(top_k_prediction)
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(top_k_prediction['itemID'], top_k_prediction['prediction'], marker='o', linestyle='-')
-    plt.xlabel('ItemID')
-    plt.ylabel('prediction')
-    plt.title(f"Top K Predictions for User {top_k_prediction['userID'].iloc[0]}")
-    plt.grid(True)
-
-    plot_filename = f'plots/top_k_predictions_{dataset}.png'
-    plt.savefig(plot_filename)
-    plt.close()
-    
-    # mlflow
     metrics = {
         "precision_at_K": eval_precision,
         "recall_at_K": eval_recall,
@@ -149,60 +134,6 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
         "catalog_coverage": eval_catalog_coverage,
         "distributional_coverage": eval_distributional_coverage
     }
-    # Set our tracking server uri for logging
-    mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
-    # Create a new MLflow Experiment
-    mlflow.set_experiment("MLflow Colaborative Filtering v2")
-
-    if dataset == 'movielens':
-        file_path = f"datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
-    elif dataset == 'amazonsales':
-        file_path = f"datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
-    elif dataset == 'postrecommendations':
-        file_path = f"datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
-
-    # Start an MLflow run
-    with mlflow.start_run():
-        # Log dataset
-        if dataset == 'movielens':
-            mlflow.log_artifact(file_path, artifact_path="datasets/MovieLens")
-            # Log the dataset to make it appear in the "Dataset" column
-            dataset = mlflow.data.from_pandas(data, name="MovieLens Dataset", source=file_path)
-            mlflow.log_input(dataset, context="test")  # 'training' or 'evaluation'
-        elif dataset == 'amazonsales':
-            mlflow.log_artifact(file_path, artifact_path="datasets/AmazonSales")
-            # Log the dataset to make it appear in the "Dataset" column
-            dataset = mlflow.data.from_pandas(data, name="AmazonSales Dataset", source=file_path)
-            mlflow.log_input(dataset, context="test")  # 'training' or 'evaluation'
-        elif dataset == 'postrecommendations':
-            mlflow.log_artifact(file_path, artifact_path="datasets/PostRecommendations")
-            # Log the dataset to make it appear in the "Dataset" column
-            dataset = mlflow.data.from_pandas(data, name="PostRecommendations Dataset", source=file_path)
-            mlflow.log_input(dataset, context="test")
-
-        mlflow.log_artifact(plot_filename, artifact_path='plots')
-        # Optionally, log the data used for plotting
-        # top_k_prediction.to_csv('top_k_prediction.csv', index=False)
-        # mlflow.log_artifact('top_k_prediction.csv')
-
-        # Log the hyperparameters
-        mlflow.log_params(params)
-
-        # Log the loss metric
-        mlflow.log_metrics(metrics)
-
-        # Set a tag that we can use to remind ourselves what this run was for
-        mlflow.set_tag("Metrics Info", f"CF model for {dataset} dataset")
-
-        # Infer the model signature
-        signature = infer_signature(train, model.fit(train))
-
-        # Log the model
-        model_info = mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="CF-model",
-            signature=signature,
-            input_example=train,
-            registered_model_name="CF-model test",
-        )
+    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, model, 'CF', params, data, train)
+   

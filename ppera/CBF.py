@@ -6,6 +6,7 @@ from recommenders.models.tfidf.tfidf_utils import TfidfRecommender
 from recommenders.datasets.python_splitters import python_stratified_split
 from recommenders.evaluation.python_evaluation import map_at_k, ndcg_at_k, precision_at_k, recall_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
 from mlflow.models import infer_signature
+import log_mlflow
 
 def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     TOP_K = TOP_K
@@ -143,54 +144,4 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
         "distributional_coverage": eval_distributional_coverage
     }
 
-    # Set our tracking server uri for logging
-    mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
-
-    # Create a new MLflow Experiment
-    mlflow.set_experiment("MLflow Content Based Filtering v2")
-
-    if dataset == 'movielens':
-        file_path = f"datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
-    elif dataset == 'amazonsales':
-        file_path = f"datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
-    elif dataset == 'postrecommendations':
-        file_path = f"datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
-
-    # Start an MLflow run
-    with mlflow.start_run():
-        if dataset == 'movielens':
-            mlflow.log_artifact(file_path, artifact_path="datasets/MovieLens")
-            # Log the dataset to make it appear in the "Dataset" column
-            dataset = mlflow.data.from_pandas(data, name="MovieLens Dataset", source=file_path)
-            mlflow.log_input(dataset, context="test")  # 'training' or 'evaluation'
-        elif dataset == 'amazonsales':
-            mlflow.log_artifact(file_path, artifact_path="datasets/AmazonSales")
-            # Log the dataset to make it appear in the "Dataset" column
-            dataset = mlflow.data.from_pandas(data, name="AmazonSales Dataset", source=file_path)
-            mlflow.log_input(dataset, context="test")  # 'training' or 'evaluation'
-        elif dataset == 'postrecommendations':
-            mlflow.log_artifact(file_path, artifact_path="datasets/PostRecommendations")
-            # Log the dataset to make it appear in the "Dataset" column
-            dataset = mlflow.data.from_pandas(data, name="PostRecommendations Dataset", source=file_path)
-            mlflow.log_input(dataset, context="test")
-        
-        # Log the hyperparameters
-        mlflow.log_params(params)
-
-        # Log the loss metric
-        mlflow.log_metrics(metrics)
-
-        # Set a tag that we can use to remind ourselves what this run was for
-        mlflow.set_tag("Metrics Info", f"CBF model for {dataset} dataset")
-
-        # Infer the model signature
-        signature = infer_signature(train, recommender.fit(tf, vectors_tokenized))
-
-        # Log the model
-        model_info = mlflow.sklearn.log_model(
-            sk_model=recommender,
-            artifact_path="CBF-model",
-            signature=signature,
-            input_example=train,
-            registered_model_name="CBF-model test",
-        )
+    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized)
