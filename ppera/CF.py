@@ -1,4 +1,5 @@
 import os
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import datasets_loader
@@ -121,10 +122,20 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
       "Distributional coverage:\t%f" % eval_distributional_coverage,
       sep='\n')
 
-    # print(top_k_with_titles.head(10))
-    # print(data.dtypes)
-    # print(data[['rating', 'timestamp']].head(10))
+
+    top_k_prediction = top_k.head(10)
+    print(top_k_prediction)
     
+    plt.figure(figsize=(10, 6))
+    plt.plot(top_k_prediction['itemID'], top_k_prediction['prediction'], marker='o', linestyle='-')
+    plt.xlabel('ItemID')
+    plt.ylabel('prediction')
+    plt.title(f"Top K Predictions for User {top_k_prediction['userID'].iloc[0]}")
+    plt.grid(True)
+
+    plot_filename = f'plots/top_k_predictions_{dataset}.png'
+    plt.savefig(plot_filename)
+    plt.close()
     
     # mlflow
     metrics = {
@@ -170,7 +181,10 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
             dataset = mlflow.data.from_pandas(data, name="PostRecommendations Dataset", source=file_path)
             mlflow.log_input(dataset, context="test")
 
-
+        mlflow.log_artifact(plot_filename, artifact_path='plots')
+        # Optionally, log the data used for plotting
+        # top_k_prediction.to_csv('top_k_prediction.csv', index=False)
+        # mlflow.log_artifact('top_k_prediction.csv')
 
         # Log the hyperparameters
         mlflow.log_params(params)
