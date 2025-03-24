@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 from recommenders.evaluation.python_evaluation import merge_rating_true_pred, merge_ranking_true_pred
 from sklearn.metrics import (
-    precision_score,
-    f1_score,
     label_ranking_average_precision_score,
     accuracy_score
 )
@@ -114,19 +112,19 @@ def recall_at_k(
     return sum(recalls) / len(recalls) if recalls else 0.0
 
 
-# def f1(
-#     rating_true,
-#     rating_pred,
-#     col_user=DEFAULT_USER_COL,
-#     col_item=DEFAULT_ITEM_COL,
-#     col_prediction=DEFAULT_PREDICTION_COL,
-#     relevancy_method="top_k",
-#     k=1,
-#     threshold=DEFAULT_THRESHOLD,
-# ):
-#     precision = precision_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
-#     recall = recall_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
-#     return (2*precision*recall)/(precision+recall)
+def f1(
+    rating_true,
+    rating_pred,
+    col_user=DEFAULT_USER_COL,
+    col_item=DEFAULT_ITEM_COL,
+    col_prediction=DEFAULT_PREDICTION_COL,
+    relevancy_method="top_k",
+    k=1,
+    threshold=DEFAULT_THRESHOLD,
+):
+    precision = precision_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
+    recall = recall_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
+    return (2*precision*recall)/(precision+recall)
 
 def mrr(
     rating_true,
@@ -251,7 +249,7 @@ def item_coverage(
     coverage = meaningful_items / total_items if total_items > 0 else 0
     return coverage
 
-# ------------------------------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------
 # The code below was copied from recmetrics
 # https://github.com/statisticianinstilettos/recmetrics/blob/master/recmetrics/metrics.py
 
@@ -360,3 +358,52 @@ def personalization(predicted: List[list]) -> float:
     dim = similarity.shape[0]
     personalization = (similarity.sum() - dim) / (dim * (dim - 1))
     return 1-personalization
+
+# ----------------------------------------------------------------------------------------------------------------------------------------
+
+def intra_list_similarity_score(
+    rating_true,
+    rating_pred,
+    col_user=DEFAULT_USER_COL,
+    col_item=DEFAULT_ITEM_COL,
+    col_rating=DEFAULT_RATING_COL,
+    col_prediction=DEFAULT_PREDICTION_COL,
+) -> float:
+    """
+    Interfejs do funkcji intra_list_similarity.
+    Oblicza średnie wewnętrzne podobieństwo list rekomendacji.
+    
+    :param rating_true: Prawdziwe oceny użytkowników (DataFrame zawierający cechy przedmiotów)
+    :param rating_pred: Przewidywane oceny użytkowników
+    :param col_user: Kolumna identyfikująca użytkownika
+    :param col_item: Kolumna identyfikująca przedmiot
+    :param col_rating: Kolumna z rzeczywistą oceną (nieużywana w tej funkcji)
+    :param col_prediction: Kolumna z przewidywaną oceną (nieużywana w tej funkcji)
+    :return: Średnia wartość intra-list similarity
+    """
+    predicted_lists = rating_pred.groupby(col_user)[col_item].apply(list).tolist()
+    feature_df = rating_true.set_index(col_item).drop(columns=[col_user, col_rating, col_prediction], errors='ignore')
+    return intra_list_similarity(predicted=predicted_lists, feature_df=feature_df)
+
+def personalization_score(
+    rating_true,
+    rating_pred,
+    col_user=DEFAULT_USER_COL,
+    col_item=DEFAULT_ITEM_COL,
+    col_rating=DEFAULT_RATING_COL,
+    col_prediction=DEFAULT_PREDICTION_COL,
+) -> float:
+    """
+    Interfejs do funkcji personalization.
+    Mierzy stopień personalizacji rekomendacji między użytkownikami.
+    
+    :param rating_true: Prawdziwe oceny użytkowników (nieużywane w tej funkcji)
+    :param rating_pred: Przewidywane oceny użytkowników
+    :param col_user: Kolumna identyfikująca użytkownika
+    :param col_item: Kolumna identyfikująca przedmiot
+    :param col_rating: Kolumna z rzeczywistą oceną (nieużywana w tej funkcji)
+    :param col_prediction: Kolumna z przewidywaną oceną (nieużywana w tej funkcji)
+    :return: Wartość personalizacji (im wyższa, tym lepsza personalizacja)
+    """
+    predicted_lists = rating_pred.groupby(col_user)[col_item].apply(list).tolist()
+    return personalization(predicted=predicted_lists)
