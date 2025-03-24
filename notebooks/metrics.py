@@ -63,6 +63,7 @@ def precision_at_k(
         
         # Obliczenie precyzji
         precision = len(true_items & top_k_items)
+        precision = 1 if precision > 0 else 0
         precisions.append(precision)
     
     return sum(precisions) / len(precisions) if precisions else 0.0
