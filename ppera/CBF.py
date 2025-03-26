@@ -6,6 +6,7 @@ from recommenders.models.tfidf.tfidf_utils import TfidfRecommender
 from recommenders.datasets.python_splitters import python_stratified_split
 from recommenders.evaluation.python_evaluation import map_at_k, ndcg_at_k, precision_at_k, recall_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
 from mlflow.models import infer_signature
+import log_mlflow
 
 def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     TOP_K = TOP_K
@@ -34,12 +35,12 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     }
 
     # Load the MovieLens dataset
-    data = datasets_loader.loader(dataset, want_col, num_rows)
+    data = datasets_loader.loader(dataset, want_col, num_rows, seed)
     data["rating"] = data["rating"].astype(np.float32)
 
     # Create a TF-IDF model
     recommender = TfidfRecommender(id_col='itemID', tokenization_method='bert')
-    data['genres'] = data['genres'].str.replace('|', ' ', regex=False)
+    # data['genres'] = data['genres'].str.replace('|', ' ', regex=False)
 
     df_clean = data.drop(columns=['userID', 'rating', 'timestamp'])
     df_clean = df_clean.drop_duplicates(subset=['itemID'])
@@ -128,6 +129,8 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
       "Catalog coverage:\t%f" % eval_catalog_coverage,
       "Distributional coverage:\t%f" % eval_distributional_coverage,
       sep='\n')
+    
+    
     # mlflow
     metrics = {
         "precision_at_K": eval_precision,
@@ -141,40 +144,4 @@ def cbf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
         "distributional_coverage": eval_distributional_coverage
     }
 
-    # Set our tracking server uri for logging
-    mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
-
-    # Create a new MLflow Experiment
-    mlflow.set_experiment("MLflow Content Based Filtering v2")
-
-    # Start an MLflow run
-    with mlflow.start_run():
-        # Log the hyperparameters
-        mlflow.log_params(params)
-
-        # Log the loss metric
-        mlflow.log_metrics(metrics)
-
-        # Set a tag that we can use to remind ourselves what this run was for
-        mlflow.set_tag("Metrics Info", f"CBF model for {dataset} dataset")
-
-        # Infer the model signature
-        signature = infer_signature(train, recommender.fit(tf, vectors_tokenized))
-
-        # Log the model
-        model_info = mlflow.sklearn.log_model(
-            sk_model=recommender,
-            artifact_path="CBF-model",
-            signature=signature,
-            input_example=train,
-            registered_model_name="CBF-model test",
-        )
-
-
-
-# if __name__ == "__main__":
-#     cbf_experiment_loop(TOP_K=10, dataset='movielens',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42)
+    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized)

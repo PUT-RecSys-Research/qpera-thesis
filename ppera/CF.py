@@ -1,3 +1,5 @@
+import os
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import datasets_loader
@@ -9,6 +11,7 @@ from recommenders.models.sar import SAR
 
 import mlflow
 from mlflow.models import infer_signature
+import log_mlflow
 
 
 def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
@@ -35,14 +38,14 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     }
 
     # Load the MovieLens dataset
-    data = datasets_loader.loader(dataset, want_col, num_rows)
+    data = datasets_loader.loader(dataset, want_col, num_rows, seed)
 
     # Split the dataset to training and testing dataset
     train, test = python_stratified_split(
         data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed
     )
-    train['timestamp'] = pd.to_datetime(train['timestamp'])
-    train['timestamp'] = train['timestamp'].astype('int64') // 10**9
+    # train['timestamp'] = pd.to_datetime(train['timestamp'])
+    # train['timestamp'] = train['timestamp'].astype('int64') // 10**9
 
     # Create an SAR model
     model = SAR(
@@ -120,7 +123,6 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
       "Distributional coverage:\t%f" % eval_distributional_coverage,
       sep='\n')
 
-    # mlflow
     metrics = {
         "precision_at_K": eval_precision,
         "recall_at_K": eval_recall,
@@ -132,38 +134,6 @@ def cf_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
         "catalog_coverage": eval_catalog_coverage,
         "distributional_coverage": eval_distributional_coverage
     }
-    # Set our tracking server uri for logging
-    mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
-    # Create a new MLflow Experiment
-    mlflow.set_experiment("MLflow Colaborative Filtering v2")
-
-    # Start an MLflow run
-    with mlflow.start_run():
-        # Log the hyperparameters
-        mlflow.log_params(params)
-
-        # Log the loss metric
-        mlflow.log_metrics(metrics)
-
-        # Set a tag that we can use to remind ourselves what this run was for
-        mlflow.set_tag("Metrics Info", f"CF model for {dataset} dataset")
-
-        # Infer the model signature
-        signature = infer_signature(train, model.fit(train))
-
-        # Log the model
-        model_info = mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="CF-model",
-            signature=signature,
-            input_example=train,
-            registered_model_name="CF-model test",
-        )
-
-# if __name__ == "__main__":
-#     cf_experiment_loop(TOP_K=10, dataset='movielens',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42)
+    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, model, 'CF', params, data, train)
+   
