@@ -381,8 +381,14 @@ def intra_list_similarity_score(
     :param col_prediction: Kolumna z przewidywaną oceną (nieużywana w tej funkcji)
     :return: Średnia wartość intra-list similarity
     """
+    # Lista rekomendacji dla każdego użytkownika
     predicted_lists = rating_pred.groupby(col_user)[col_item].apply(list).tolist()
-    feature_df = rating_true.set_index(col_item).drop(columns=[col_user, col_rating, col_prediction], errors='ignore')
+
+    # Użyj tylko itemID i timestamp jako cechy
+    feature_df = rating_true[[col_item, 'timestamp']].copy()
+    feature_df['timestamp'] = pd.to_datetime(feature_df['timestamp'], errors='coerce').astype('int64') // 10**9  # unix time
+    feature_df = feature_df.dropna()
+    feature_df = feature_df.set_index(col_item)
     return intra_list_similarity(predicted=predicted_lists, feature_df=feature_df)
 
 def personalization_score(
