@@ -361,35 +361,153 @@ def personalization(predicted: List[list]) -> float:
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
 
+# def intra_list_similarity_score(
+#     item_features: pd.DataFrame,
+#     rating_pred: pd.DataFrame,
+#     col_user: str = 'userID',
+#     col_item: str = 'itemID',
+#     feature_cols: list = None
+# ) -> float:
+#     """
+#     Oblicza średnie podobieństwo między itemami w przewidywanej liście rekomendacji dla każdego użytkownika.
+
+#     :param item_features: DataFrame z kolumnami [itemID, <feature_cols>]
+#     :param rating_pred: DataFrame z kolumnami [userID, itemID, prediction]
+#     :param col_user: Nazwa kolumny z identyfikatorem użytkownika
+#     :param col_item: Nazwa kolumny z identyfikatorem itemu
+#     :param feature_cols: Lista kolumn zawierających cechy itemów
+#     :return: Średnia intra-list similarity
+#     """
+    
+#     if feature_cols is None:
+#         raise ValueError("Musisz podać feature_cols — listę kolumn cech itemów")
+
+#     # Debugging: sprawdzenie struktury danych
+#     print(f"rating_pred columns: {rating_pred.columns}")
+#     print(f"item_features columns: {item_features.columns}")
+
+#     # Scalanie rating_pred z cechami z item_features
+#     rating_pred_with_features = pd.merge(rating_pred, item_features[[col_item] + feature_cols], on=col_item, how='left')
+    
+#     # Debugging: Sprawdzenie, czy po scaleniu mamy odpowiednie dane
+#     print(f"Zmergowane dane:\n{rating_pred_with_features.head()}")
+
+#     # Sprawdzenie brakujących wartości
+#     print(f"Brakujące wartości w rating_pred_with_features:\n{rating_pred_with_features.isna().sum()}")
+
+#     # Obsługa kolumn tekstowych (np. 'genres')
+#     feature_df = rating_pred_with_features[[col_item] + feature_cols].copy()
+#     for col in feature_cols:
+#         if feature_df[col].dtype == 'object':
+#             if feature_df[col].str.contains('|', regex=False).any():
+#                 dummies = feature_df[col].str.get_dummies(sep='|')
+#             else:
+#                 dummies = pd.get_dummies(feature_df[col], prefix=col)
+#             feature_df = pd.concat([feature_df.drop(columns=[col]), dummies], axis=1)
+
+#     # Usunięcie NaN, duplikatów i ustawienie indeksu na itemID
+#     feature_df = feature_df.dropna().drop_duplicates(subset=col_item)
+#     feature_df = feature_df.reset_index(drop=True)
+#     print(f"Feature DataFrame po przetworzeniu:\n{feature_df.head()}")
+
+#     # Grupowanie rekomendacji po użytkowniku
+#     predicted_lists = rating_pred_with_features.groupby(col_user)[col_item].apply(list)
+#     predicted_lists = predicted_lists.reset_index(drop=True)
+#     print(f"Predicted lists:\n{predicted_lists.head()}")
+
+#     # Obliczenie intra-list similarity
+#     return intra_list_similarity(predicted=rating_pred_with_features, feature_df=feature_df)
+
 def intra_list_similarity_score(
-    rating_true,
-    rating_pred,
-    col_user=DEFAULT_USER_COL,
-    col_item=DEFAULT_ITEM_COL,
-    col_rating=DEFAULT_RATING_COL,
-    col_prediction=DEFAULT_PREDICTION_COL,
+    item_features: pd.DataFrame,
+    rating_pred: pd.DataFrame,
+    col_user: str = 'userID',
+    col_item: str = 'itemID',
+    feature_cols: list = None
 ) -> float:
     """
-    Interfejs do funkcji intra_list_similarity.
-    Oblicza średnie wewnętrzne podobieństwo list rekomendacji.
-    
-    :param rating_true: Prawdziwe oceny użytkowników (DataFrame zawierający cechy przedmiotów)
-    :param rating_pred: Przewidywane oceny użytkowników
-    :param col_user: Kolumna identyfikująca użytkownika
-    :param col_item: Kolumna identyfikująca przedmiot
-    :param col_rating: Kolumna z rzeczywistą oceną (nieużywana w tej funkcji)
-    :param col_prediction: Kolumna z przewidywaną oceną (nieużywana w tej funkcji)
-    :return: Średnia wartość intra-list similarity
-    """
-    # Lista rekomendacji dla każdego użytkownika
-    predicted_lists = rating_pred.groupby(col_user)[col_item].apply(list).tolist()
+    Oblicza średnie podobieństwo między itemami w przewidywanej liście rekomendacji dla każdego użytkownika.
 
-    # Użyj tylko itemID i timestamp jako cechy
-    feature_df = rating_true[[col_item, 'timestamp']].copy()
-    feature_df['timestamp'] = pd.to_datetime(feature_df['timestamp'], errors='coerce').astype('int64') // 10**9  # unix time
-    feature_df = feature_df.dropna()
+    :param item_features: DataFrame z kolumnami [itemID, <feature_cols>]
+    :param rating_pred: DataFrame z kolumnami [userID, itemID, prediction]
+    :param col_user: Nazwa kolumny z identyfikatorem użytkownika
+    :param col_item: Nazwa kolumny z identyfikatorem itemu
+    :param feature_cols: Lista kolumn zawierających cechy itemów
+    :return: Średnia intra-list similarity
+    """
+
+    if feature_cols is None:
+        raise ValueError("Musisz podać feature_cols — listę kolumn cech itemów")
+
+    # Połącz dane predykcji z cechami itemów
+    rating_pred_with_features = pd.merge(
+        rating_pred,
+        item_features[[col_item] + feature_cols],
+        on=col_item,
+        how='left'
+    )
+
+    # Przekształć cechy (np. tekstowe) na wektory (one-hot/dummy)
+    feature_df = rating_pred_with_features[[col_item] + feature_cols].copy()
+    for col in feature_cols:
+        if feature_df[col].dtype == 'object':
+            if feature_df[col].str.contains('|', regex=False).any():
+                dummies = feature_df[col].str.get_dummies(sep='|')
+            else:
+                dummies = pd.get_dummies(feature_df[col], prefix=col)
+            feature_df = pd.concat([feature_df.drop(columns=[col]), dummies], axis=1)
+
+    # Usuń NaN i duplikaty
+    feature_df = feature_df.dropna().drop_duplicates(subset=col_item)
+
+    # Przypisz nowe ID (zaczynając od 1) – synchronizacja
+    item_id_map = {old_id: new_id for new_id, old_id in enumerate(feature_df[col_item].unique(), start=1)}
+    feature_df[col_item] = feature_df[col_item].map(item_id_map)
+    rating_pred_with_features[col_item] = rating_pred_with_features[col_item].map(item_id_map)
+
+    # Ustaw index i uzupełnij brakujące wartości zerami
     feature_df = feature_df.set_index(col_item)
-    return intra_list_similarity(predicted=predicted_lists, feature_df=feature_df)
+    feature_df = feature_df.fillna(0)
+
+    # Grupuj rekomendacje według użytkownika
+    predicted_lists = rating_pred_with_features.groupby(col_user)[col_item].apply(list)
+
+    # Oblicz intra-list similarity ręcznie
+    ils_values = []
+
+    for user_list in predicted_lists:
+        if len(user_list) < 2:
+            continue  # pomiń, jeśli lista ma mniej niż 2 elementy
+
+        try:
+            item_vectors = feature_df.loc[user_list].values
+        except KeyError as e:
+            continue  # pomiń, jeśli nie można znaleźć itemów
+
+        # Oblicz macierz podobieństw
+        sim_matrix = cosine_similarity(item_vectors)
+
+        # Bierzemy tylko górny trójkąt bez diagonali (podobieństwa par)
+        n = len(user_list)
+        upper_triangle_indices = np.triu_indices(n, k=1)
+        sims = sim_matrix[upper_triangle_indices]
+
+        if len(sims) > 0:
+            ils_values.append(np.mean(sims))
+
+    # Zwróć średnie podobieństwo z wszystkich użytkowników
+    return np.mean(ils_values) if ils_values else 0.0
+
+
+
+def intra_list_dissimilarity(    
+    item_features,
+    rating_pred,
+    col_user = 'userID',
+    col_item = 'itemID',
+    feature_cols = None
+) -> float:
+    return 1 - intra_list_similarity_score(item_features=item_features, rating_pred=rating_pred, col_user=col_user, col_item=col_item, feature_cols=feature_cols)
 
 def personalization_score(
     rating_true,
