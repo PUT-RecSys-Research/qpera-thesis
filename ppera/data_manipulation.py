@@ -105,3 +105,41 @@ def hide_information_in_dataframe(data: pd.DataFrame,
         raise ValueError(f"Invalid 'hide_type': {hide_type}. Valid options are 'columns', 'records_random', 'records_selective', 'values_in_column'.")
 
     return df
+
+
+def change_items_in_dataframe(all: pd.DataFrame,
+                              data: pd.DataFrame,
+                              fraction_to_change: float = 0.0,
+                              seed: int = 42) -> pd.DataFrame:
+    np.random.seed(seed)
+    df = data.copy()
+
+    # Tworzymy rozkład prawdopodobieństwa itemID w całym zbiorze
+    item_distribution = all['itemID'].value_counts(normalize=True)
+
+    # Słownik: itemID -> (title, genres)
+    item_details = all.drop_duplicates('itemID').set_index('itemID')[['title', 'genres']].to_dict(orient='index')
+
+    # Dla każdego użytkownika
+    for user_id in df['userID'].unique():
+        user_mask = df['userID'] == user_id
+        user_data = df[user_mask]
+        n_rows_to_change = int(len(user_data) * fraction_to_change)
+
+        if n_rows_to_change == 0:
+            continue
+
+        # Wybierz indeksy do podmiany
+        indices_to_change = np.random.choice(user_data.index, size=n_rows_to_change, replace=False)
+
+        # Losuj nowe itemID na podstawie rozkładu
+        new_itemIDs = np.random.choice(item_distribution.index, size=n_rows_to_change, p=item_distribution.values)
+
+        # Podmień itemID oraz odpowiadające dane
+        for idx, new_id in zip(indices_to_change, new_itemIDs):
+            df.at[idx, 'itemID'] = new_id
+            df.at[idx, 'title'] = item_details[new_id]['title']
+            df.at[idx, 'genres'] = item_details[new_id]['genres']
+
+    return df
+
