@@ -5,7 +5,7 @@ import pandas as pd
 import datasets_loader
 
 from recommenders.datasets import movielens
-from recommenders.datasets.python_splitters import python_random_split
+from recommenders.datasets.python_splitters import python_stratified_split
 from recommenders.evaluation.python_evaluation import map, ndcg_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
 from recommenders.models.cornac.cornac_utils import predict_ranking
 from recommenders.utils.timer import Timer
@@ -20,6 +20,17 @@ def cf_bpr_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     ratio = ratio
     seed = seed
 
+    header = {
+        "col_user": "userID",
+        "col_item": "itemID",
+        "col_rating": "rating",
+        "col_timestamp": "timestamp",
+        "col_title": "title",
+        "col_genres": "genres",
+        "col_year": "year",
+        "col_prediction": "prediction",
+    }
+
     # Model parameters
     NUM_FACTORS = 200
     NUM_EPOCHS = 100
@@ -28,7 +39,9 @@ def cf_bpr_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     data = datasets_loader.loader(dataset, want_col, num_rows, seed)
 
     # Algorithm
-    train, test = python_random_split(data, 0.75)
+    train, test = python_stratified_split(
+        data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed
+    )
     train_set = cornac.data.Dataset.from_uir(train.itertuples(index=False), seed=SEED)
 
     bpr = cornac.models.BPR(

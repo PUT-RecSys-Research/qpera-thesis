@@ -1,6 +1,6 @@
-import CF
-import CBF
-import CF_BPR
+# import CF
+# import CBF
+# import CF_BPR
 import test2
 
 # mlflow server --host 127.0.0.1 --port 8080
@@ -38,6 +38,6 @@ import test2
 
 test2.test_experiment_loop(TOP_K=10, dataset='movielens',
                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-                        num_rows=1000,
+                        num_rows=10000,
                         ratio=0.75,
                         seed=42)

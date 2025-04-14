@@ -110,6 +110,7 @@ def hide_information_in_dataframe(data: pd.DataFrame,
 def change_items_in_dataframe(all: pd.DataFrame,
                               data: pd.DataFrame,
                               fraction_to_change: float = 0.0,
+                              change_rating: bool = False,
                               seed: int = 42) -> pd.DataFrame:
     np.random.seed(seed)
     df = data.copy()
@@ -119,6 +120,15 @@ def change_items_in_dataframe(all: pd.DataFrame,
 
     # Słownik: itemID -> (title, genres)
     item_details = all.drop_duplicates('itemID').set_index('itemID')[['title', 'genres']].to_dict(orient='index')
+
+    # Jeśli zmieniamy rating — przygotuj słownik itemID -> średnia ocena
+    if change_rating:
+        item_avg_rating = (
+            all.groupby('itemID')['rating']
+            .mean()
+            .apply(lambda x: round(x * 2) / 2)
+            .to_dict()
+        )
 
     # Dla każdego użytkownika
     for user_id in df['userID'].unique():
@@ -140,6 +150,8 @@ def change_items_in_dataframe(all: pd.DataFrame,
             df.at[idx, 'itemID'] = new_id
             df.at[idx, 'title'] = item_details[new_id]['title']
             df.at[idx, 'genres'] = item_details[new_id]['genres']
+            if change_rating and new_id in item_avg_rating:
+                df.at[idx, 'rating'] = item_avg_rating[new_id]
 
     return df
 
