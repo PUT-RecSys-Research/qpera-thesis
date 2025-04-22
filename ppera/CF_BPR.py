@@ -12,13 +12,36 @@ from recommenders.utils.timer import Timer
 from recommenders.utils.constants import SEED
 # from metrics import precision_at_k, recall_at_k, mrr, accuracy, user_coverage, item_coverage
 
-def cf_bpr_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
+def cf_bpr_experiment_loop(
+        TOP_K, 
+        dataset, 
+        want_col, 
+        num_rows, 
+        ratio, 
+        seed,
+        personalization=False,
+        fraction_to_change = 0,
+        change_rating = False,
+        privacy=False,
+        hide_type="values_in_column",
+        columns_to_hide=None,
+        fraction_to_hide = 0,
+        records_to_hide=None
+        ):
     TOP_K = TOP_K
     dataset = dataset
     want_col = want_col
     num_rows = num_rows
     ratio = ratio
     seed = seed
+    personalization=personalization
+    fraction_to_change=fraction_to_change
+    change_rating=change_rating
+    privacy = privacy
+    hide_type=hide_type
+    columns_to_hide=columns_to_hide
+    fraction_to_hide=fraction_to_hide
+    records_to_hide=records_to_hide
 
     header = {
         "col_user": "userID",
@@ -42,6 +65,26 @@ def cf_bpr_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
     train, test = python_stratified_split(
         data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed
     )
+
+    if privacy:
+        train = dm.hide_information_in_dataframe(
+            data=train, 
+            hide_type=hide_type, 
+            columns_to_hide=columns_to_hide, 
+            fraction_to_hide=fraction_to_hide,
+            records_to_hide=records_to_hide,
+            seed=seed)
+        
+    if personalization:
+        train = dm.change_items_in_dataframe(
+            all=data,
+            data=train,
+            fraction_to_change=fraction_to_change,
+            change_rating=change_rating,
+            seed=seed
+        )
+
+
     train_set = cornac.data.Dataset.from_uir(train.itertuples(index=False), seed=SEED)
 
     bpr = cornac.models.BPR(
