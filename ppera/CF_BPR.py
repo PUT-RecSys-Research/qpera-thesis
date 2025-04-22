@@ -4,6 +4,7 @@ import cornac
 import pandas as pd
 import datasets_loader
 
+import data_manipulation as dm
 from recommenders.datasets import movielens
 from recommenders.datasets.python_splitters import python_stratified_split
 from recommenders.evaluation.python_evaluation import map, ndcg_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
