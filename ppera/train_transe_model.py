@@ -243,14 +243,11 @@ def extract_embeddings(args):
         save_embed(args.dataset, embeds)
         logger.info("Embeddings extracted and saved successfully.")
 
-
-# --- MAIN FUNCTION (Mostly Unchanged) ---
-
-def main():
+# --- MAIN FUNCTION ---
+def train_transe_model_rl(dataset):
     parser = argparse.ArgumentParser()
     # Updated default dataset and help string
-    parser.add_argument('--dataset', type=str, default=MOVIELENS,
-                        help=f'One of {{{MOVIELENS}, {AMAZONSALES}, {POSTRECOMMENDATIONS}}}.')
+    parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
     parser.add_argument('--name', type=str, default='train_transe_model', help='model name.')
     parser.add_argument('--seed', type=int, default=123, help='random seed.')
     parser.add_argument('--gpu', type=str, default='1', help='gpu device.')
@@ -282,8 +279,4 @@ def main():
     train(args)
     extract_embeddings(args)
     logger.info("----- Train KGE End -----")
-
-
-if __name__ == '__main__':
-    main()
 

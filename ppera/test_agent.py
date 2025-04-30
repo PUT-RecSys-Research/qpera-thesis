@@ -143,7 +143,7 @@ def predict_paths(policy_file, path_file, args):
     pickle.dump(predicts, open(path_file, 'wb'))
 
 
-def evaluate_paths(path_file, train_labels, test_labels):
+def evaluate_paths(path_file, train_labels, test_labels, args):
     embeds = load_embed(args.dataset)
     user_embeds = embeds[USERID]
     purchase_embeds = embeds[PURCHASE][0]
@@ -214,14 +214,13 @@ def test(args):
     if args.run_path:
         predict_paths(policy_file, path_file, args)
     if args.run_eval:
-        evaluate_paths(path_file, train_labels, test_labels)
+        evaluate_paths(path_file, train_labels, test_labels, args)
 
 
-if __name__ == '__main__':
+def test_agent_rl(dataset):
     boolean = lambda x: (str(x).lower() == 'true')
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default=MOVIELENS,
-                        help=f'One of {{{MOVIELENS}, {AMAZONSALES}, {POSTRECOMMENDATIONS}}}.')
+    parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
     parser.add_argument('--name', type=str, default='train_agent', help='directory name.')
     parser.add_argument('--seed', type=int, default=123, help='random seed.')
     parser.add_argument('--gpu', type=str, default='0', help='gpu device.')

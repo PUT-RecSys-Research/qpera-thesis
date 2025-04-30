@@ -189,11 +189,10 @@ def train(args):
         torch.save(model.state_dict(), policy_file)
 
 
-def main():
+def train_agent_rl(dataset):
     parser = argparse.ArgumentParser()
     # Updated default dataset and help string
-    parser.add_argument('--dataset', type=str, default=MOVIELENS,
-                        help=f'One of {{{MOVIELENS}, {AMAZONSALES}, {POSTRECOMMENDATIONS}}}.')
+    parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
     parser.add_argument('--name', type=str, default='train_agent', help='directory name.')
     parser.add_argument('--seed', type=int, default=123, help='random seed.')
     parser.add_argument('--gpu', type=str, default='0', help='gpu device.')
@@ -222,8 +221,4 @@ def main():
 
     set_random_seed(args.seed)
     train(args)
-
-
-if __name__ == '__main__':
-    main()
 
