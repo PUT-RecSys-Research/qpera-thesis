@@ -14,7 +14,7 @@ import torch
 # Dataset names.
 MOVIELENS = 'movielens'
 AMAZONSALES = 'amazonsales'
-POSTRECOMMENDATIONS = 'PostRecommendations'
+POSTRECOMMENDATIONS = 'postrecommendations'
 
 # Dataset directories.
 DATASET_DIR = {
