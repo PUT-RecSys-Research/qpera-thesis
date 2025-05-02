@@ -57,16 +57,16 @@ def print_experiment_header(algorithm_name, dataset_name, num_rows):
 
 # --- Experiment Definitions ---
 experiments = [
-    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
     {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
     {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
 
-    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
     {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
     {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'amazonsales', 'rows': 10000},
 
-    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
     {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
     {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
 ]
 
