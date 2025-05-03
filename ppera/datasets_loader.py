@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import rating_timestamp_gen
+import frequency_based_rating_gen
 
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Union
@@ -147,7 +148,7 @@ class PostRecommendationsDataset(BaseDatasetLoader):
         self.userData_file = os.path.join(self.data_path, "user_data.csv")
         self.viewData_file = os.path.join(self.data_path, "view_data.csv")
         self.postData_file = os.path.join(self.data_path, "post_data.csv")
-        self.column_mapping = {"user_id": "userID", "post_id": "itemID"}
+        self.column_mapping = {"user_id": "userID", "post_id": "itemID", "time_stamp": "timestamp", "category": "genres"}
 
     def merge_datasets(self) -> pd.DataFrame:
         user_df = pd.read_csv(self.userData_file)
@@ -158,14 +159,17 @@ class PostRecommendationsDataset(BaseDatasetLoader):
         final_merge_file_df = pd.merge(merge_file_df, post_df, on="post_id", how="left")
         final_merge_file_df = self.normalize_column_names(final_merge_file_df, self.column_mapping)
 
+        final_merge_file_df['genres'] = final_merge_file_df['genres'].str.replace('|', ' ', regex=False)
+        final_merge_file_df['timestamp'] = pd.to_datetime(final_merge_file_df['timestamp'])
+        final_merge_file_df['timestamp'] = final_merge_file_df['timestamp'].astype('int64') // 10**9
 
-        # TODO: Uncomment this line after adding the genres column to the dataset
-        # final_merge_file_df['genres'] = final_merge_file_df['genres'].str.replace('|', ' ', regex=False)
-        # final_merge_file_df['timestamp'] = pd.to_datetime(final_merge_file_df['timestamp'])
-        # final_merge_file_df['timestamp'] = final_merge_file_df['timestamp'].astype('int64') // 10**9
-
-
+        
+        final_merge_file_df = final_merge_file_df.drop(columns=['avatar'])
         final_merge_file_df = final_merge_file_df.drop_duplicates(subset=['userID', 'itemID'], keep='first')
+
+        # generate ratings
+        final_merge_file_df = frequency_based_rating_gen.frequency_based_rating_gen(final_merge_file_df, user_col='userID', category_col='genres')
+
         return final_merge_file_df
 
 
