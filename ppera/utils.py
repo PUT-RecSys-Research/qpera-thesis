@@ -44,6 +44,7 @@ ITEMID = 'item_id'
 TITLE = 'title'
 GENRES = 'genres'
 RATING = 'rating'
+PREDICTION = 'prediction'
 
 
 # Relations

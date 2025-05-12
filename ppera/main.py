@@ -60,17 +60,17 @@ def print_experiment_header(algorithm_name, dataset_name, num_rows):
 experiments = [
     {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
     {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
-    {'algo': 'CF_BPR', 'module': CF_BPR, 'func': 'cbf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
+    {'algo': 'CF_BPR', 'module': CF_BPR, 'func': 'cf_bpr_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
     {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
 
     {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
     {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
-    {'algo': 'CF_BPR', 'module': CF_BPR, 'func': 'cbf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
+    {'algo': 'CF_BPR', 'module': CF_BPR, 'func': 'cf_bpr_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
     {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'amazonsales', 'rows': 10000},
 
     {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
     {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
-    {'algo': 'CF_BPR', 'module': CF_BPR, 'func': 'cbf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
+    {'algo': 'CF_BPR', 'module': CF_BPR, 'func': 'cf_bpr_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
     {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
 ]
 
@@ -117,7 +117,7 @@ for i, exp in enumerate(experiments):
 
     if algo == 'RL':
         if 'TOP_K' in func_args: del func_args['TOP_K']
-    elif algo not in ['CF', 'CBF']:
+    elif algo not in ['CF', 'CBF', 'CF_BPR']:
          logger.warning(f"Unknown algorithm type '{algo}' for experiment {exp_label}. Passing common args.")
 
     # Log the arguments being used (optional but helpful)
