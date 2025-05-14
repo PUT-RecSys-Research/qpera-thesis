@@ -48,23 +48,23 @@ PREDICTION = 'prediction'
 
 
 # Relations
-PURCHASE = 'purchase'
-MENTION = 'mentions'
+WATCHED = 'watched'
+RATED = 'rated'
 DESCRIBED_AS = 'described_as'
 BELONG_TO = 'belongs_to'
 SELF_LOOP = 'self_loop'  # only for kg env
 
 KG_RELATION = {
     USERID: {
-        PURCHASE: ITEMID,
-        MENTION: TITLE,
+        WATCHED: ITEMID,
+        RATED: TITLE,
     },
     TITLE: {
-        MENTION: USERID,
+        RATED: USERID,
         DESCRIBED_AS: ITEMID,
     },
     ITEMID: {
-        PURCHASE: USERID,
+        WATCHED: USERID,
         DESCRIBED_AS: TITLE,
         BELONG_TO: GENRES,
     },
@@ -76,12 +76,12 @@ KG_RELATION = {
 
 PATH_PATTERN = {
     # length = 3
-    1: ((None, USERID), (MENTION, TITLE), (DESCRIBED_AS, ITEMID)),
+    1: ((None, USERID), (RATED, TITLE), (DESCRIBED_AS, ITEMID)),
     # length = 4
-    11: ((None, USERID), (PURCHASE, ITEMID), (PURCHASE, USERID), (PURCHASE, ITEMID)),
-    12: ((None, USERID), (PURCHASE, ITEMID), (DESCRIBED_AS, TITLE), (DESCRIBED_AS, ITEMID)),
-    13: ((None, USERID), (PURCHASE, ITEMID), (BELONG_TO, GENRES), (BELONG_TO, ITEMID)),
-    14: ((None, USERID), (MENTION, TITLE), (MENTION, USERID), (PURCHASE, ITEMID)),
+    11: ((None, USERID), (WATCHED, ITEMID), (WATCHED, USERID), (WATCHED, ITEMID)),
+    12: ((None, USERID), (WATCHED, ITEMID), (DESCRIBED_AS, TITLE), (DESCRIBED_AS, ITEMID)),
+    13: ((None, USERID), (WATCHED, ITEMID), (BELONG_TO, GENRES), (BELONG_TO, ITEMID)),
+    14: ((None, USERID), (RATED, TITLE), (RATED, USERID), (WATCHED, ITEMID)),
 }
 
 
@@ -202,4 +202,3 @@ def load_kg(dataset):
     kg_file = TMP_DIR[dataset] + '/kg.pkl'
     kg = pickle.load(open(kg_file, 'rb'))
     return kg
-
