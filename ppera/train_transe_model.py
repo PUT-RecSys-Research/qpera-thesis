@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pickle # Needed for loading processed_dataset
 
-from utils import *
+from rl_utils import *
 # Removed AmazonDataset, AmazonDataLoader imports
 # from data_utils import AmazonDataset, AmazonDataLoader
 from transe_model import KnowledgeEmbedding # Assumes this model is adapted

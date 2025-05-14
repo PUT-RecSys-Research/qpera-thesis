@@ -18,11 +18,11 @@ import threading
 from functools import reduce
 
 import metrics
-from knowledge_graph import KnowledgeGraph
+from rl_knowledge_graph import KnowledgeGraph
 from kg_env import BatchKGEnvironment
 from decoder import RLRecommenderDecoder
 from train_agent import ActorCritic
-from utils import *
+from rl_utils import *
 
 
 def evaluate(topk_matches, test_user_products):

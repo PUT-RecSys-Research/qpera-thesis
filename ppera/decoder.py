@@ -1,6 +1,6 @@
 import pickle
 import pandas as pd
-from utils import * # Import constants and TMP_DIR
+from rl_utils import *
 
 class RLRecommenderDecoder:
     """

@@ -11,9 +11,9 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.distributions import Categorical
 
-from knowledge_graph import KnowledgeGraph
+from rl_knowledge_graph import KnowledgeGraph
 from kg_env import BatchKGEnvironment
-from utils import *
+from rl_utils import *
 
 logger = None
 

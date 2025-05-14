@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from utils import *
+from rl_utils import *
 # Removed AmazonDataset import as it's no longer used directly
 # from data_utils import AmazonDataset
 
