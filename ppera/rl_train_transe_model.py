@@ -8,7 +8,7 @@ import torch
 import torch.optim as optim
 import pickle
 from rl_utils import *
-from ppera.rl_transe_model import KnowledgeEmbedding
+from rl_transe_model import KnowledgeEmbedding
 
 logger = None
 
