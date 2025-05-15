@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
 
-from kg_env import BatchKGEnvironment
+from rl_kg_env import BatchKGEnvironment
 from rl_utils import *
 
 logger = None

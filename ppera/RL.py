@@ -1,6 +1,6 @@
 from rl_preprocess import preprocess_rl
 from rl_train_transe_model import train_transe_model_rl
-from train_agent import train_agent_rl
+from rl_train_agent import train_agent_rl
 from test_agent import test_agent_rl
 
 def rl_experiment_loop(dataset, want_col, num_rows, ratio, seed):

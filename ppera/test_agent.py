@@ -19,9 +19,9 @@ from functools import reduce
 
 import metrics
 from rl_knowledge_graph import KnowledgeGraph
-from kg_env import BatchKGEnvironment
+from rl_kg_env import BatchKGEnvironment
 from decoder import RLRecommenderDecoder
-from train_agent import ActorCritic
+from rl_train_agent import ActorCritic
 from rl_utils import *
 
 
