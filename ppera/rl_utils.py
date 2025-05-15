@@ -52,12 +52,17 @@ WATCHED = 'watched'
 RATED = 'rated'
 DESCRIBED_AS = 'described_as'
 BELONG_TO = 'belongs_to'
+USER_RATED_WITH_VALUE = 'user_rated_with_value'
+RATING_VALUE_FOR_ITEM = 'rating_value_for_item'
 SELF_LOOP = 'self_loop'  # only for kg env
+
+KG_RELATION_TYPES_ORDERED = [WATCHED, RATED, DESCRIBED_AS, BELONG_TO]
 
 KG_RELATION = {
     USERID: {
         WATCHED: ITEMID,
         RATED: TITLE,
+        USER_RATED_WITH_VALUE: RATING,
     },
     TITLE: {
         RATED: USERID,
@@ -65,11 +70,14 @@ KG_RELATION = {
     },
     ITEMID: {
         WATCHED: USERID,
-        DESCRIBED_AS: TITLE,
         BELONG_TO: GENRES,
     },
     GENRES: {
         BELONG_TO: ITEMID,
+    },
+        RATING: {
+        USER_RATED_WITH_VALUE: USERID,
+        RATING_VALUE_FOR_ITEM: ITEMID,
     }
 }
 
@@ -77,11 +85,13 @@ KG_RELATION = {
 PATH_PATTERN = {
     # length = 3
     1: ((None, USERID), (RATED, TITLE), (DESCRIBED_AS, ITEMID)),
+    2: ((None, USERID), (USER_RATED_WITH_VALUE, RATING), (RATING_VALUE_FOR_ITEM, ITEMID)),
     # length = 4
     11: ((None, USERID), (WATCHED, ITEMID), (WATCHED, USERID), (WATCHED, ITEMID)),
     12: ((None, USERID), (WATCHED, ITEMID), (DESCRIBED_AS, TITLE), (DESCRIBED_AS, ITEMID)),
     13: ((None, USERID), (WATCHED, ITEMID), (BELONG_TO, GENRES), (BELONG_TO, ITEMID)),
     14: ((None, USERID), (RATED, TITLE), (RATED, USERID), (WATCHED, ITEMID)),
+    15: ((None, USERID), (WATCHED, ITEMID), (RATING_VALUE_FOR_ITEM, RATING), (RATING_VALUE_FOR_ITEM, ITEMID)),
 }
 
 

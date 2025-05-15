@@ -120,6 +120,31 @@ def create_processed_dataset(df: pd.DataFrame) -> dict:
 
         processed_data['relations'][RATED] = list(rated_relations)
         print(f"    Relation '{RATED}': {len(processed_data['relations'][RATED])} unique user-title links (derived).")
+    # 5. USER_RATED_WITH_VALUE (USERID -> RATING entity)
+    if USERID in processed_data['entity_maps'] and RATING in processed_data['entity_maps'] and \
+    entity_columns[USERID] in df.columns and entity_columns[RATING] in df.columns:
+        user_rated_value_relations = set()
+        for _, row in df.iterrows():
+            uid_idx = get_idx(USERID, row[entity_columns[USERID]], processed_data['entity_maps'])
+            # The 'rating' column from df contains the actual rating value (e.g., 4.5)
+            # This value needs to be mapped to an index in the RATING entity's vocab
+            rating_val_idx = get_idx(RATING, row[entity_columns[RATING]], processed_data['entity_maps'])
+            if uid_idx is not None and rating_val_idx is not None:
+                user_rated_value_relations.add((uid_idx, rating_val_idx))
+        processed_data['relations'][USER_RATED_WITH_VALUE] = list(user_rated_value_relations)
+        print(f"    Relation '{USER_RATED_WITH_VALUE}': {len(processed_data['relations'][USER_RATED_WITH_VALUE])} unique user-rating_value links.")
+
+    # 6. RATING_VALUE_FOR_ITEM (RATING entity -> ITEMID)
+    if RATING in processed_data['entity_maps'] and ITEMID in processed_data['entity_maps'] and \
+    entity_columns[RATING] in df.columns and entity_columns[ITEMID] in df.columns:
+        rating_item_relations = set()
+        for _, row in df.iterrows():
+            rating_val_idx = get_idx(RATING, row[entity_columns[RATING]], processed_data['entity_maps'])
+            iid_idx = get_idx(ITEMID, row[entity_columns[ITEMID]], processed_data['entity_maps'])
+            if rating_val_idx is not None and iid_idx is not None:
+                rating_item_relations.add((rating_val_idx, iid_idx))
+        processed_data['relations'][RATING_VALUE_FOR_ITEM] = list(rating_item_relations)
+        print(f"    Relation '{RATING_VALUE_FOR_ITEM}': {len(processed_data['relations'][RATING_VALUE_FOR_ITEM])} unique rating_value-item links.")
 
     print("  Calculating tail entity distributions for negative sampling...")
     processed_data['distributions'] = {}
@@ -130,7 +155,7 @@ def create_processed_dataset(df: pd.DataFrame) -> dict:
             head_entity_type = None
             for h_type, rels in KG_RELATION.items():
                 if relation_name in rels:
-                    head_entity_type = h_type
+                    head_entity_type = h_type.lower()
                     break
             if head_entity_type is None:
                 print(f"      Warning: Could not find head entity for relation '{relation_name}'. Skipping distribution calculation.")
