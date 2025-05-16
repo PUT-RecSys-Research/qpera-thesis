@@ -328,10 +328,14 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
     print("\n--- Sample Human-Readable Recommendations ---")
     # zmienic count bo i tak zwraca top_k
     count = 0
-    for user_idx, recs in human_recs.items():
-        print(f"User: {user_idx}")
-        for r in recs:
-             print(f"  Rank {r['rank']}: ID={r['original_id']} (Idx={r['item_idx']}), Title='{r['title']}', Genres={r['genres']}")
+    for user_idx, user_rec_data in human_recs.items():
+        original_uid = user_rec_data['original_userID']
+        recs_list = user_rec_data['recommendations']
+        print(f"User Index: {user_idx} (Original UserID: {original_uid})")
+        if not recs_list:
+            print("  No recommendations.")
+        for r in recs_list:
+            print(f"  Rank {r['rank']}: ID={r['original_id']} (Idx={r['item_idx']}), Title='{r['title']}', Genres={r['genres']}")
         count += 1
         if count >= 5:
             break
@@ -376,7 +380,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
     print("--------------------------------------------\n")
     metrics_dict = {
         "precision_at_K": precision,
-        # "recall_at_K": recall,
+        "recall_at_K": recall,
         # "NDCG_at_K": eval_ndcg,
         # "RMSE": eval_rmse,
         # "MAE": eval_mae,
@@ -385,7 +389,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
         # "catalog_coverage": eval_catalog_coverage,
         # "distributional_coverage": eval_distributional_coverage
     }
-    return metrics_dict, human_recs
+    return metrics_dict, rating_pred_df, human_recs
 
 
 def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args):
@@ -419,7 +423,7 @@ def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args):
              print(f"ERROR loading labels: {e}")
              return
 
-        metrics, human_recs_top_k = run_evaluation(path_file, train_labels, test_labels, TOP_K, args)
+        metrics, rating_pred_df, human_recs = run_evaluation(path_file, train_labels, test_labels, TOP_K, args)
 
         rl_hyperparams = {
             "dataset": args.dataset,
@@ -427,7 +431,7 @@ def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args):
             "num_rows": num_rows,
             "ratio": ratio,
             "seed": args.seed,
-            'epochs_loaded': args.epochs, # Note: this is which epoch's model was loaded
+            'epochs_loaded': args.epochs,
             'max_acts': args.max_acts,
             'max_path_len': args.max_path_len,
             'gamma': args.gamma,
@@ -436,8 +440,13 @@ def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args):
         }
         
         # data & train in preprocess pahse there is a data and train df
-
-        log_mlflow.log_mlflow(args.dataset, human_recs_top_k, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
+        print('########################################################################') 
+        print(rating_pred_df) 
+        print(type(rating_pred_df))
+        print('########################################################################')
+        print(human_recs)
+        print('########################################################################')
+        log_mlflow.log_mlflow(args.dataset, rating_pred_df, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
 
     else:
         print("Skipping evaluation.")

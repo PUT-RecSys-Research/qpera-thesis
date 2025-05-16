@@ -31,6 +31,8 @@ class RLRecommenderDecoder:
         self.item_inv_map = maps.get(ITEMID, {}).get('inv_map', {})
         self.title_inv_map = maps.get(TITLE, {}).get('inv_map', {})
         self.genre_inv_map = maps.get(GENRES, {}).get('inv_map', {})
+        self.user_map = maps.get(USERID, {}).get('map', {})
+        self.user_inv_map = maps.get(USERID, {}).get('inv_map', {})
 
         relations = processed_dataset.get('relations', {})
         self.item_to_title_idx = {}
@@ -64,6 +66,14 @@ class RLRecommenderDecoder:
             'title': title,
             'genres': sorted(list(set(genres)))
         }
+    
+    def get_user_details(self, user_idx: int) -> dict:
+        """Retrieves details for a single user index."""
+        original_user_id_val = self.user_inv_map.get(user_idx, f"UNKNOWN_IDX_{user_idx}")
+        return {
+            'user_idx': user_idx,
+            'original_userID': original_user_id_val
+        }
 
     def decode(self, pred_labels: dict, k: int = 10) -> tuple[dict, pd.DataFrame]:
         """
@@ -88,41 +98,49 @@ class RLRecommenderDecoder:
         print(f"Decoder: Decoding recommendations for {len(pred_labels)} users...")
 
         for user_idx, ascending_item_idxs in pred_labels.items():
+            
             # 1. Reverse the list to get highest score first
-            ranked_item_idxs = ascending_item_idxs[::-1]
+            user_details = self.get_user_details(user_idx)
+            original_userID_for_human_recs = user_details['original_userID']
+
 
             # 2. Keep only top K
+            ranked_item_idxs = ascending_item_idxs[::-1]
             top_k_item_idxs = ranked_item_idxs[:k]
 
             # 3. Generate human-readable output and DataFrame data
-            user_recs_human = []
             if not top_k_item_idxs:
-                 print(f"Warning: No recommendations found for user_idx {user_idx}")
-                 human_readable_recs[user_idx] = []
+                 print(f"Warning: No recommendations found for user_idx {user_idx} (Original ID: {original_userID_for_human_recs})")
+                 human_readable_recs[user_idx] = {'original_userID': original_userID_for_human_recs, 'recommendations': []}
                  continue
 
             max_rank_score = len(top_k_item_idxs)
+            current_user_recommendations_list = [] # For human_readable_recs value
             for rank, item_idx in enumerate(top_k_item_idxs, 1):
-                details = self.get_item_details(item_idx)
-                details['rank'] = rank
-                user_recs_human.append(details)
+                item_details = self.get_item_details(item_idx)
+                item_details['rank'] = rank
+                current_user_recommendations_list.append(item_details)
 
                 pred_score = float(max_rank_score - rank + 1)
                 pred_df_data.append({
                     USERID: user_idx,
+                    'userID': original_userID_for_human_recs,
                     ITEMID: item_idx,
+                    'itemID': item_details['original_id'],
                     PREDICTION: pred_score
                 })
+            
+            # 4. Create DataFrame
+            human_readable_recs[user_idx] = {
+                'original_userID': original_userID_for_human_recs,
+                'recommendations': current_user_recommendations_list
+            }
 
-            human_readable_recs[user_idx] = user_recs_human
-
-        # 4. Create DataFrame
         rating_pred_df = pd.DataFrame(pred_df_data)
         if not rating_pred_df.empty:
              rating_pred_df[USERID] = rating_pred_df[USERID].astype(int)
              rating_pred_df[ITEMID] = rating_pred_df[ITEMID].astype(int)
              rating_pred_df[PREDICTION] = rating_pred_df[PREDICTION].astype(float)
-
 
         print(f"Decoder: Finished decoding. Generated DataFrame with {len(rating_pred_df)} rows.")
         return human_readable_recs, rating_pred_df
