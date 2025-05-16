@@ -9,6 +9,8 @@ import torch.nn.functional as F
 from functools import reduce
 
 import metrics
+import log_mlflow
+
 from rl_kg_env import BatchKGEnvironment
 from rl_decoder import RLRecommenderDecoder
 from rl_train_agent import ActorCritic
@@ -218,6 +220,8 @@ def predict_paths(policy_file, path_file, args):
     except Exception as e:
          print(f"ERROR: Failed to save predictions to {path_file}: {e}")
 
+    return model
+
 
 def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
 
@@ -313,7 +317,6 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
 
         pred_labels[uid] = top_k_pids[::-1]
 
-
     # 6. Instantiate Decoder
     print("Instantiating decoder...")
     decoder = RLRecommenderDecoder(args.dataset)
@@ -323,6 +326,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
     human_recs, rating_pred_df = decoder.decode(pred_labels, k=k)
 
     print("\n--- Sample Human-Readable Recommendations ---")
+    # zmienic count bo i tak zwraca top_k
     count = 0
     for user_idx, recs in human_recs.items():
         print(f"User: {user_idx}")
@@ -370,9 +374,21 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
          print(f"ERROR during metric calculation: {e}")
 
     print("--------------------------------------------\n")
+    metrics_dict = {
+        "precision_at_K": precision,
+        # "recall_at_K": recall,
+        # "NDCG_at_K": eval_ndcg,
+        # "RMSE": eval_rmse,
+        # "MAE": eval_mae,
+        # "novelty": eval_novelty,
+        # "serendipity": eval_serendipity,
+        # "catalog_coverage": eval_catalog_coverage,
+        # "distributional_coverage": eval_distributional_coverage
+    }
+    return metrics_dict, human_recs
 
 
-def test(TOP_K, args):
+def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args):
     policy_file = args.log_dir + '/policy_model_epoch_{}.ckpt'.format(args.epochs)
     path_file = args.log_dir + '/policy_paths_epoch{}.pkl'.format(args.epochs)
 
@@ -383,7 +399,7 @@ def test(TOP_K, args):
 
     if args.run_path or not os.path.exists(path_file):
          print(f"Running path prediction (run_path={args.run_path}, file_exists={os.path.exists(path_file)})...")
-         predict_paths(policy_file, path_file, args)
+         model = predict_paths(policy_file, path_file, args)
     else:
          print(f"Skipping path prediction, using existing file: {path_file}")
 
@@ -403,19 +419,37 @@ def test(TOP_K, args):
              print(f"ERROR loading labels: {e}")
              return
 
-        run_evaluation(path_file, train_labels, test_labels, TOP_K, args)
+        metrics, human_recs_top_k = run_evaluation(path_file, train_labels, test_labels, TOP_K, args)
+
+        rl_hyperparams = {
+            "dataset": args.dataset,
+            "want_col": want_col,
+            "num_rows": num_rows,
+            "ratio": ratio,
+            "seed": args.seed,
+            'epochs_loaded': args.epochs, # Note: this is which epoch's model was loaded
+            'max_acts': args.max_acts,
+            'max_path_len': args.max_path_len,
+            'gamma': args.gamma,
+            'state_history': args.state_history,
+            'hidden_sizes': args.hidden,
+        }
+        
+        # data & train in preprocess pahse there is a data and train df
+
+        log_mlflow.log_mlflow(args.dataset, human_recs_top_k, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
 
     else:
         print("Skipping evaluation.")
 
 
 
-def test_agent_rl(dataset, TOP_K):
+def test_agent_rl(dataset, TOP_K, want_col, num_rows, ratio, seed, data_df, train_df):
     boolean = lambda x: (str(x).lower() == 'true')
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
     parser.add_argument('--name', type=str, default='train_agent', help='directory name matching training.')
-    parser.add_argument('--seed', type=int, default=123, help='random seed.')
+    parser.add_argument('--seed', type=int, default=seed, help='random seed.')
     parser.add_argument('--gpu', type=str, default='0', help='gpu device.')
     parser.add_argument('--epochs', type=int, default=50, help='Epoch number of the model to load.')
     parser.add_argument('--max_acts', type=int, default=250, help='Max number of actions (must match training).')
@@ -438,5 +472,5 @@ def test_agent_rl(dataset, TOP_K):
          print(f"Warning: Log directory {args.log_dir} not found. Ensure '--name' matches training.")
 
     set_random_seed(args.seed)
-    test(TOP_K, args)
+    test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args)
 
