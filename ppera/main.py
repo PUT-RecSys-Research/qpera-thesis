@@ -115,11 +115,6 @@ for i, exp in enumerate(experiments):
     func_args['dataset'] = dataset
     func_args['num_rows'] = rows
 
-    if algo == 'RL':
-        if 'TOP_K' in func_args: del func_args['TOP_K']
-    elif algo not in ['CF', 'CBF', 'CF_BPR']:
-         logger.warning(f"Unknown algorithm type '{algo}' for experiment {exp_label}. Passing common args.")
-
     # Log the arguments being used (optional but helpful)
     logger.info(f"  Function: {module.__name__}.{func_name}")
     logger.info(f"  Arguments: {func_args}")

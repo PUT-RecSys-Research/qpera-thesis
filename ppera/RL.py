@@ -1,9 +1,9 @@
-from preprocess import preprocess_rl
-from train_transe_model import train_transe_model_rl
-from train_agent import train_agent_rl
-from test_agent import test_agent_rl
+from rl_preprocess import preprocess_rl
+from rl_train_transe_model import train_transe_model_rl
+from rl_train_agent import train_agent_rl
+from rl_test_agent import test_agent_rl
 
-def rl_experiment_loop(dataset, want_col, num_rows, ratio, seed):
+def rl_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed):
 
     print("\n===== Stage 1: Preprocessing =====")
     preprocess_rl(
@@ -21,6 +21,6 @@ def rl_experiment_loop(dataset, want_col, num_rows, ratio, seed):
     train_agent_rl(dataset=dataset)
 
     print("\n===== Stage 4: Testing & Evaluation =====")
-    test_agent_rl(dataset=dataset)
+    test_agent_rl(dataset=dataset, TOP_K=TOP_K)
 
     print("\n===== Pipeline Finished =====")

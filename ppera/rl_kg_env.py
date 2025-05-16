@@ -1,21 +1,14 @@
 from __future__ import absolute_import, division, print_function
 
-import os
-import sys
-from tqdm import tqdm
-import pickle
 import random
-import torch
-from datetime import datetime
 
-from knowledge_graph import KnowledgeGraph
-from utils import *
+from rl_utils import *
 
 
 class KGState(object):
     def __init__(self, embed_size, history_len=1):
         self.embed_size = embed_size
-        self.history_len = history_len  # mode: one of {full, current}
+        self.history_len = history_len
         if history_len == 0:
             self.dim = 2 * embed_size
         elif history_len == 1:
@@ -41,8 +34,8 @@ class KGState(object):
 class BatchKGEnvironment(object):
     def __init__(self, dataset_str, max_acts, max_path_len=3, state_history=1):
         self.max_acts = max_acts
-        self.act_dim = max_acts + 1  # Add self-loop action, whose act_idx is always 0.
-        self.max_num_nodes = max_path_len + 1  # max number of hops (= #nodes - 1)
+        self.act_dim = max_acts + 1
+        self.max_num_nodes = max_path_len + 1
         self.kg = load_kg(dataset_str)
         self.embeds = load_embed(dataset_str)
         self.embed_size = self.embeds[USERID].shape[1]
@@ -51,24 +44,23 @@ class BatchKGEnvironment(object):
         self.state_dim = self.state_gen.dim
 
         # Compute user-product scores for scaling.
-        u_p_scores = np.dot(self.embeds[USERID] + self.embeds[PURCHASE][0], self.embeds[ITEMID].T)
+        u_p_scores = np.dot(self.embeds[USERID] + self.embeds[WATCHED][0], self.embeds[ITEMID].T)
         self.u_p_scales = np.max(u_p_scores, axis=1)
 
         # Compute path patterns
         self.patterns = []
-        for pattern_id in [1, 11, 12, 13, 14]:
+        for pattern_id in [1, 2, 11, 12, 13, 14, 15]:
             pattern = PATH_PATTERN[pattern_id]
-            pattern = [SELF_LOOP] + [v[0] for v in pattern[1:]]  # pattern contains all relations
+            pattern = [SELF_LOOP] + [v[0] for v in pattern[1:]]
             if pattern_id == 1:
                 pattern.append(SELF_LOOP)
             self.patterns.append(tuple(pattern))
 
         # Following is current episode information.
-        self._batch_path = None  # list of tuples of (relation, node_type, node_id)
-        self._batch_curr_actions = None  # save current valid actions
+        self._batch_path = None
+        self._batch_curr_actions = None
         self._batch_curr_state = None
         self._batch_curr_reward = None
-        # Here only use 1 'done' indicator, since all paths have same length and will finish at the same time.
         self._done = False
 
     def _has_pattern(self, path):
@@ -81,7 +73,7 @@ class BatchKGEnvironment(object):
     def _get_actions(self, path, done):
         """Compute actions for current node."""
         _, curr_node_type, curr_node_id = path[-1]
-        actions = [(SELF_LOOP, curr_node_id)]  # self-loop must be included.
+        actions = [(SELF_LOOP, curr_node_id)]
 
         # (1) If game is finished, only return self-loop action.
         if done:
@@ -90,12 +82,12 @@ class BatchKGEnvironment(object):
         # (2) Get all possible edges from original knowledge graph.
         # [CAVEAT] Must remove visited nodes!
         relations_nodes = self.kg(curr_node_type, curr_node_id)
-        candidate_acts = []  # list of tuples of (relation, node_type, node_id)
+        candidate_acts = []
         visited_nodes = set([(v[1], v[2]) for v in path])
         for r in relations_nodes:
             next_node_type = KG_RELATION[curr_node_type][r]
             next_node_ids = relations_nodes[r]
-            next_node_ids = [n for n in next_node_ids if (next_node_type, n) not in visited_nodes]  # filter
+            next_node_ids = [n for n in next_node_ids if (next_node_type, n) not in visited_nodes]
             candidate_acts.extend(zip([r] * len(next_node_ids), next_node_ids))
 
         # (3) If candidate action set is empty, only return self-loop action.
@@ -109,6 +101,8 @@ class BatchKGEnvironment(object):
             return actions
 
         # (5) If there are too many actions, do some deterministic trimming here!
+
+        # here we can make some changes
         user_embed = self.embeds[USERID][path[0][-1]]
         scores = []
         for r, next_node_id in candidate_acts:
@@ -116,18 +110,15 @@ class BatchKGEnvironment(object):
             if next_node_type == USERID:
                 src_embed = user_embed
             elif next_node_type == ITEMID:
-                src_embed = user_embed + self.embeds[PURCHASE][0]
+                src_embed = user_embed + self.embeds[WATCHED][0]
             elif next_node_type == TITLE:
-                src_embed = user_embed + self.embeds[MENTION][0]
-            else:  # BRAND, CATEGORY, RELATED_PRODUCT
-                src_embed = user_embed + self.embeds[PURCHASE][0] + self.embeds[r][0]
+                src_embed = user_embed + self.embeds[RATED][0]
+            else:
+                src_embed = user_embed + self.embeds[WATCHED][0] + self.embeds[r][0]
             score = np.matmul(src_embed, self.embeds[next_node_type][next_node_id])
-            # This trimming may filter out target products!
-            # Manually set the score of target products a very large number.
-            # if next_node_type == PRODUCT and next_node_id in self._target_pids:
-            #    score = 99999.0
+
             scores.append(score)
-        candidate_idxs = np.argsort(scores)[-self.max_acts:]  # choose actions with larger scores
+        candidate_idxs = np.argsort(scores)[-self.max_acts:]
         candidate_acts = sorted([candidate_acts[i] for i in candidate_idxs], key=lambda x: (x[0], x[1]))
         actions.extend(candidate_acts)
         return actions
@@ -139,7 +130,7 @@ class BatchKGEnvironment(object):
         """Return state of numpy vector: [user_embed, curr_node_embed, last_node_embed, last_relation]."""
         user_embed = self.embeds[USERID][path[0][-1]]
         zero_embed = np.zeros(self.embed_size)
-        if len(path) == 1:  # initial state
+        if len(path) == 1:
             state = self.state_gen(user_embed, user_embed, zero_embed, zero_embed, zero_embed, zero_embed)
             return state
 
@@ -147,7 +138,7 @@ class BatchKGEnvironment(object):
         last_relation, curr_node_type, curr_node_id = path[-1]
         curr_node_embed = self.embeds[curr_node_type][curr_node_id]
         last_node_embed = self.embeds[last_node_type][last_node_id]
-        last_relation_embed, _ = self.embeds[last_relation]  # this can be self-loop!
+        last_relation_embed, _ = self.embeds[last_relation]
         if len(path) == 2:
             state = self.state_gen(user_embed, curr_node_embed, last_node_embed, last_relation_embed, zero_embed,
                                    zero_embed)
@@ -162,10 +153,9 @@ class BatchKGEnvironment(object):
 
     def _batch_get_state(self, batch_path):
         batch_state = [self._get_state(path) for path in batch_path]
-        return np.vstack(batch_state)  # [bs, dim]
+        return np.vstack(batch_state)
 
     def _get_reward(self, path):
-        # If it is initial state or 1-hop search, reward is 0.
         if len(path) <= 2:
             return 0.0
 
@@ -175,9 +165,8 @@ class BatchKGEnvironment(object):
         target_score = 0.0
         _, curr_node_type, curr_node_id = path[-1]
         if curr_node_type == ITEMID:
-            # Give soft reward for other reached products.
             uid = path[0][-1]
-            u_vec = self.embeds[USERID][uid] + self.embeds[PURCHASE][0]
+            u_vec = self.embeds[USERID][uid] + self.embeds[WATCHED][0]
             p_vec = self.embeds[ITEMID][curr_node_id]
             score = np.dot(u_vec, p_vec) / self.u_p_scales[uid]
             target_score = max(score, 0.0)
@@ -197,7 +186,6 @@ class BatchKGEnvironment(object):
             all_uids = list(self.kg(USERID).keys())
             uids = [random.choice(all_uids)]
 
-        # each element is a tuple of (relation, entity_type, entity_id)
         self._batch_path = [[(SELF_LOOP, USERID, uid)] for uid in uids]
         self._done = False
         self._batch_curr_state = self._batch_get_state(self._batch_path)
@@ -217,7 +205,6 @@ class BatchKGEnvironment(object):
         """
         assert len(batch_act_idx) == len(self._batch_path)
 
-        # Execute batch actions.
         for i in range(len(batch_act_idx)):
             act_idx = batch_act_idx[i]
             _, curr_node_type, curr_node_id = self._batch_path[i][-1]
@@ -228,7 +215,7 @@ class BatchKGEnvironment(object):
                 next_node_type = KG_RELATION[curr_node_type][relation]
             self._batch_path[i].append((relation, next_node_type, next_node_id))
 
-        self._done = self._is_done()  # must run before get actions, etc.
+        self._done = self._is_done()
         self._batch_curr_state = self._batch_get_state(self._batch_path)
         self._batch_curr_actions = self._batch_get_actions(self._batch_path, self._done)
         self._batch_curr_reward = self._batch_get_reward(self._batch_path)

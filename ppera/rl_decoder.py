@@ -1,6 +1,6 @@
 import pickle
 import pandas as pd
-from utils import * # Import constants and TMP_DIR
+from rl_utils import *
 
 class RLRecommenderDecoder:
     """
@@ -26,20 +26,16 @@ class RLRecommenderDecoder:
             print(f"ERROR: Failed to load processed dataset: {e}")
             raise
 
-        # --- Store Mappings ---
         maps = processed_dataset.get('entity_maps', {})
-        self.item_map = maps.get(ITEMID, {}).get('map', {}) # original_id -> idx
-        self.item_inv_map = maps.get(ITEMID, {}).get('inv_map', {}) # idx -> original_id
-        self.title_inv_map = maps.get(TITLE, {}).get('inv_map', {}) # idx -> title_str
-        self.genre_inv_map = maps.get(GENRES, {}).get('inv_map', {}) # idx -> genre_str
+        self.item_map = maps.get(ITEMID, {}).get('map', {})
+        self.item_inv_map = maps.get(ITEMID, {}).get('inv_map', {})
+        self.title_inv_map = maps.get(TITLE, {}).get('inv_map', {})
+        self.genre_inv_map = maps.get(GENRES, {}).get('inv_map', {})
 
-        # --- Pre-process Relations for Faster Lookups ---
         relations = processed_dataset.get('relations', {})
-        self.item_to_title_idx = {} # Assuming one title per item from preprocess logic
+        self.item_to_title_idx = {}
         desc_as = relations.get(DESCRIBED_AS, [])
         for title_idx, item_idx in desc_as:
-             # If multiple titles map to the same item, the last one wins here.
-             # Adjust if multiple titles per item are expected.
             self.item_to_title_idx[item_idx] = title_idx
 
         self.item_to_genre_idxs = {}
@@ -56,11 +52,9 @@ class RLRecommenderDecoder:
         """Retrieves details for a single item index."""
         original_id = self.item_inv_map.get(item_idx, f"UNKNOWN_IDX_{item_idx}")
 
-        # Get Title
         title_idx = self.item_to_title_idx.get(item_idx)
         title = self.title_inv_map.get(title_idx, "UNKNOWN_TITLE") if title_idx is not None else "UNKNOWN_TITLE"
 
-        # Get Genres
         genre_idxs = self.item_to_genre_idxs.get(item_idx, [])
         genres = [self.genre_inv_map.get(g_idx, "UNKNOWN_GENRE") for g_idx in genre_idxs]
 
@@ -68,7 +62,7 @@ class RLRecommenderDecoder:
             'item_idx': item_idx,
             'original_id': original_id,
             'title': title,
-            'genres': sorted(list(set(genres))) # Sort and deduplicate genres
+            'genres': sorted(list(set(genres)))
         }
 
     def decode(self, pred_labels: dict, k: int = 10) -> tuple[dict, pd.DataFrame]:
@@ -107,20 +101,16 @@ class RLRecommenderDecoder:
                  human_readable_recs[user_idx] = []
                  continue
 
-            max_rank_score = len(top_k_item_idxs) # Score for rank 1
+            max_rank_score = len(top_k_item_idxs)
             for rank, item_idx in enumerate(top_k_item_idxs, 1):
                 details = self.get_item_details(item_idx)
                 details['rank'] = rank
                 user_recs_human.append(details)
 
-                # Prepare data for DataFrame
-                # Use rank as score (higher rank = lower score value, but metrics.py nlargest handles it)
-                # OR assign score based on rank (higher rank = higher score)
-                pred_score = float(max_rank_score - rank + 1) # Rank 1 gets highest score
+                pred_score = float(max_rank_score - rank + 1)
                 pred_df_data.append({
-                    # Use constants for column names if available, else default strings
                     USERID: user_idx,
-                    ITEMID: item_idx, # Using item index as the ID for metrics
+                    ITEMID: item_idx,
                     PREDICTION: pred_score
                 })
 
@@ -128,7 +118,6 @@ class RLRecommenderDecoder:
 
         # 4. Create DataFrame
         rating_pred_df = pd.DataFrame(pred_df_data)
-        # Ensure correct types if necessary
         if not rating_pred_df.empty:
              rating_pred_df[USERID] = rating_pred_df[USERID].astype(int)
              rating_pred_df[ITEMID] = rating_pred_df[ITEMID].astype(int)

@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function
 
-import sys
 import os
 import argparse
 from collections import namedtuple
@@ -8,12 +7,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.autograd import Variable
 from torch.distributions import Categorical
 
-from knowledge_graph import KnowledgeGraph
-from kg_env import BatchKGEnvironment
-from utils import *
+from rl_kg_env import BatchKGEnvironment
+from rl_utils import *
 
 logger = None
 
@@ -37,7 +34,7 @@ class ActorCritic(nn.Module):
         self.entropy = []
 
     def forward(self, inputs):
-        state, act_mask = inputs  # state: [bs, state_dim], act_mask: [bs, act_dim]
+        state, act_mask = inputs
         x = self.l1(state)
         x = F.dropout(F.elu(x), p=0.5)
         out = self.l2(x)
@@ -45,19 +42,18 @@ class ActorCritic(nn.Module):
 
         actor_logits = self.actor(x)
         actor_logits[~act_mask] = -999999.0 
-        act_probs = F.softmax(actor_logits, dim=-1)  # Tensor of [bs, act_dim]
+        act_probs = F.softmax(actor_logits, dim=-1)
 
-        state_values = self.critic(x)  # Tensor of [bs, 1]
+        state_values = self.critic(x)
         return act_probs, state_values
 
     def select_action(self, batch_state, batch_act_mask, device):
-        state = torch.FloatTensor(batch_state).to(device)  # Tensor [bs, state_dim]
-        act_mask = torch.BoolTensor(batch_act_mask).to(device)  # Tensor of [bs, act_dim]
+        state = torch.FloatTensor(batch_state).to(device)
+        act_mask = torch.BoolTensor(batch_act_mask).to(device)
 
-        probs, value = self((state, act_mask))  # act_probs: [bs, act_dim], state_value: [bs, 1]
+        probs, value = self((state, act_mask))
         m = Categorical(probs)
-        acts = m.sample()  # Tensor of [bs, ], requires_grad=False
-        # [CAVEAT] If sampled action is out of action_space, choose the first action in action_space.
+        acts = m.sample()
         valid_idx = act_mask.gather(1, acts.view(-1, 1)).view(-1).bool()
         acts[~valid_idx] = 0
 
@@ -72,7 +68,7 @@ class ActorCritic(nn.Module):
             del self.entropy[:]
             return 0.0, 0.0, 0.0
 
-        batch_rewards = np.vstack(self.rewards).T  # numpy array of [bs, #steps]
+        batch_rewards = np.vstack(self.rewards).T
         batch_rewards = torch.FloatTensor(batch_rewards).to(device)
         num_steps = batch_rewards.shape[1]
         for i in range(1, num_steps):
@@ -82,11 +78,11 @@ class ActorCritic(nn.Module):
         critic_loss = 0
         entropy_loss = 0
         for i in range(0, num_steps):
-            log_prob, value = self.saved_actions[i]  # log_prob: Tensor of [bs, ], value: Tensor of [bs, 1]
-            advantage = batch_rewards[:, i] - value.squeeze(1)  # Tensor of [bs, ]
-            actor_loss += -log_prob * advantage.detach()  # Tensor of [bs, ]
-            critic_loss += advantage.pow(2)  # Tensor of [bs, ]
-            entropy_loss += -self.entropy[i]  # Tensor of [bs, ]
+            log_prob, value = self.saved_actions[i]
+            advantage = batch_rewards[:, i] - value.squeeze(1)
+            actor_loss += -log_prob * advantage.detach()
+            critic_loss += advantage.pow(2)
+            entropy_loss += -self.entropy[i]
         actor_loss = actor_loss.mean()
         critic_loss = critic_loss.mean()
         entropy_loss = entropy_loss.mean()
@@ -119,7 +115,6 @@ class ACDataLoader(object):
     def get_batch(self):
         if not self._has_next:
             return None
-        # Multiple users per batch
         end_idx = min(self._start_idx + self.batch_size, self.num_users)
         batch_idx = self._rand_perm[self._start_idx:end_idx]
         batch_uids = self.uids[batch_idx]
@@ -145,11 +140,11 @@ def train(args):
         while dataloader.has_next():
             batch_uids = dataloader.get_batch()
             ### Start batch episodes ###
-            batch_state = env.reset(batch_uids)  # numpy array of [bs, state_dim]
+            batch_state = env.reset(batch_uids)
             done = False
             while not done:
-                batch_act_mask = env.batch_action_mask(dropout=args.act_dropout)  # numpy array of size [bs, act_dim]
-                batch_act_idx = model.select_action(batch_state, batch_act_mask, args.device)  # int
+                batch_act_mask = env.batch_action_mask(dropout=args.act_dropout)
+                batch_act_idx = model.select_action(batch_state, batch_act_mask, args.device)
                 batch_state, batch_reward, done = env.batch_step(batch_act_idx)
                 model.rewards.append(batch_reward)
             ### End of episodes ###
@@ -191,7 +186,6 @@ def train(args):
 
 def train_agent_rl(dataset):
     parser = argparse.ArgumentParser()
-    # Updated default dataset and help string
     parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
     parser.add_argument('--name', type=str, default='train_agent', help='directory name.')
     parser.add_argument('--seed', type=int, default=123, help='random seed.')
