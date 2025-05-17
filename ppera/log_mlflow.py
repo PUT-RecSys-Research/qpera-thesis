@@ -1,8 +1,10 @@
 import os
+import cornac
 import matplotlib.pyplot as plt
 import mlflow
 from datetime import datetime
 from mlflow.models.signature import infer_signature
+from recommenders.models.cornac.cornac_utils import predict_ranking
 
 import pandas as pd
 import torch
@@ -70,7 +72,54 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
         input_example_for_log = None
 
         if model_type == 'CF':
-            signature = infer_signature(train, model.fit(train))
+            if isinstance(model, cornac.models.Recommender):
+                try:
+                    # For Cornac models, 'fit' is already done. We infer signature from prediction.
+                    # 1. Prepare sample input for prediction:
+                    if not train.empty:
+
+                        user_col = params.get("col_user", "userID")
+                        item_col = params.get("col_item", "itemID")
+                    
+                        
+                        sample_users = train[user_col].unique()[:2] # Take 2 sample users
+                        sample_items = train[item_col].unique()[:5] # Take 5 sample items
+                        
+                        # Create all user-item pairs for the sample
+                        sample_input_data_list = []
+                        for u in sample_users:
+                            for i in sample_items:
+                                sample_input_data_list.append({user_col: u, item_col: i})
+                        
+                        if not sample_input_data_list:
+                            print("MLflow: Could not create sample input for CF signature from train_data_df.")
+                        else:
+                            sample_input_df_for_cf = pd.DataFrame(sample_input_data_list)
+
+                            # 2. Get sample predictions
+                            sample_predictions_df_cf = predict_ranking(
+                                model, 
+                                sample_input_df_for_cf,
+                                usercol=user_col, 
+                                itemcol=item_col, 
+                                remove_seen=True
+                            )
+
+                            if not sample_predictions_df_cf.empty:
+                                signature_input_cf = sample_input_df_for_cf[[user_col]].drop_duplicates().reset_index(drop=True)
+                                signature_output_cf = sample_predictions_df_cf[[user_col, item_col, params.get("col_prediction", "prediction")]]
+
+
+                                signature = infer_signature(signature_input_cf, signature_output_cf)
+                                input_example_for_log = signature_input_cf.head(5) # A small sample of users
+                                print("MLflow: Inferred signature for CF (Cornac) model using predict_ranking.")
+                            else:
+                                print("MLflow: Sample predictions for CF were empty. Skipping signature.")
+                    else:
+                        print("MLflow: train_data_df is empty. Skipping CF signature inference.")
+                except Exception as e:
+                    print(f"MLflow: Error during CF (Cornac) signature inference: {e}")
+                    signature = None # Ensure signature is None on error
         elif model_type == 'CBF':
             signature = infer_signature(train, model.fit(tf, vectors_tokenized))
         elif model_type == 'RL':
@@ -150,13 +199,22 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
                         input_example=input_example_for_log,
                         registered_model_name=f"{model_type}-model-{dataset}",
                     )
-                elif model_type in ['CF', 'CBF']:
+                elif model_type in 'CF':
+                    mlflow.pyfunc.log_model(
+                            python_model=model, # This requires a PyFunc wrapper for Cornac
+                            artifact_path=f"{model_type}-model",
+                            signature=signature,
+                            input_example=input_example_for_log,
+                            # code_path=[os.path.dirname(cornac.__file__)], # May need cornac code path
+                            registered_model_name=f"{model_type}-model-{dataset}",
+                        )
+                elif model_type in 'CBF':
                     mlflow.sklearn.log_model(
                         sk_model=model,
                         artifact_path=f"{model_type}-model",
                         signature=signature,
                         input_example=train,
-                        registered_model_name=f"{model_type}-model-test",
+                        registered_model_name=f"{model_type}-model-{dataset}",
                     )
                 print(f"MLflow: Logged {model_type} model with signature.")
 
@@ -167,7 +225,7 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
                 if model_type == 'RL':
                     mlflow.pytorch.log_model(pytorch_model=model, artifact_path=f"{model_type}-model", registered_model_name=f"{model_type}-model-{dataset}")
                 elif model_type in ['CF', 'CBF']:
-                    mlflow.sklearn.log_model(sk_model=model, artifact_path=f"{model_type}-model", registered_model_name=f"{model_type}-model-test")
+                    mlflow.sklearn.log_model(sk_model=model, artifact_path=f"{model_type}-model", registered_model_name=f"{model_type}-model-{dataset}")
                 else:
                     print(f"MLflow: Model type {model_type} not recognized for fallback logging.")
 
