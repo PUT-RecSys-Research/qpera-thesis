@@ -7,7 +7,8 @@ import datasets_loader
 import data_manipulation as dm
 from recommenders.datasets import movielens
 from recommenders.datasets.python_splitters import python_stratified_split
-from recommenders.evaluation.python_evaluation import map, ndcg_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
+from recommenders.evaluation.python_evaluation import map_at_k, ndcg_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
+from metrics import precision_at_k, recall_at_k, f1, mrr, accuracy, user_coverage, item_coverage, intra_list_similarity_score, intra_list_dissimilarity, personalization_score
 from recommenders.models.cornac.cornac_utils import predict_ranking
 from recommenders.utils.timer import Timer
 from recommenders.utils.constants import SEED
@@ -104,7 +105,7 @@ def cf_bpr_experiment_loop(
         all_predictions = predict_ranking(bpr, train, usercol='userID', itemcol='itemID', remove_seen=True)
     print("Took {} seconds for prediction.".format(t))
 
-    print(all_predictions.head())
+    # print(all_predictions.head())
 
     all_predictions[all_predictions["userID"] == 1]
 
@@ -112,52 +113,69 @@ def cf_bpr_experiment_loop(
 
 
     rows, columns = test.shape
-    rows
+    # rows
 
     merged_df = test.merge(all_predictions, on=["userID", "itemID"], how="inner")[["userID", "itemID", "rating", "prediction"]]
-    print(merged_df)
+    # print(merged_df)
 
     user_counts = test["userID"].value_counts().reset_index()
     user_counts.columns = ["userID", "count"]
-    print(user_counts)
+    # print(user_counts)
 
 
-    max_predictions = all_predictions.loc[all_predictions.groupby("userID")["prediction"].idxmax(), ["userID", "itemID", "prediction"]]
-    print(max_predictions)
+    top = all_predictions.loc[all_predictions.groupby("userID")["prediction"].idxmax(), ["userID", "itemID", "prediction"]]
+    # print(top)
+    top_k = all_predictions
 
-    k = 1
+    #metrics
 
-    # eval_precision = precision_at_k(test, all_predictions, col_prediction='prediction', k=k)
-    # eval_precision_k = precision_at_k(test, all_predictions, col_prediction='prediction', k=10)
-    # eval_recall = recall_at_k(test, all_predictions, col_prediction='prediction', k=k)
-    # eval_recall_k = recall_at_k(test, all_predictions, col_prediction='prediction', k=10)
-    # eval_f1
-    eval_mae = mae(test, all_predictions, col_prediction='prediction')
-    eval_rmse = rmse(test, all_predictions, col_prediction='prediction')
-    # eval_mrr
-    eval_ndcg = ndcg_at_k(test, all_predictions, col_prediction='prediction', k=k)
-    # eval_intra_list_diversity
-    # eval_user_coverage
-    # eval_item_coverage
-    # eval_personalization
+    eval_map = map_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+    # eval_ndcg_at_k = ndcg_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+    eval_precision_at_k = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+    eval_recall_at_k = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+    eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k",k=1)
+    eval_precision = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    eval_recall = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    eval_mae = mae(test, top_k)
+    eval_rmse = rmse(test, top_k)
 
-    # eval_novelty = novelty(train, max_predictions)
-    # eval_historical_item_novelty = historical_item_novelty(train, max_predictions)
-    # eval_user_item_serendipity = user_item_serendipity(train, max_predictions)
-    # eval_user_serendipity = user_serendipity(train, max_predictions)
-    # eval_serendipity = serendipity(train, max_predictions)
-    # eval_catalog_coverage = catalog_coverage(train, max_predictions)
-    # eval_distributional_coverage = distributional_coverage(train, max_predictions)
+    eval_novelty = novelty(train, top)
+    # eval_historical_item_novelty = historical_item_novelty(train, top)
+    # eval_user_item_serendipity = user_item_serendipity(train, top)
+    # eval_user_serendipity = user_serendipity(train, top)
+    eval_serendipity = serendipity(train, top)
+    eval_catalog_coverage = catalog_coverage(train, top)
+    eval_distributional_coverage = distributional_coverage(train, top)
 
-    print(#"Precision:\t%f" % eval_precision,
-        # "Precision@K:\t%f" % eval_precision_k,
-        # "Recall:\t%f" % eval_recall,
-        # "Recall@K:\t%f" % eval_recall_k,
+    eval_f1 = f1(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    # eval_mrr = mrr(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    # eval_accuracy = accuracy(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_user_coverage = user_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_item_coverage = item_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+
+
+    eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=['genres'])
+    eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=['genres'])
+    eval_personalization = personalization_score(train, top)
+
+    print(
+        "Precision:\t%f" % eval_precision,
+        "Precision@K:\t%f" % eval_precision_at_k,
+        "Recall:\t%f" % eval_recall,
+        "Recall@K:\t%f" % eval_recall_at_k,
+        "F1:\t%f" % eval_f1,
+        # "Accuracy:\t%f" % eval_accuracy,
         "MAE:\t%f" % eval_mae,
         "RMSE:\t%f" % eval_rmse,
         "NDCG:\t%f" % eval_ndcg,
-        # "Novelty:\t%f" % eval_novelty,
-        # "Serendipity:\t%f" % eval_serendipity,
-        # "Catalog coverage:\t%f" % eval_catalog_coverage,
-        # "Distributional coverage:\t%f" % eval_distributional_coverage,
-        sep='\n')
+        # "MRR:\t%f" % eval_mrr,
+        "Novelty:\t%f" % eval_novelty,
+        "Serendipity:\t%f" % eval_serendipity,
+        "User covarage:\t%f" % eval_user_coverage,
+        "Item coverage:\t%f" % eval_item_coverage,
+        "Catalog coverage:\t%f" % eval_catalog_coverage,
+        "Distributional coverage:\t%f" % eval_distributional_coverage,
+        "Personalization:\t%f" % eval_personalization,
+        "Intra-list similarity:\t%f" % eval_intra_list_similarity,
+        "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
+      sep='\n')
