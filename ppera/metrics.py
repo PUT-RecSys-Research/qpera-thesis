@@ -117,13 +117,12 @@ def f1(
     rating_pred,
     col_user=DEFAULT_USER_COL,
     col_item=DEFAULT_ITEM_COL,
+    col_rating=DEFAULT_RATING_COL,
     col_prediction=DEFAULT_PREDICTION_COL,
-    relevancy_method="top_k",
     k=1,
-    threshold=DEFAULT_THRESHOLD,
 ):
-    precision = precision_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
-    recall = recall_at_k(rating_true, rating_pred, col_user, col_item, col_prediction, relevancy_method, k, threshold)
+    precision = precision_at_k(rating_true, rating_pred, col_user, col_item, col_rating, col_prediction, k)
+    recall = recall_at_k(rating_true, rating_pred, col_user, col_item, col_rating, col_prediction, k)
     return (2*precision*recall)/(precision+recall)
 
 def mrr(

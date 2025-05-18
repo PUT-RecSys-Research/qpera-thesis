@@ -5,7 +5,8 @@ import mlflow
 import data_manipulation as dm
 from recommenders.models.tfidf.tfidf_utils import TfidfRecommender
 from recommenders.datasets.python_splitters import python_stratified_split
-from recommenders.evaluation.python_evaluation import map_at_k, ndcg_at_k, precision_at_k, recall_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
+from recommenders.evaluation.python_evaluation import map_at_k, ndcg_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
+from metrics import precision_at_k, recall_at_k, f1, mrr, accuracy, user_coverage, item_coverage, intra_list_similarity_score, intra_list_dissimilarity, personalization_score
 from mlflow.models import infer_signature
 import log_mlflow
 
@@ -121,70 +122,69 @@ def cbf_experiment_loop(
     top = filtered_top_k.loc[idx]
 
     # Metrics
-    args = [test, top_k]
-    kwargs = dict(
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        relevancy_method="top_k",
-        k=TOP_K,
-    )
-
-    eval_map = map_at_k(*args, **kwargs)
-    eval_ndcg_at_k = ndcg_at_k(*args, **kwargs)
-    eval_precision_at_k = precision_at_k(*args, **kwargs)
-    eval_recall_at_k = recall_at_k(*args, **kwargs)
-
+    eval_map = map_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+    # eval_ndcg_at_k = ndcg_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+    eval_precision_at_k = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+    eval_recall_at_k = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+    eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k",k=1)
+    eval_precision = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    eval_recall = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
     eval_mae = mae(test, top_k)
     eval_rmse = rmse(test, top_k)
 
-    args1 = [test, top]
-    kwargs1 = dict(
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        relevancy_method="top_k",
-        k=1,
-    )
-    eval_ndcg = ndcg_at_k(*args1, **kwargs1)
-    eval_precision = precision_at_k(*args1, **kwargs1)
-    eval_recall = recall_at_k(*args1, **kwargs1)
-
     eval_novelty = novelty(train, top)
-    eval_historical_item_novelty = historical_item_novelty(train, top)
-    eval_user_item_serendipity = user_item_serendipity(train, top)
-    eval_user_serendipity = user_serendipity(train, top)
+    # eval_historical_item_novelty = historical_item_novelty(train, top)
+    # eval_user_item_serendipity = user_item_serendipity(train, top)
+    # eval_user_serendipity = user_serendipity(train, top)
     eval_serendipity = serendipity(train, top)
     eval_catalog_coverage = catalog_coverage(train, top)
     eval_distributional_coverage = distributional_coverage(train, top)
 
-    print("Precision:\t%f" % eval_precision,
-      "Precision@K:\t%f" % eval_precision_at_k,
-      "Recall:\t%f" % eval_recall,
-      "Recall@K:\t%f" % eval_recall_at_k,
-      "MAE:\t%f" % eval_mae,
-      "RMSE:\t%f" % eval_rmse,
-      "NDCG:\t%f" % eval_ndcg,
-      "Novelty:\t%f" % eval_novelty,
-      "Serendipity:\t%f" % eval_serendipity,
-      "Catalog coverage:\t%f" % eval_catalog_coverage,
-      "Distributional coverage:\t%f" % eval_distributional_coverage,
+    eval_f1 = f1(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    # eval_mrr = mrr(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    # eval_accuracy = accuracy(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_user_coverage = user_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_item_coverage = item_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+
+
+    eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=['genres'])
+    eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=['genres'])
+    eval_personalization = personalization_score(train, top)
+
+    print(
+        "Precision:\t%f" % eval_precision,
+        "Precision@K:\t%f" % eval_precision_at_k,
+        "Recall:\t%f" % eval_recall,
+        "Recall@K:\t%f" % eval_recall_at_k,
+        "F1:\t%f" % eval_f1,
+        # "Accuracy:\t%f" % eval_accuracy,
+        "MAE:\t%f" % eval_mae,
+        "RMSE:\t%f" % eval_rmse,
+        "NDCG:\t%f" % eval_ndcg,
+        # "MRR:\t%f" % eval_mrr,
+        "Novelty:\t%f" % eval_novelty,
+        "Serendipity:\t%f" % eval_serendipity,
+        "User covarage:\t%f" % eval_user_coverage,
+        "Item coverage:\t%f" % eval_item_coverage,
+        "Catalog coverage:\t%f" % eval_catalog_coverage,
+        "Distributional coverage:\t%f" % eval_distributional_coverage,
+        "Personalization:\t%f" % eval_personalization,
+        "Intra-list similarity:\t%f" % eval_intra_list_similarity,
+        "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
       sep='\n')
     
     
-    # mlflow
-    metrics = {
-        "precision_at_K": eval_precision,
-        "recall_at_K": eval_recall,
-        "NDCG_at_K": eval_ndcg,
-        "RMSE": eval_rmse,
-        "MAE": eval_mae,
-        "novelty": eval_novelty,
-        "serendipity": eval_serendipity,
-        "catalog_coverage": eval_catalog_coverage,
-        "distributional_coverage": eval_distributional_coverage
-    }
+    # # mlflow
+    # metrics = {
+    #     "precision_at_K": eval_precision,
+    #     "recall_at_K": eval_recall,
+    #     "NDCG_at_K": eval_ndcg,
+    #     "RMSE": eval_rmse,
+    #     "MAE": eval_mae,
+    #     "novelty": eval_novelty,
+    #     "serendipity": eval_serendipity,
+    #     "catalog_coverage": eval_catalog_coverage,
+    #     "distributional_coverage": eval_distributional_coverage
+    # }
 
-    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized)
+    # log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized)
