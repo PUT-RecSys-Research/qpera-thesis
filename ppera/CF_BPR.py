@@ -1,16 +1,20 @@
-import numpy as np
+import os
+import sys
+import cornac
+import pandas as pd
 import datasets_loader
-import mlflow
 
 import data_manipulation as dm
-from recommenders.models.tfidf.tfidf_utils import TfidfRecommender
+from recommenders.datasets import movielens
 from recommenders.datasets.python_splitters import python_stratified_split
 from recommenders.evaluation.python_evaluation import map_at_k, ndcg_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
 from metrics import precision_at_k, recall_at_k, f1, mrr, accuracy, user_coverage, item_coverage, intra_list_similarity_score, intra_list_dissimilarity, personalization_score
-from mlflow.models import infer_signature
-import log_mlflow
+from recommenders.models.cornac.cornac_utils import predict_ranking
+from recommenders.utils.timer import Timer
+from recommenders.utils.constants import SEED
+# from metrics import precision_at_k, recall_at_k, mrr, accuracy, user_coverage, item_coverage
 
-def cbf_experiment_loop(
+def cf_bpr_experiment_loop(
         TOP_K, 
         dataset, 
         want_col, 
@@ -41,13 +45,6 @@ def cbf_experiment_loop(
     fraction_to_hide=fraction_to_hide
     records_to_hide=records_to_hide
 
-    params = {
-        "dataset": dataset,
-        "want_col": want_col,
-        "num_rows": num_rows,
-        "ratio": ratio,
-        "seed": seed,
-    }
     header = {
         "col_user": "userID",
         "col_item": "itemID",
@@ -59,23 +56,14 @@ def cbf_experiment_loop(
         "col_prediction": "prediction",
     }
 
-    # Load the MovieLens dataset
+    # Model parameters
+    NUM_FACTORS = 200
+    NUM_EPOCHS = 100
+
+    # Load dataset
     data = datasets_loader.loader(dataset, want_col, num_rows, seed)
-    data["rating"] = data["rating"].astype(np.float32)
 
-    # Create a TF-IDF model
-    recommender = TfidfRecommender(id_col='itemID', tokenization_method='bert')
-    # data['genres'] = data['genres'].str.replace('|', ' ', regex=False)
-
-    df_clean = data.drop(columns=['userID', 'rating', 'timestamp'])
-    df_clean = df_clean.drop_duplicates(subset=['itemID'])
-    cols_to_clean = ['title','genres']
-    clean_col = 'cleaned_text'
-    df_clean = recommender.clean_dataframe(df_clean, cols_to_clean, clean_col)
-
-    df_clean = df_clean.reset_index(drop=True)
-
-    # Split the dataset to training and testing dataset
+    # Algorithm
     train, test = python_stratified_split(
         data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed
     )
@@ -98,30 +86,49 @@ def cbf_experiment_loop(
             seed=seed
         )
 
-    train = recommender.clean_dataframe(train, cols_to_clean, clean_col)
 
-    # Tokenize the text
-    tf, vectors_tokenized = recommender.tokenize_text(df_clean, text_col="cleaned_text")
+    train_set = cornac.data.Dataset.from_uir(train.itertuples(index=False), seed=SEED)
 
-    # Fit the model
-    recommender.fit(tf, vectors_tokenized)
-    tokens = recommender.get_tokens()
-    print(list(tokens.keys())[:10])
+    bpr = cornac.models.BPR(
+        k=NUM_FACTORS,
+        max_iter=NUM_EPOCHS,
+        learning_rate=0.01,
+        lambda_reg=0.001,
+        verbose=True,
+        seed=SEED
+    )
+    with Timer() as t:
+        bpr.fit(train_set)
+    print("Took {} seconds for training.".format(t))
 
-    top_k_items = recommender.recommend_top_k_items(df_clean, k=5)
-    merged_df = data.merge(top_k_items, on='itemID', how='inner')
-    merged_df['prediction'] = merged_df['rating'] * merged_df['rec_score']
-    top_k = merged_df[['userID', 'rec_itemID', 'prediction']]
-    top_k.rename(columns={'rec_itemID': 'itemID'}, inplace=True)
-    
-    filtered_top_k = top_k.merge(train, on=["userID", "itemID"], how="left", indicator=True)
-    filtered_top_k = filtered_top_k[filtered_top_k["_merge"] == "left_only"].drop(columns=["_merge"])
-    filtered_top_k = filtered_top_k[["userID", "itemID", "prediction"]]
+    with Timer() as t:
+        all_predictions = predict_ranking(bpr, train, usercol='userID', itemcol='itemID', remove_seen=True)
+    print("Took {} seconds for prediction.".format(t))
 
-    idx = filtered_top_k.groupby("userID")["prediction"].idxmax()
-    top = filtered_top_k.loc[idx]
+    # print(all_predictions.head())
 
-    # Metrics
+    all_predictions[all_predictions["userID"] == 1]
+
+    all_predictions[all_predictions["userID"] == 1].sort_values(by="prediction", ascending=False)
+
+
+    rows, columns = test.shape
+    # rows
+
+    merged_df = test.merge(all_predictions, on=["userID", "itemID"], how="inner")[["userID", "itemID", "rating", "prediction"]]
+    # print(merged_df)
+
+    user_counts = test["userID"].value_counts().reset_index()
+    user_counts.columns = ["userID", "count"]
+    # print(user_counts)
+
+
+    top = all_predictions.loc[all_predictions.groupby("userID")["prediction"].idxmax(), ["userID", "itemID", "prediction"]]
+    # print(top)
+    top_k = all_predictions
+
+    #metrics
+
     eval_map = map_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
     # eval_ndcg_at_k = ndcg_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
     eval_precision_at_k = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
@@ -172,19 +179,3 @@ def cbf_experiment_loop(
         "Intra-list similarity:\t%f" % eval_intra_list_similarity,
         "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
       sep='\n')
-    
-    
-    # # mlflow
-    # metrics = {
-    #     "precision_at_K": eval_precision,
-    #     "recall_at_K": eval_recall,
-    #     "NDCG_at_K": eval_ndcg,
-    #     "RMSE": eval_rmse,
-    #     "MAE": eval_mae,
-    #     "novelty": eval_novelty,
-    #     "serendipity": eval_serendipity,
-    #     "catalog_coverage": eval_catalog_coverage,
-    #     "distributional_coverage": eval_distributional_coverage
-    # }
-
-    # log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized)
