@@ -1,7 +1,7 @@
 import CF
 import CBF
-import CF_BPR
 import RL
+
 import time
 import logging # Import the logging module
 import os
@@ -58,20 +58,17 @@ def print_experiment_header(algorithm_name, dataset_name, num_rows):
 
 # --- Experiment Definitions ---
 experiments = [
-    # {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
-    # {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
-    {'algo': 'CF_BPR', 'module': CF_BPR, 'func': 'cf_bpr_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
-    # {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
+    {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
+    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
 
-    # {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
-    # {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
-    # {'algo': 'CF_BPR', 'module': CF_BPR, 'func': 'cf_bpr_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
-    # {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'amazonsales', 'rows': 10000},
+    {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
+    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
 
-    # {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
-    # {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
-    # {'algo': 'CF_BPR', 'module': CF_BPR, 'func': 'cf_bpr_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
-    # {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
+    {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
+    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
 ]
 
 # --- Common Parameters ---
@@ -158,74 +155,3 @@ if failed_experiments:
     for failure in failed_experiments:
         logger.warning(f"  - {failure}")
 logger.info("===================================================================")
-
-# OLD
-# import CF
-# import CBF
-# import RL
-
-# mlflow server --host 127.0.0.1 --port 8080
-# remember to be in the right directory to run this script from the command line (cd ppera)
-
-# CF.cf_experiment_loop(TOP_K=10, dataset='movielens',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42
-# )
-
-# CBF.cbf_experiment_loop(TOP_K=10, dataset='movielens',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42
-# )
-
-# RL.rl_experiment_loop(dataset='movielens',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42
-# )
-
-# CF.cf_experiment_loop(TOP_K=10, dataset='amazonsales',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=1000,
-#                         ratio=0.75,
-#                         seed=42
-# )
-
-# CBF.cbf_experiment_loop(TOP_K=10, dataset='amazonsales',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=1000,
-#                         ratio=0.75,
-#                         seed=42
-# )
-
-# RL.rl_experiment_loop(dataset='amazonsales',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42,
-# )
-
-# CF.cf_experiment_loop(TOP_K=10, dataset='postrecommendations',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42
-# )
-
-# CBF.cbf_experiment_loop(TOP_K=10, dataset='postrecommendations',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42
-# )
-
-# RL.rl_experiment_loop(dataset='postrecommendations',
-#                         want_col=["userID", "itemID", "rating", "timestamp", 'title', 'genres'],
-#                         num_rows=10000,
-#                         ratio=0.75,
-#                         seed=42,
-# )

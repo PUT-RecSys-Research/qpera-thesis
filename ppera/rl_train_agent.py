@@ -184,11 +184,11 @@ def train(args):
         torch.save(model.state_dict(), policy_file)
 
 
-def train_agent_rl(dataset):
+def train_agent_rl(dataset,seed):
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
     parser.add_argument('--name', type=str, default='train_agent', help='directory name.')
-    parser.add_argument('--seed', type=int, default=123, help='random seed.')
+    parser.add_argument('--seed', type=int, default=seed, help='random seed.')
     parser.add_argument('--gpu', type=str, default='0', help='gpu device.')
     parser.add_argument('--epochs', type=int, default=50, help='Max number of epochs.') # default=50 fast_test=1
     parser.add_argument('--batch_size', type=int, default=32, help='batch size.') # default=32 fast_test=16

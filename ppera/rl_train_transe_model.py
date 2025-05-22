@@ -210,11 +210,11 @@ def extract_embeddings(args):
         save_embed(args.dataset, embeds)
         logger.info("Embeddings extracted and saved successfully.")
 
-def train_transe_model_rl(dataset):
+def train_transe_model_rl(dataset,seed):
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
     parser.add_argument('--name', type=str, default='train_transe_model', help='model name.')
-    parser.add_argument('--seed', type=int, default=123, help='random seed.')
+    parser.add_argument('--seed', type=int, default=seed, help='random seed.')
     parser.add_argument('--gpu', type=str, default='1', help='gpu device.')
     parser.add_argument('--epochs', type=int, default=30, help='number of epochs to train.') #default=30 fast_test=1
     parser.add_argument('--batch_size', type=int, default=64, help='batch size.')

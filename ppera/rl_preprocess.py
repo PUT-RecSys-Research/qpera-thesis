@@ -357,4 +357,6 @@ def preprocess_rl(dataset, want_col, num_rows, ratio, seed, force_reprocess=True
         print("Train/test labels already exist. Skipping generation.")
 
     print("Preprocessing finished.")
+
+    return data_df, train_df
     
