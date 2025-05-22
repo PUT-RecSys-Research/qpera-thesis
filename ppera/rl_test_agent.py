@@ -8,6 +8,10 @@ import torch
 import torch.nn.functional as F
 from functools import reduce
 
+from recommenders.evaluation.python_evaluation import map_at_k, ndcg_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
+from metrics import precision_at_k, recall_at_k, f1, mrr, accuracy, user_coverage, item_coverage, intra_list_similarity_score, intra_list_dissimilarity, personalization_score
+
+
 import metrics
 import log_mlflow
 
@@ -15,51 +19,6 @@ from rl_kg_env import BatchKGEnvironment
 from rl_decoder import RLRecommenderDecoder
 from rl_train_agent import ActorCritic
 from rl_utils import *
-
-
-# def evaluate(topk_matches, test_user_products):
-#     """Compute metrics for predicted recommendations.
-#     Args:
-#         topk_matches: a list or dict of product ids in ascending order.
-#     """
-#     invalid_users = []
-#     precisions, recalls, ndcgs, hits = [], [], [], []
-#     test_user_idxs = list(test_user_products.keys())
-#     for uid in test_user_idxs:
-#         if uid not in topk_matches or len(topk_matches[uid]) < 10:
-#             invalid_users.append(uid)
-#             continue
-#         pred_list, rel_set = topk_matches[uid][::-1], test_user_products[uid]
-#         if len(pred_list) == 0:
-#             continue
-
-#         dcg = 0.0
-#         hit_num = 0.0
-#         for i in range(len(pred_list)):
-#             if pred_list[i] in rel_set:
-#                 dcg += 1. / (log(i + 2) / log(2))
-#                 hit_num += 1
-
-#         idcg = 0.0
-#         for i in range(min(len(rel_set), len(pred_list))):
-#             idcg += 1. / (log(i + 2) / log(2))
-#         ndcg = dcg / idcg
-#         recall = hit_num / len(rel_set)
-#         precision = hit_num / len(pred_list)
-#         hit = 1.0 if hit_num > 0.0 else 0.0
-
-#         ndcgs.append(ndcg)
-#         recalls.append(recall)
-#         precisions.append(precision)
-#         hits.append(hit)
-
-#     avg_precision = np.mean(precisions) * 100
-#     avg_recall = np.mean(recalls) * 100
-#     avg_ndcg = np.mean(ndcgs) * 100
-#     avg_hit = np.mean(hits) * 100
-#     print('NDCG={:.3f} |  Recall={:.3f} | HR={:.3f} | Precision={:.3f} | Invalid users={}'.format(
-#             avg_ndcg, avg_recall, avg_hit, avg_precision, len(invalid_users)))
-
 
 def batch_beam_search(env, model, uids, device, topk=[25, 5, 1]):
     def _batch_acts_to_masks(batch_acts):
@@ -223,7 +182,7 @@ def predict_paths(policy_file, path_file, args):
     return model
 
 
-def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
+def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, test, args):
 
     print("Starting evaluation using Decoder and metrics.py...")
     k = TOP_K
@@ -298,8 +257,11 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
             sorted_candidates = sorted(candidates, key=lambda x: (x[0], x[1]), reverse=True)
         else:
             sorted_candidates = sorted(candidates, key=lambda x: (x[1], x[0]), reverse=True)
+        
+        print(f"User {uid}: Sorted Candidates: {sorted_candidates}") #TODO: remove
 
         top_k_pids = [pid for _, _, pid in sorted_candidates[:k]] 
+        # print(f"User {uid}: Top K PIDs: {top_k_pids}") #TODO: remove
 
 
         if args.add_products and len(top_k_pids) < k and base_scores is not None:
@@ -372,6 +334,60 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
         print(f"Precision@{k} = {precision:.4f}")
         print(f"Recall@{k}    = {recall:.4f}")
 
+
+
+        # # # Metrics
+        # eval_map = map_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+        # # eval_ndcg_at_k = ndcg_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+        # eval_precision_at_k = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+        # eval_recall_at_k = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+        # eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k",k=1)
+        # eval_precision = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+        # eval_recall = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+        # eval_mae = mae(test, top_k)
+        # eval_rmse = rmse(test, top_k)
+
+        # eval_novelty = novelty(train, top)
+        # # eval_historical_item_novelty = historical_item_novelty(train, top)
+        # # eval_user_item_serendipity = user_item_serendipity(train, top)
+        # # eval_user_serendipity = user_serendipity(train, top)
+        # eval_serendipity = serendipity(train, top)
+        # eval_catalog_coverage = catalog_coverage(train, top)
+        # eval_distributional_coverage = distributional_coverage(train, top)
+
+        # eval_f1 = f1(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+        # # eval_mrr = mrr(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+        # # eval_accuracy = accuracy(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+        # eval_user_coverage = user_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+        # eval_item_coverage = item_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+
+
+        # eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=['genres'])
+        # eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=['genres'])
+        # eval_personalization = personalization_score(train, top)
+
+        # print(
+        #     "Precision:\t%f" % eval_precision,
+        #     "Precision@K:\t%f" % eval_precision_at_k,
+        #     "Recall:\t%f" % eval_recall,
+        #     "Recall@K:\t%f" % eval_recall_at_k,
+        #     "F1:\t%f" % eval_f1,
+        #     # "Accuracy:\t%f" % eval_accuracy,
+        #     "MAE:\t%f" % eval_mae,
+        #     "RMSE:\t%f" % eval_rmse,
+        #     "NDCG:\t%f" % eval_ndcg,
+        #     # "MRR:\t%f" % eval_mrr,
+        #     "Novelty:\t%f" % eval_novelty,
+        #     "Serendipity:\t%f" % eval_serendipity,
+        #     "User covarage:\t%f" % eval_user_coverage,
+        #     "Item coverage:\t%f" % eval_item_coverage,
+        #     "Catalog coverage:\t%f" % eval_catalog_coverage,
+        #     "Distributional coverage:\t%f" % eval_distributional_coverage,
+        #     "Personalization:\t%f" % eval_personalization,
+        #     "Intra-list similarity:\t%f" % eval_intra_list_similarity,
+        #     "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
+        # sep='\n')
+
     except AttributeError as e:
          print(f"ERROR calling metrics function: {e}. Check function names and imports in metrics.py.")
     except Exception as e:
@@ -379,20 +395,28 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, args):
 
     print("--------------------------------------------\n")
     metrics_dict = {
-        "precision_at_K": precision,
-        "recall_at_K": recall,
-        # "NDCG_at_K": eval_ndcg,
-        # "RMSE": eval_rmse,
-        # "MAE": eval_mae,
-        # "novelty": eval_novelty,
-        # "serendipity": eval_serendipity,
-        # "catalog_coverage": eval_catalog_coverage,
-        # "distributional_coverage": eval_distributional_coverage
-    }
+            # "precision": eval_precision,
+            # "precision_at_k": eval_precision_at_k,
+            # "recall": eval_recall,
+            # "recall_at_k": eval_recall_at_k,
+            # "f1": eval_f1,
+            # "mae": eval_mae,                      
+            # "rmse": eval_rmse,                    
+            # "ndcg_at_k": eval_ndcg,               
+            # "novelty": eval_novelty,
+            # "serendipity": eval_serendipity,
+            # "user_coverage": eval_user_coverage,  
+            # "item_coverage": eval_item_coverage,
+            # "catalog_coverage": eval_catalog_coverage,
+            # "distributional_coverage": eval_distributional_coverage,
+            # "personalization": eval_personalization,
+            # "intra_list_similarity": eval_intra_list_similarity,
+            # "intra_list_dissimilarity": eval_intra_list_dissimilarity,
+        }
     return metrics_dict, rating_pred_df, human_recs
 
 
-def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args):
+def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, args):
     policy_file = args.log_dir + '/policy_model_epoch_{}.ckpt'.format(args.epochs)
     path_file = args.log_dir + '/policy_paths_epoch{}.pkl'.format(args.epochs)
 
@@ -423,7 +447,7 @@ def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args):
              print(f"ERROR loading labels: {e}")
              return
 
-        metrics, rating_pred_df, human_recs = run_evaluation(path_file, train_labels, test_labels, TOP_K, args)
+        metrics, rating_pred_df, human_recs = run_evaluation(path_file, train_labels, test_labels, TOP_K, data_df, train_df, test_df, args)
 
         rl_hyperparams = {
             "dataset": args.dataset,
@@ -440,20 +464,20 @@ def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args):
         }
         
         # data & train in preprocess pahse there is a data and train df
-        print('########################################################################') 
-        print(rating_pred_df) 
-        print(type(rating_pred_df))
-        print('########################################################################')
+        # print('########################################################################') 
+        # print(rating_pred_df) 
+        # print(type(rating_pred_df))
+        # print('########################################################################')
         print(human_recs)
-        print('########################################################################')
-        log_mlflow.log_mlflow(args.dataset, rating_pred_df, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
+        # print('########################################################################')
+        # log_mlflow.log_mlflow(args.dataset, rating_pred_df, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
 
     else:
         print("Skipping evaluation.")
 
 
 
-def test_agent_rl(dataset, TOP_K, want_col, num_rows, ratio, seed, data_df, train_df):
+def test_agent_rl(dataset, TOP_K, want_col, num_rows, ratio, seed, data_df, train_df, test_df):
     boolean = lambda x: (str(x).lower() == 'true')
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
@@ -481,5 +505,5 @@ def test_agent_rl(dataset, TOP_K, want_col, num_rows, ratio, seed, data_df, trai
          print(f"Warning: Log directory {args.log_dir} not found. Ensure '--name' matches training.")
 
     set_random_seed(args.seed)
-    test(TOP_K, want_col, num_rows, ratio, data_df, train_df, args)
+    test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, args)
 
