@@ -15,6 +15,7 @@ from metrics import precision_at_k, recall_at_k, f1, mrr, accuracy, user_coverag
 import metrics
 import log_mlflow
 
+from rl_prediction import calculate_predictons
 from rl_kg_env import BatchKGEnvironment
 from rl_decoder import RLRecommenderDecoder
 from rl_train_agent import ActorCritic
@@ -207,6 +208,12 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
         purchase_embeds = embeds[WATCHED][0]
         product_embeds = embeds[ITEMID]
         base_scores = np.dot(user_embeds + purchase_embeds, product_embeds.T)
+
+        median_score = np.median(base_scores)
+        scale_factor = np.std(base_scores)
+        # print(f"Base scores loaded. Median: {median_score}, Scale Factor: {scale_factor}")
+
+
     except Exception as e:
          print(f"Warning: Could not load embeddings or compute base scores: {e}. Relying solely on path probability.")
          base_scores = None
@@ -252,13 +259,19 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     pred_labels = {}
     sort_by = 'score'
 
+    all_users_top_k_full_candidates  = {}
+
     for uid, candidates in best_path_candidates.items():
         if sort_by == 'score':
             sorted_candidates = sorted(candidates, key=lambda x: (x[0], x[1]), reverse=True)
         else:
             sorted_candidates = sorted(candidates, key=lambda x: (x[1], x[0]), reverse=True)
         
-        print(f"User {uid}: Sorted Candidates: {sorted_candidates}") #TODO: remove
+        # print(f"User {uid}: Sorted Candidates: {sorted_candidates}") #TODO: remove
+        
+        top_k_full_info = sorted_candidates[:k]
+        all_users_top_k_full_candidates[uid] = top_k_full_info
+
 
         top_k_pids = [pid for _, _, pid in sorted_candidates[:k]] 
         # print(f"User {uid}: Top K PIDs: {top_k_pids}") #TODO: remove
@@ -279,6 +292,11 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
 
         pred_labels[uid] = top_k_pids[::-1]
 
+
+    print('-------------------------------------------- Sorted Candidates --------------------------------------------')
+    # print(all_users_top_k_full_candidates)
+    top, top_k = calculate_predictons(all_users_top_k_full_candidates, median_score, scale_factor, k)
+
     # 6. Instantiate Decoder
     print("Instantiating decoder...")
     decoder = RLRecommenderDecoder(args.dataset)
@@ -293,7 +311,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     for user_idx, user_rec_data in human_recs.items():
         original_uid = user_rec_data['original_userID']
         recs_list = user_rec_data['recommendations']
-        print(f"User Index: {user_idx} (Original UserID: {original_uid})")
+        # print(f"User Index: {user_idx} (Original UserID: {original_uid})")
         if not recs_list:
             print("  No recommendations.")
         for r in recs_list:
@@ -326,67 +344,69 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     if rating_pred_df.empty or rating_true_df.empty:
          print("Cannot calculate metrics: Prediction or Ground Truth DataFrame is empty.")
          return
-
+    print('KURWWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+    print(f"Top K: {top_k}") #TODO: remove
+    print(f"Top: {top}") #TODO: remove
+    print(f"Train: {train}") #TODO: remove
+    print(f"Test: {test}") #TODO: remove
     try:
-        precision = metrics.precision_at_k(rating_true_df, rating_pred_df, k=k, col_user=USERID, col_item=ITEMID, col_rating=RATING, col_prediction=PREDICTION)
-        recall = metrics.recall_at_k(rating_true_df, rating_pred_df, k=k, col_user=USERID, col_item=ITEMID, col_rating=RATING, col_prediction=PREDICTION)
-
-        print(f"Precision@{k} = {precision:.4f}")
-        print(f"Recall@{k}    = {recall:.4f}")
-
-
-
-        # # # Metrics
-        # eval_map = map_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
-        # # eval_ndcg_at_k = ndcg_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
-        # eval_precision_at_k = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
-        # eval_recall_at_k = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
-        # eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k",k=1)
-        # eval_precision = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-        # eval_recall = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-        # eval_mae = mae(test, top_k)
-        # eval_rmse = rmse(test, top_k)
+        
+        # Metrics
+        eval_map = map_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+        # eval_ndcg_at_k = ndcg_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+        eval_precision_at_k = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+        eval_recall_at_k = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+        eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k",k=1)
+        eval_precision = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+        eval_recall = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+        eval_mae = mae(test, top_k)
+        eval_rmse = rmse(test, top_k)
 
         # eval_novelty = novelty(train, top)
-        # # eval_historical_item_novelty = historical_item_novelty(train, top)
-        # # eval_user_item_serendipity = user_item_serendipity(train, top)
-        # # eval_user_serendipity = user_serendipity(train, top)
+        # eval_historical_item_novelty = historical_item_novelty(train, top)
+        # eval_user_item_serendipity = user_item_serendipity(train, top)
+        # eval_user_serendipity = user_serendipity(train, top)
         # eval_serendipity = serendipity(train, top)
         # eval_catalog_coverage = catalog_coverage(train, top)
         # eval_distributional_coverage = distributional_coverage(train, top)
 
         # eval_f1 = f1(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-        # # eval_mrr = mrr(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-        # # eval_accuracy = accuracy(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-        # eval_user_coverage = user_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-        # eval_item_coverage = item_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+        # eval_mrr = mrr(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+        # eval_accuracy = accuracy(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+        eval_user_coverage = user_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+        eval_item_coverage = item_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
 
 
-        # eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=['genres'])
-        # eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=['genres'])
-        # eval_personalization = personalization_score(train, top)
+        eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=['genres'])
+        eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=['genres'])
+        eval_personalization = personalization_score(train, top)
 
-        # print(
-        #     "Precision:\t%f" % eval_precision,
-        #     "Precision@K:\t%f" % eval_precision_at_k,
-        #     "Recall:\t%f" % eval_recall,
-        #     "Recall@K:\t%f" % eval_recall_at_k,
-        #     "F1:\t%f" % eval_f1,
-        #     # "Accuracy:\t%f" % eval_accuracy,
-        #     "MAE:\t%f" % eval_mae,
-        #     "RMSE:\t%f" % eval_rmse,
-        #     "NDCG:\t%f" % eval_ndcg,
-        #     # "MRR:\t%f" % eval_mrr,
-        #     "Novelty:\t%f" % eval_novelty,
-        #     "Serendipity:\t%f" % eval_serendipity,
-        #     "User covarage:\t%f" % eval_user_coverage,
-        #     "Item coverage:\t%f" % eval_item_coverage,
-        #     "Catalog coverage:\t%f" % eval_catalog_coverage,
-        #     "Distributional coverage:\t%f" % eval_distributional_coverage,
-        #     "Personalization:\t%f" % eval_personalization,
-        #     "Intra-list similarity:\t%f" % eval_intra_list_similarity,
-        #     "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
-        # sep='\n')
+        print(f"Top K: {top_k}") #TODO: remove
+        print(f"Top: {top}") #TODO: remove
+        print(f"Train: {train}") #TODO: remove
+        print(f"Test: {test}") #TODO: remove
+
+        print(
+            "Precision:\t%f" % eval_precision,
+            "Precision@K:\t%f" % eval_precision_at_k,
+            "Recall:\t%f" % eval_recall,
+            "Recall@K:\t%f" % eval_recall_at_k,
+            # "F1:\t%f" % eval_f1,
+            # "Accuracy:\t%f" % eval_accuracy,
+            "MAE:\t%f" % eval_mae,
+            "RMSE:\t%f" % eval_rmse,
+            "NDCG:\t%f" % eval_ndcg,
+            # "MRR:\t%f" % eval_mrr,
+            # "Novelty:\t%f" % eval_novelty,
+            # "Serendipity:\t%f" % eval_serendipity,
+            "User covarage:\t%f" % eval_user_coverage,
+            "Item coverage:\t%f" % eval_item_coverage,
+            # "Catalog coverage:\t%f" % eval_catalog_coverage,
+            # "Distributional coverage:\t%f" % eval_distributional_coverage,
+            "Personalization:\t%f" % eval_personalization,
+            "Intra-list similarity:\t%f" % eval_intra_list_similarity,
+            "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
+        sep='\n')
 
     except AttributeError as e:
          print(f"ERROR calling metrics function: {e}. Check function names and imports in metrics.py.")
@@ -395,23 +415,23 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
 
     print("--------------------------------------------\n")
     metrics_dict = {
-            # "precision": eval_precision,
-            # "precision_at_k": eval_precision_at_k,
-            # "recall": eval_recall,
-            # "recall_at_k": eval_recall_at_k,
+            "precision": eval_precision,
+            "precision_at_k": eval_precision_at_k,
+            "recall": eval_recall,
+            "recall_at_k": eval_recall_at_k,
             # "f1": eval_f1,
-            # "mae": eval_mae,                      
-            # "rmse": eval_rmse,                    
-            # "ndcg_at_k": eval_ndcg,               
+            "mae": eval_mae,                      
+            "rmse": eval_rmse,                    
+            "ndcg_at_k": eval_ndcg,               
             # "novelty": eval_novelty,
             # "serendipity": eval_serendipity,
-            # "user_coverage": eval_user_coverage,  
-            # "item_coverage": eval_item_coverage,
+            "user_coverage": eval_user_coverage,  
+            "item_coverage": eval_item_coverage,
             # "catalog_coverage": eval_catalog_coverage,
             # "distributional_coverage": eval_distributional_coverage,
-            # "personalization": eval_personalization,
-            # "intra_list_similarity": eval_intra_list_similarity,
-            # "intra_list_dissimilarity": eval_intra_list_dissimilarity,
+            "personalization": eval_personalization,
+            "intra_list_similarity": eval_intra_list_similarity,
+            "intra_list_dissimilarity": eval_intra_list_dissimilarity,
         }
     return metrics_dict, rating_pred_df, human_recs
 
@@ -468,7 +488,7 @@ def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, args):
         # print(rating_pred_df) 
         # print(type(rating_pred_df))
         # print('########################################################################')
-        print(human_recs)
+        # print(human_recs)
         # print('########################################################################')
         # log_mlflow.log_mlflow(args.dataset, rating_pred_df, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
 
