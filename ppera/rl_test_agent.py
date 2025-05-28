@@ -338,6 +338,31 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
         rating_true_df[ITEMID] = rating_true_df[ITEMID].astype(int)
         rating_true_df[RATING] = rating_true_df[RATING].astype(float)
 
+    # --------------- ADD THIS FILTERING STEP ---------------
+    print("Filtering predictions to remove items already in the `train` DataFrame (for metrics.py compatibility)...")
+    if not train.empty and (not top.empty or not top_k.empty) :
+        train_interactions = train.set_index(['userID', 'itemID']).index
+
+        if not top.empty:
+            top_interactions = pd.MultiIndex.from_frame(top[['userID', 'itemID']])
+            mask_top = ~top_interactions.isin(train_interactions)
+            top_filtered = top[mask_top].copy()
+            print(f"Original 'top' size: {len(top)}, Filtered 'top' size: {len(top_filtered)}")
+        else:
+            top_filtered = pd.DataFrame(columns=top.columns)
+
+        if not top_k.empty:
+            top_k_interactions = pd.MultiIndex.from_frame(top_k[['userID', 'itemID']])
+            mask_top_k = ~top_k_interactions.isin(train_interactions)
+            top_k_filtered = top_k[mask_top_k].copy()
+            print(f"Original 'top_k' size: {len(top_k)}, Filtered 'top_k_filtered' size: {len(top_k_filtered)}")
+        else:
+            top_k_filtered = pd.DataFrame(columns=top_k.columns)
+    else:
+        print("Train DataFrame is empty or prediction DataFrames are empty, skipping filtering.")
+        top_filtered = top.copy()
+        top_k_filtered = top_k.copy()
+    # --------------- END OF FILTERING STEP ---------------
 
     # 9. Calculate Metrics using metrics.py
     print(f"\n--- Calculating Metrics @{k} using metrics.py ---")
@@ -349,91 +374,82 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     print(f"Top: {top}") #TODO: remove
     print(f"Train: {train}") #TODO: remove
     print(f"Test: {test}") #TODO: remove
-    try:
+    # try:
         
-        # Metrics
-        eval_map = map_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
-        # eval_ndcg_at_k = ndcg_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
-        eval_precision_at_k = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
-        eval_recall_at_k = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
-        eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k",k=1)
-        eval_precision = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-        eval_recall = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-        eval_mae = mae(test, top_k)
-        eval_rmse = rmse(test, top_k)
+    # Metrics
+    eval_map = map_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+    # eval_ndcg_at_k = ndcg_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+    eval_precision_at_k = precision_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+    eval_recall_at_k = recall_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+    eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k",k=1)
+    eval_precision = precision_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    eval_recall = recall_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    eval_mae = mae(test, top_k_filtered)
+    eval_rmse = rmse(test, top_k_filtered)
 
-        # eval_novelty = novelty(train, top)
-        # eval_historical_item_novelty = historical_item_novelty(train, top)
-        # eval_user_item_serendipity = user_item_serendipity(train, top)
-        # eval_user_serendipity = user_serendipity(train, top)
-        # eval_serendipity = serendipity(train, top)
-        # eval_catalog_coverage = catalog_coverage(train, top)
-        # eval_distributional_coverage = distributional_coverage(train, top)
+    eval_novelty = novelty(train, top_filtered)
+    # eval_historical_item_novelty = historical_item_novelty(train, top_filtered)
+    # eval_user_item_serendipity = user_item_serendipity(train, top_filtered)
+    # eval_user_serendipity = user_serendipity(train, top_filtered)
+    eval_serendipity = serendipity(train, top_filtered)
+    eval_catalog_coverage = catalog_coverage(train, top_filtered)
+    eval_distributional_coverage = distributional_coverage(train, top_filtered)
 
-        # eval_f1 = f1(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-        # eval_mrr = mrr(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-        # eval_accuracy = accuracy(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-        eval_user_coverage = user_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-        eval_item_coverage = item_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_f1 = f1(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    # eval_mrr = mrr(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    # eval_accuracy = accuracy(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_user_coverage = user_coverage(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_item_coverage = item_coverage(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
 
 
-        eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=['genres'])
-        eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=['genres'])
-        eval_personalization = personalization_score(train, top)
+    eval_intra_list_similarity = intra_list_similarity_score(data, top_k_filtered, feature_cols=['genres'])
+    eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k_filtered, feature_cols=['genres'])
+    eval_personalization = personalization_score(train, top_filtered)
 
-        print(f"Top K: {top_k}") #TODO: remove
-        print(f"Top: {top}") #TODO: remove
-        print(f"Train: {train}") #TODO: remove
-        print(f"Test: {test}") #TODO: remove
-
-        print(
-            "Precision:\t%f" % eval_precision,
-            "Precision@K:\t%f" % eval_precision_at_k,
-            "Recall:\t%f" % eval_recall,
-            "Recall@K:\t%f" % eval_recall_at_k,
-            # "F1:\t%f" % eval_f1,
-            # "Accuracy:\t%f" % eval_accuracy,
-            "MAE:\t%f" % eval_mae,
-            "RMSE:\t%f" % eval_rmse,
-            "NDCG:\t%f" % eval_ndcg,
-            # "MRR:\t%f" % eval_mrr,
-            # "Novelty:\t%f" % eval_novelty,
-            # "Serendipity:\t%f" % eval_serendipity,
-            "User covarage:\t%f" % eval_user_coverage,
-            "Item coverage:\t%f" % eval_item_coverage,
-            # "Catalog coverage:\t%f" % eval_catalog_coverage,
-            # "Distributional coverage:\t%f" % eval_distributional_coverage,
-            "Personalization:\t%f" % eval_personalization,
-            "Intra-list similarity:\t%f" % eval_intra_list_similarity,
-            "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
-        sep='\n')
-
-    except AttributeError as e:
-         print(f"ERROR calling metrics function: {e}. Check function names and imports in metrics.py.")
-    except Exception as e:
-         print(f"ERROR during metric calculation: {e}")
-
-    print("--------------------------------------------\n")
-    metrics_dict = {
+    print(
+        "Precision:\t%f" % eval_precision,
+        "Precision@K:\t%f" % eval_precision_at_k,
+        "Recall:\t%f" % eval_recall,
+        "Recall@K:\t%f" % eval_recall_at_k,
+        "F1:\t%f" % eval_f1,
+        # "Accuracy:\t%f" % eval_accuracy,
+        "MAE:\t%f" % eval_mae,
+        "RMSE:\t%f" % eval_rmse,
+        "NDCG:\t%f" % eval_ndcg,
+        # "MRR:\t%f" % eval_mrr,
+        "Novelty:\t%f" % eval_novelty,
+        "Serendipity:\t%f" % eval_serendipity,
+        "User covarage:\t%f" % eval_user_coverage,
+        "Item coverage:\t%f" % eval_item_coverage,
+        "Catalog coverage:\t%f" % eval_catalog_coverage,
+        "Distributional coverage:\t%f" % eval_distributional_coverage,
+        "Personalization:\t%f" % eval_personalization,
+        "Intra-list similarity:\t%f" % eval_intra_list_similarity,
+        "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
+      sep='\n')
+    
+    
+    # # mlflow
+    metrics = {
             "precision": eval_precision,
             "precision_at_k": eval_precision_at_k,
             "recall": eval_recall,
             "recall_at_k": eval_recall_at_k,
-            # "f1": eval_f1,
+            "f1": eval_f1,
             "mae": eval_mae,                      
             "rmse": eval_rmse,                    
             "ndcg_at_k": eval_ndcg,               
-            # "novelty": eval_novelty,
-            # "serendipity": eval_serendipity,
+            "novelty": eval_novelty,
+            "serendipity": eval_serendipity,
             "user_coverage": eval_user_coverage,  
             "item_coverage": eval_item_coverage,
-            # "catalog_coverage": eval_catalog_coverage,
-            # "distributional_coverage": eval_distributional_coverage,
+            "catalog_coverage": eval_catalog_coverage,
+            "distributional_coverage": eval_distributional_coverage,
             "personalization": eval_personalization,
             "intra_list_similarity": eval_intra_list_similarity,
             "intra_list_dissimilarity": eval_intra_list_dissimilarity,
         }
-    return metrics_dict, rating_pred_df, human_recs
+    return metrics, rating_pred_df, human_recs
 
 
 def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, args):
