@@ -297,6 +297,101 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     # print(all_users_top_k_full_candidates)
     top, top_k = calculate_predictons(all_users_top_k_full_candidates, median_score, scale_factor, k)
 
+    print(f"\n--- Ensuring Consistent DataFrame Dtypes for AmazonSales ---")
+
+    # --- Debug: Print Dtypes Before Standardization ---
+    print("--- Dtypes BEFORE standardization ---")
+    dfs_to_check_before = {'train': train, 'test': test}
+    if 'top' in locals() and top is not None and not top.empty:
+        dfs_to_check_before['top'] = top
+    if 'top_k' in locals() and top_k is not None and not top_k.empty:
+        dfs_to_check_before['top_k'] = top_k
+
+    for name, df_val in dfs_to_check_before.items():
+        if df_val is not None and not df_val.empty:
+            print(f"Dtypes for '{name}':\n{df_val.dtypes.to_string()}")
+            # print(f"Sample head for '{name}':\n{df_val.head(2)}") # Optional for value inspection
+        else:
+            print(f"DataFrame '{name}' is empty or None.")
+    print("------------------------------------")
+
+    # --- Standardize ID and other relevant column dtypes ---
+    # For AmazonSales, userID and itemID are expected to be strings.
+    # Ratings and predictions are expected to be numeric (float).
+
+    # Create copies to modify, or modify in place if you are sure it's safe.
+    # Here, we'll assume modifying the passed DataFrames (train, test) is acceptable,
+    # and top/top_k are freshly created.
+    
+    dfs_to_standardize_list = []
+    if train is not None and not train.empty: dfs_to_standardize_list.append(train)
+    if test is not None and not test.empty: dfs_to_standardize_list.append(test)
+    if 'top' in locals() and top is not None and not top.empty: dfs_to_standardize_list.append(top)
+    if 'top_k' in locals() and top_k is not None and not top_k.empty: dfs_to_standardize_list.append(top_k)
+
+    # --- Standardize ID and other relevant column dtypes ---
+    id_columns = ['userID', 'itemID']
+    numeric_columns = {'rating': float, 'prediction': float}
+
+    # Determine target dtype for ID columns based on dataset
+    if args.dataset == AMAZONSALES: # AMAZONSALES is defined in rl_utils.py
+        target_id_dtype = str
+        print(f"Standardizing ID columns to STRING for dataset: {args.dataset}")
+    else: # For Movielens and potentially others, assume integer IDs
+        target_id_dtype = int
+        print(f"Standardizing ID columns to INTEGER for dataset: {args.dataset}")
+
+    for df_item in dfs_to_standardize_list:
+        if df_item is None or df_item.empty: # Skip empty/None DFs
+            continue
+        for col_name in id_columns:
+            if col_name in df_item.columns:
+                # Check if current dtype is different from the target AND not already a compatible string type if target is str
+                if target_id_dtype == str:
+                    if not (df_item[col_name].dtype == 'object' or isinstance(df_item[col_name].dtype, pd.StringDtype)):
+                        print(f"Converting column '{col_name}' in DataFrame to string. Original dtype: {df_item[col_name].dtype}")
+                        df_item[col_name] = df_item[col_name].astype(str)
+                elif target_id_dtype == int:
+                    if not pd.api.types.is_integer_dtype(df_item[col_name]):
+                        print(f"Converting column '{col_name}' in DataFrame to integer. Original dtype: {df_item[col_name].dtype}")
+                        try:
+                            df_item[col_name] = pd.to_numeric(df_item[col_name], errors='raise').astype(int)
+                        except ValueError as e:
+                            print(f"ERROR: Could not convert column '{col_name}' to int for {args.dataset}: {e}. This column might contain non-numeric strings.")
+                            # Potentially raise an error here or handle as appropriate for your logic
+                            # For now, let's see if this fixes the merge error. If IDs truly can't be int for Movielens,
+                            # then the assumption "else integer IDs" is wrong.
+                # else: # Add other dtypes if necessary
+                #     pass
+
+        for col_name, target_type in numeric_columns.items():
+            if col_name in df_item.columns:
+                if not pd.api.types.is_numeric_dtype(df_item[col_name]) or df_item[col_name].dtype != target_type:
+                    print(f"Converting column '{col_name}' in DataFrame to {target_type}. Original dtype: {df_item[col_name].dtype}")
+                    try:
+                        df_item[col_name] = df_item[col_name].astype(target_type)
+                    except ValueError as e:
+                        print(f"Warning: Could not convert column '{col_name}' to {target_type}: {e}. Trying pd.to_numeric with coercion.")
+                        df_item[col_name] = pd.to_numeric(df_item[col_name], errors='coerce')
+
+
+    # --- Debug: Print Dtypes After Standardization ---
+    print("--- Dtypes AFTER standardization ---")
+    dfs_to_check_after = {'train': train, 'test': test}
+    if 'top' in locals() and top is not None and not top.empty:
+        dfs_to_check_after['top'] = top
+    if 'top_k' in locals() and top_k is not None and not top_k.empty:
+        dfs_to_check_after['top_k'] = top_k
+        
+    for name, df_val in dfs_to_check_after.items():
+        if df_val is not None and not df_val.empty:
+            print(f"Dtypes for '{name}':\n{df_val.dtypes.to_string()}")
+        else:
+            print(f"DataFrame '{name}' is empty or None after standardization.")
+    print("------------------------------------")
+    
+
+
     # 6. Instantiate Decoder
     print("Instantiating decoder...")
     decoder = RLRecommenderDecoder(args.dataset)
@@ -307,19 +402,19 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
 
     print("\n--- Sample Human-Readable Recommendations ---")
     # zmienic count bo i tak zwraca top_k
-    count = 0
-    for user_idx, user_rec_data in human_recs.items():
-        original_uid = user_rec_data['original_userID']
-        recs_list = user_rec_data['recommendations']
-        # print(f"User Index: {user_idx} (Original UserID: {original_uid})")
-        if not recs_list:
-            print("  No recommendations.")
-        for r in recs_list:
-            print(f"  Rank {r['rank']}: ID={r['original_id']} (Idx={r['item_idx']}), Title='{r['title']}', Genres={r['genres']}")
-        count += 1
-        if count >= 5:
-            break
-    print("--------------------------------------------")
+    # count = 0
+    # for user_idx, user_rec_data in human_recs.items():
+    #     original_uid = user_rec_data['original_userID']
+    #     recs_list = user_rec_data['recommendations']
+    #     print(f"User Index: {user_idx} (Original UserID: {original_uid})")
+    #     if not recs_list:
+    #         print("  No recommendations.")
+    #     for r in recs_list:
+    #         print(f"  Rank {r['rank']}: ID={r['original_id']} (Idx={r['item_idx']}), Title='{r['title']}', Genres={r['genres']}")
+    #     count += 1
+    #     if count >= 5:
+    #         break
+    # print("--------------------------------------------")
 
 
     # 8. Prepare Ground Truth DataFrame for metrics.py
