@@ -757,7 +757,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     eval_distributional_coverage = distributional_coverage(train, top_filtered)
 
     eval_f1 = f1(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-    # eval_mrr = mrr(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_mrr = mrr(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     # eval_accuracy = accuracy(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     eval_user_coverage = user_coverage(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     eval_item_coverage = item_coverage(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
@@ -777,7 +777,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
         "MAE:\t%f" % eval_mae,
         "RMSE:\t%f" % eval_rmse,
         "NDCG:\t%f" % eval_ndcg,
-        # "MRR:\t%f" % eval_mrr,
+        "MRR:\t%f" % eval_mrr,
         "Novelty:\t%f" % eval_novelty,
         "Serendipity:\t%f" % eval_serendipity,
         "User covarage:\t%f" % eval_user_coverage,
@@ -798,7 +798,8 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
             "recall_at_k": eval_recall_at_k,
             "f1": eval_f1,
             "mae": eval_mae,                      
-            "rmse": eval_rmse,                    
+            "rmse": eval_rmse,
+            "mrr": eval_mrr,                    
             "ndcg_at_k": eval_ndcg,               
             "novelty": eval_novelty,
             "serendipity": eval_serendipity,

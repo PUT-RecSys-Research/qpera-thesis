@@ -141,7 +141,7 @@ def cbf_experiment_loop(
     eval_distributional_coverage = distributional_coverage(train, top)
 
     eval_f1 = f1(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-    # eval_mrr = mrr(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_mrr = mrr(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     # eval_accuracy = accuracy(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     eval_user_coverage = user_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     eval_item_coverage = item_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
@@ -161,7 +161,7 @@ def cbf_experiment_loop(
         "MAE:\t%f" % eval_mae,
         "RMSE:\t%f" % eval_rmse,
         "NDCG:\t%f" % eval_ndcg,
-        # "MRR:\t%f" % eval_mrr,
+        "MRR:\t%f" % eval_mrr,
         "Novelty:\t%f" % eval_novelty,
         "Serendipity:\t%f" % eval_serendipity,
         "User covarage:\t%f" % eval_user_coverage,
@@ -182,7 +182,8 @@ def cbf_experiment_loop(
             "recall_at_k": eval_recall_at_k,
             "f1": eval_f1,
             "mae": eval_mae,                      
-            "rmse": eval_rmse,                    
+            "rmse": eval_rmse,
+            'mrr': eval_mrr,                   
             "ndcg_at_k": eval_ndcg,               
             "novelty": eval_novelty,
             "serendipity": eval_serendipity,
