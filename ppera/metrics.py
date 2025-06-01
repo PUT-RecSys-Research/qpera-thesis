@@ -132,16 +132,36 @@ def mrr(
     col_item=DEFAULT_ITEM_COL,
     col_rating=DEFAULT_RATING_COL,
     col_prediction=DEFAULT_PREDICTION_COL,
+    k=1,
 ):
-    y_true, y_pred = merge_rating_true_pred(
-        rating_true=rating_true,
-        rating_pred=rating_pred,
-        col_user=col_user,
-        col_item=col_item,
-        col_rating=col_rating,
-        col_prediction=col_prediction,
+    top_k_pred = (
+        rating_pred
+        .sort_values(by=[col_user, col_prediction], ascending=[True, False])
+        .groupby(col_user)
+        .head(k)
     )
-    return label_ranking_average_precision_score(y_true, y_pred)
+    true_items = (
+        rating_true
+        .groupby(col_user)[col_item]
+        .apply(set)
+        .to_dict()
+    )
+
+    mrr_total = 0.0
+    user_count = 0
+
+    for user, user_df in top_k_pred.groupby(col_user):
+        predicted_items = user_df[col_item].tolist()
+        relevant_items = true_items.get(user, set())
+
+        for rank, item in enumerate(predicted_items, start=1):
+            if item in relevant_items:
+                mrr_total += 1.0 / rank
+                break
+
+        user_count += 1
+
+    return mrr_total / user_count if user_count > 0 else 0.0
 
 
 

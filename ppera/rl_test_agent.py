@@ -674,13 +674,13 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
 
             if not missing_test_interactions_df.empty:
                 print(f"WARNING: {len(missing_test_interactions_df)} (userID, itemID) interactions from 'test' set are not found among (userID, itemID) in 'top_k_filtered'.")
-                filename = f'test_interactions_not_in_top_k_filtered_{args.dataset}.csv'
-                try:
-                    # Save only the relevant columns from these missing test interactions
-                    missing_test_interactions_df[id_cols_test + ['rating']].to_csv(filename, index=False, header=True)
-                    print(f"Saved {len(missing_test_interactions_df)} test interactions not found in 'top_k_filtered' to {filename}")
-                except Exception as e:
-                    print(f"Error saving missing test interactions to CSV {filename}: {e}")
+                # filename = f'test_interactions_not_in_top_k_filtered_{args.dataset}.csv'
+                # try:
+                #     # Save only the relevant columns from these missing test interactions
+                #     missing_test_interactions_df[id_cols_test + ['rating']].to_csv(filename, index=False, header=True)
+                #     print(f"Saved {len(missing_test_interactions_df)} test interactions not found in 'top_k_filtered' to {filename}")
+                # except Exception as e:
+                #     print(f"Error saving missing test interactions to CSV {filename}: {e}")
                 print(f"Sample of test interactions not in 'top_k_filtered' (max 5 rows):\n{missing_test_interactions_df[id_cols_test + ['rating']].head().to_string()}")
             elif not top_k_filtered.empty :
                  print(f"INFO: All (userID, itemID) interactions from 'test' seem to have a corresponding (userID, itemID) in 'top_k_filtered'. (This doesn't mean ratings/predictions match, just that the pairs exist).")
@@ -689,12 +689,12 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
             # If top_k_filtered is empty, then ALL test interactions are missing
             if top_k_filtered.empty and not test.empty:
                  print(f"WARNING: Since top_k_filtered is empty, all {len(test)} test interactions are effectively not present in predictions.")
-                 filename = f'test_interactions_not_in_top_k_filtered_ (because_preds_empty)_{args.dataset}.csv'
-                 try:
-                    test[id_cols_test + ['rating']].to_csv(filename, index=False, header=True)
-                    print(f"Saved all {len(test)} test interactions to {filename}")
-                 except Exception as e:
-                    print(f"Error saving all test interactions to CSV {filename}: {e}")
+                #  filename = f'test_interactions_not_in_top_k_filtered_ (because_preds_empty)_{args.dataset}.csv'
+                #  try:
+                #     test[id_cols_test + ['rating']].to_csv(filename, index=False, header=True)
+                #     print(f"Saved all {len(test)} test interactions to {filename}")
+                #  except Exception as e:
+                #     print(f"Error saving all test interactions to CSV {filename}: {e}")
 
 
     else:
@@ -714,12 +714,12 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
         if users_entirely_missing_from_top_k:
             print(f"INFO: {len(users_entirely_missing_from_top_k)} userIDs from 'test' have NO predictions AT ALL in 'top_k_filtered'.")
             missing_users_series = pd.Series(list(users_entirely_missing_from_top_k), name="userID")
-            filename_users_missing = f'users_with_no_predictions_in_top_k_filtered_{args.dataset}.csv'
-            try:
-                missing_users_series.to_csv(filename_users_missing, index=False, header=True)
-                print(f"Saved list of {len(missing_users_series)} users with no predictions in 'top_k_filtered' to {filename_users_missing}")
-            except Exception as e:
-                print(f"Error saving users with no predictions to CSV {filename_users_missing}: {e}")
+            # filename_users_missing = f'users_with_no_predictions_in_top_k_filtered_{args.dataset}.csv'
+            # try:
+            #     missing_users_series.to_csv(filename_users_missing, index=False, header=True)
+            #     print(f"Saved list of {len(missing_users_series)} users with no predictions in 'top_k_filtered' to {filename_users_missing}")
+            # except Exception as e:
+            #     print(f"Error saving users with no predictions to CSV {filename_users_missing}: {e}")
             print(f"Sample of users with NO predictions in 'top_k_filtered' (max 10): {list(users_entirely_missing_from_top_k)[:10]}")
             
     # ---- End of check for users with no rows ----
@@ -757,7 +757,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     eval_distributional_coverage = distributional_coverage(train, top_filtered)
 
     eval_f1 = f1(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-    # eval_mrr = mrr(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_mrr = mrr(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     # eval_accuracy = accuracy(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     eval_user_coverage = user_coverage(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     eval_item_coverage = item_coverage(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
@@ -777,7 +777,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
         "MAE:\t%f" % eval_mae,
         "RMSE:\t%f" % eval_rmse,
         "NDCG:\t%f" % eval_ndcg,
-        # "MRR:\t%f" % eval_mrr,
+        "MRR:\t%f" % eval_mrr,
         "Novelty:\t%f" % eval_novelty,
         "Serendipity:\t%f" % eval_serendipity,
         "User covarage:\t%f" % eval_user_coverage,
@@ -798,7 +798,8 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
             "recall_at_k": eval_recall_at_k,
             "f1": eval_f1,
             "mae": eval_mae,                      
-            "rmse": eval_rmse,                    
+            "rmse": eval_rmse,
+            "mrr": eval_mrr,                    
             "ndcg_at_k": eval_ndcg,               
             "novelty": eval_novelty,
             "serendipity": eval_serendipity,
@@ -867,6 +868,7 @@ def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, args):
         # print('########################################################################')
         # print(human_recs)
         # print('########################################################################')
+
         # log_mlflow.log_mlflow(args.dataset, rating_pred_df, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
 
     else:
