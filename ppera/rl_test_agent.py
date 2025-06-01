@@ -869,7 +869,7 @@ def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, args):
         # print(human_recs)
         # print('########################################################################')
 
-        # log_mlflow.log_mlflow(args.dataset, rating_pred_df, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
+        log_mlflow.log_mlflow(args.dataset, rating_pred_df, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
 
     else:
         print("Skipping evaluation.")
