@@ -175,16 +175,24 @@ def cbf_experiment_loop(
     
     
     # # mlflow
-    # metrics = {
-    #     "precision_at_K": eval_precision,
-    #     "recall_at_K": eval_recall,
-    #     "NDCG_at_K": eval_ndcg,
-    #     "RMSE": eval_rmse,
-    #     "MAE": eval_mae,
-    #     "novelty": eval_novelty,
-    #     "serendipity": eval_serendipity,
-    #     "catalog_coverage": eval_catalog_coverage,
-    #     "distributional_coverage": eval_distributional_coverage
-    # }
+    metrics = {
+            "precision": eval_precision,
+            "precision_at_k": eval_precision_at_k,
+            "recall": eval_recall,
+            "recall_at_k": eval_recall_at_k,
+            "f1": eval_f1,
+            "mae": eval_mae,                      
+            "rmse": eval_rmse,                    
+            "ndcg_at_k": eval_ndcg,               
+            "novelty": eval_novelty,
+            "serendipity": eval_serendipity,
+            "user_coverage": eval_user_coverage,  
+            "item_coverage": eval_item_coverage,
+            "catalog_coverage": eval_catalog_coverage,
+            "distributional_coverage": eval_distributional_coverage,
+            "personalization": eval_personalization,
+            "intra_list_similarity": eval_intra_list_similarity,
+            "intra_list_dissimilarity": eval_intra_list_dissimilarity,
+        }
 
-    # log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized)
+    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized)

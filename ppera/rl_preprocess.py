@@ -358,5 +358,5 @@ def preprocess_rl(dataset, want_col, num_rows, ratio, seed, force_reprocess=True
 
     print("Preprocessing finished.")
 
-    return data_df, train_df
+    return data_df, train_df, test_df
     
