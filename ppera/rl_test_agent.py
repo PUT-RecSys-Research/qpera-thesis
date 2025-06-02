@@ -738,7 +738,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     # try:
         
     # Metrics
-    eval_map = map_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
+    # eval_map = map_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
     # eval_ndcg_at_k = ndcg_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
     eval_precision_at_k = precision_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
     eval_recall_at_k = recall_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
@@ -748,15 +748,15 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     eval_mae = mae(test, top_k_filtered)
     eval_rmse = rmse(test, top_k_filtered)
 
-    eval_novelty = novelty(train, top_filtered)
+    # eval_novelty = novelty(train, top_filtered)
     # eval_historical_item_novelty = historical_item_novelty(train, top_filtered)
     # eval_user_item_serendipity = user_item_serendipity(train, top_filtered)
     # eval_user_serendipity = user_serendipity(train, top_filtered)
-    eval_serendipity = serendipity(train, top_filtered)
-    eval_catalog_coverage = catalog_coverage(train, top_filtered)
-    eval_distributional_coverage = distributional_coverage(train, top_filtered)
+    # eval_serendipity = serendipity(train, top_filtered)
+    # eval_catalog_coverage = catalog_coverage(train, top_filtered)
+    # eval_distributional_coverage = distributional_coverage(train, top_filtered)
 
-    eval_f1 = f1(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    # eval_f1 = f1(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
     eval_mrr = mrr(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     # eval_accuracy = accuracy(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
     eval_user_coverage = user_coverage(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
@@ -772,18 +772,18 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
         "Precision@K:\t%f" % eval_precision_at_k,
         "Recall:\t%f" % eval_recall,
         "Recall@K:\t%f" % eval_recall_at_k,
-        "F1:\t%f" % eval_f1,
+        # "F1:\t%f" % eval_f1,
         # "Accuracy:\t%f" % eval_accuracy,
         "MAE:\t%f" % eval_mae,
         "RMSE:\t%f" % eval_rmse,
         "NDCG:\t%f" % eval_ndcg,
         "MRR:\t%f" % eval_mrr,
-        "Novelty:\t%f" % eval_novelty,
-        "Serendipity:\t%f" % eval_serendipity,
+        # "Novelty:\t%f" % eval_novelty,
+        # "Serendipity:\t%f" % eval_serendipity,
         "User covarage:\t%f" % eval_user_coverage,
         "Item coverage:\t%f" % eval_item_coverage,
-        "Catalog coverage:\t%f" % eval_catalog_coverage,
-        "Distributional coverage:\t%f" % eval_distributional_coverage,
+        # "Catalog coverage:\t%f" % eval_catalog_coverage,
+        # "Distributional coverage:\t%f" % eval_distributional_coverage,
         "Personalization:\t%f" % eval_personalization,
         "Intra-list similarity:\t%f" % eval_intra_list_similarity,
         "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
@@ -796,17 +796,17 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
             "precision_at_k": eval_precision_at_k,
             "recall": eval_recall,
             "recall_at_k": eval_recall_at_k,
-            "f1": eval_f1,
+            # "f1": eval_f1,
             "mae": eval_mae,                      
             "rmse": eval_rmse,
             "mrr": eval_mrr,                    
             "ndcg_at_k": eval_ndcg,               
-            "novelty": eval_novelty,
-            "serendipity": eval_serendipity,
+            # "novelty": eval_novelty,
+            # "serendipity": eval_serendipity,
             "user_coverage": eval_user_coverage,  
             "item_coverage": eval_item_coverage,
-            "catalog_coverage": eval_catalog_coverage,
-            "distributional_coverage": eval_distributional_coverage,
+            # "catalog_coverage": eval_catalog_coverage,
+            # "distributional_coverage": eval_distributional_coverage,
             "personalization": eval_personalization,
             "intra_list_similarity": eval_intra_list_similarity,
             "intra_list_dissimilarity": eval_intra_list_dissimilarity,

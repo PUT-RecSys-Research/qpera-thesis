@@ -58,17 +58,17 @@ def print_experiment_header(algorithm_name, dataset_name, num_rows):
 
 # --- Experiment Definitions ---
 experiments = [
-    {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
-    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
-    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'movielens', 'rows': 10000},
+    {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'movielens', 'rows': 14000},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'movielens', 'rows': 14000},
+    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'movielens', 'rows': 14000},
 
-    {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
-    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
-    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'amazonsales', 'rows': 1000},
+    {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'amazonsales'},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'amazonsales'},
+    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'amazonsales'},
 
-    {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
-    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
-    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'postrecommendations', 'rows': 10000},
+    {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 14000},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 14000},
+    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'postrecommendations', 'rows': 14000},
 ]
 
 # --- Common Parameters ---
@@ -88,7 +88,7 @@ failed_experiments = []
 for i, exp in enumerate(experiments):
     algo = exp['algo']
     dataset = exp['dataset']
-    rows = exp['rows']
+    rows = exp.get('rows', None)
     module = exp['module']
     func_name = exp['func']
     exp_label = f"{i+1}/{len(experiments)} ({algo}/{dataset})" # Label for logging

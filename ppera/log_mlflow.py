@@ -43,11 +43,20 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
         mlflow.set_experiment("MLflow Reinforcement Learning")
 
     if dataset == MOVIELENS:
-        file_path = f"datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
+        if num_rows == None:
+            file_path = f"datasets/MovieLens/merge_file.csv"
+        else:
+            file_path = f"datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == AMAZONSALES:
-        file_path = f"datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
+        if num_rows == None:
+            file_path = f"datasets/AmazonSales/merge_file.csv"
+        else:
+            file_path = f"datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == POSTRECOMMENDATIONS:
-        file_path = f"datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
+        if num_rows == None:
+            file_path = f"datasets/PostRecommendations/merge_file.csv"
+        else:
+            file_path = f"datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
 
     with mlflow.start_run():
         if dataset == MOVIELENS:
