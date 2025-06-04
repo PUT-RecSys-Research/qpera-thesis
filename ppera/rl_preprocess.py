@@ -6,7 +6,7 @@ import pandas as pd
 from collections import defaultdict
 from sklearn.model_selection import train_test_split
 from recommenders.datasets.python_splitters import python_stratified_split
-
+import data_manipulation as dm
 
 from datasets_loader import loader as load_dataframe 
 from rl_knowledge_graph import KnowledgeGraph
@@ -244,7 +244,15 @@ def generate_labels_from_df(dataset_name: str, df: pd.DataFrame, user_map: dict,
     save_labels(dataset_name, final_user_items, mode=mode)
 
 
-def preprocess_rl(dataset, want_col, num_rows, ratio, seed, force_reprocess=True):
+def preprocess_rl(dataset, want_col, num_rows, ratio, seed, personalization=False,
+        fraction_to_change = 0,
+        change_rating = False,
+        privacy=False,
+        hide_type="values_in_column",
+        columns_to_hide=None,
+        fraction_to_hide = 0,
+        records_to_hide=None,
+        force_reprocess=True):
 
     # --- 1. Load Raw Data using Custom Loader ---
     print(f"Loading raw data for dataset: {dataset}")
@@ -319,6 +327,24 @@ def preprocess_rl(dataset, want_col, num_rows, ratio, seed, force_reprocess=True
             random_state=seed,
         )
     print(f"Train set size: {len(train_df)}, Test set size: {len(test_df)}")
+
+    if privacy:
+        train_df = dm.hide_information_in_dataframe(
+            data=train_df, 
+            hide_type=hide_type, 
+            columns_to_hide=columns_to_hide, 
+            fraction_to_hide=fraction_to_hide,
+            records_to_hide=records_to_hide,
+            seed=seed)
+        
+    if personalization:
+        train_df = dm.change_items_in_dataframe(
+            all=data_df,
+            data=train_df,
+            fraction_to_change=fraction_to_change,
+            change_rating=change_rating,
+            seed=seed
+        )
 
     # --- 4. Generate and Cache Knowledge Graph ---
     kg_file = TMP_DIR[dataset] + '/kg.pkl'
