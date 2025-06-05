@@ -205,4 +205,4 @@ def cf_experiment_loop(
         "intra_list_dissimilarity": eval_intra_list_dissimilarity,
     }
 
-    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, bpr, 'CF', params, data, train)
+    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, bpr, 'CF', params, data, train, privacy=privacy, personalization=personalization)

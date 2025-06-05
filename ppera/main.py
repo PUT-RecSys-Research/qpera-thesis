@@ -60,15 +60,15 @@ def print_experiment_header(algorithm_name, dataset_name, num_rows):
 experiments = [
     # {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'movielens', 'rows': 14000},
     # {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'movielens', 'rows': 14000},
-    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'movielens', 'rows': 14000},
+    # {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'movielens', 'rows': 14000},
 
     # {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'amazonsales'},
-    # {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'amazonsales'},
-    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'amazonsales'},
+    {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'amazonsales'},
+    # {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'amazonsales'},
 
     # {'algo': 'CBF', 'module': CBF, 'func': 'cbf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 14000},
     # {'algo': 'CF', 'module': CF, 'func': 'cf_experiment_loop', 'dataset': 'postrecommendations', 'rows': 14000},
-    {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'postrecommendations', 'rows': 14000},
+    # {'algo': 'RL', 'module': RL, 'func': 'rl_experiment_loop', 'dataset': 'postrecommendations', 'rows': 14000},
 ]
 
 # --- Common Parameters ---
@@ -80,12 +80,12 @@ common_params = {
 
     # 'privacy': True,
     # 'hide_type': "values_in_column",
-    # 'columns_to_hide': ['genres'],
-    # 'fraction_to_hide': 0.25,
+    # 'columns_to_hide': ['title', 'genres'],
+    # 'fraction_to_hide': 0.5,
 
-    'personalization': True,
-    'fraction_to_change': 0.25,
-    'change_rating': True,
+    # 'personalization': True,
+    # 'fraction_to_change': 0.25,
+    # 'change_rating': True,
 }
 
 # --- Run Experiments ---

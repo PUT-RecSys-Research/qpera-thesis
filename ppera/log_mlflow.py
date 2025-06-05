@@ -10,7 +10,7 @@ import pandas as pd
 import torch
 from rl_train_agent import ActorCritic
 
-def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, params, data, train, tf=None, vectors_tokenized=None):
+def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, params, data, train, tf=None, vectors_tokenized=None, privacy=None, personalization=None):
 
     MOVIELENS = 'movielens'
     AMAZONSALES = 'amazonsales'
@@ -75,7 +75,7 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
         mlflow.log_artifact(plot_filename, artifact_path='plots')
         mlflow.log_params(params)
         mlflow.log_metrics(metrics)
-        mlflow.set_tag("Metrics Info", f"{model_type} model for {dataset} dataset")
+        mlflow.set_tag("Metrics Info", f"{model_type} model for {dataset} dataset, privacy{privacy}, personalization{personalization}")
 
         signature = None
         input_example_for_log = None

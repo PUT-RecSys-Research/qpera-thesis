@@ -67,18 +67,22 @@ def cbf_experiment_loop(
     recommender = TfidfRecommender(id_col='itemID', tokenization_method='bert')
     # data['genres'] = data['genres'].str.replace('|', ' ', regex=False)
 
-    df_clean = data.drop(columns=['userID', 'rating', 'timestamp'])
-    df_clean = df_clean.drop_duplicates(subset=['itemID'])
-    cols_to_clean = ['title','genres']
-    clean_col = 'cleaned_text'
-    df_clean = recommender.clean_dataframe(df_clean, cols_to_clean, clean_col)
-
-    df_clean = df_clean.reset_index(drop=True)
-
-    # Split the dataset to training and testing dataset
     train, test = python_stratified_split(
         data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed
     )
+
+    # df_clean = train.drop(columns=['userID', 'rating', 'timestamp'])
+    # df_clean = df_clean.drop_duplicates(subset=['itemID'])
+    # cols_to_clean = ['title','genres']
+    # clean_col = 'cleaned_text'
+    # df_clean = recommender.clean_dataframe(df_clean, cols_to_clean, clean_col)
+
+    # df_clean = df_clean.reset_index(drop=True)
+
+    # Split the dataset to training and testing dataset
+    # train, test = python_stratified_split(
+    #     data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed
+    # )
 
     if privacy:
         train = dm.hide_information_in_dataframe(
@@ -98,7 +102,14 @@ def cbf_experiment_loop(
             seed=seed
         )
 
-    train = recommender.clean_dataframe(train, cols_to_clean, clean_col)
+    df_clean = train.drop(columns=['userID', 'rating', 'timestamp'])
+    df_clean = df_clean.drop_duplicates(subset=['itemID'])
+    cols_to_clean = ['title','genres']
+    clean_col = 'cleaned_text'
+    df_clean = recommender.clean_dataframe(df_clean, cols_to_clean, clean_col)
+
+    df_clean = df_clean.reset_index(drop=True)
+    # train = recommender.clean_dataframe(train, cols_to_clean, clean_col)
 
     # Tokenize the text
     tf, vectors_tokenized = recommender.tokenize_text(df_clean, text_col="cleaned_text")
@@ -111,7 +122,7 @@ def cbf_experiment_loop(
     top_k_items = recommender.recommend_top_k_items(df_clean, k=5)
     merged_df = data.merge(top_k_items, on='itemID', how='inner')
     merged_df['prediction'] = merged_df['rating'] * merged_df['rec_score']
-    top_k = merged_df[['userID', 'rec_itemID', 'prediction']]
+    top_k = merged_df[['userID', 'rec_itemID', 'prediction']].copy()
     top_k.rename(columns={'rec_itemID': 'itemID'}, inplace=True)
     
     filtered_top_k = top_k.merge(train, on=["userID", "itemID"], how="left", indicator=True)
@@ -195,4 +206,4 @@ def cbf_experiment_loop(
         "intra_list_dissimilarity": eval_intra_list_dissimilarity,
     }
 
-    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized)
+    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized, privacy, personalization)
