@@ -272,8 +272,46 @@ def preprocess_rl(dataset, want_col, num_rows, ratio, seed, personalization=Fals
     print(f"Loaded DataFrame with shape: {data_df.shape}")
     print(data_df.head())
 
+    # --- 2. Train/Test Split ---
+    print("Splitting data into train/test sets...")
+    try:
+        train_df, test_df = python_stratified_split(
+            data_df,
+            ratio=ratio,
+            col_user='userID',
+            col_item='itemID',
+            seed=seed
+        )
+        print("Stratified split successful.")
 
-    # --- 2. Create and Cache Processed Dataset Object ---
+    except Exception as e:
+         print(f"Stratified split failed ({e}), using simple random split.")
+         train_df, test_df = train_test_split(
+            data_df,
+            test_size=1.0-ratio,
+            random_state=seed,
+        )
+    print(f"Train set size: {len(train_df)}, Test set size: {len(test_df)}")
+
+    if privacy:
+        data_df = dm.hide_information_in_dataframe(
+            data=data_df, 
+            hide_type=hide_type, 
+            columns_to_hide=columns_to_hide, 
+            fraction_to_hide=fraction_to_hide,
+            records_to_hide=records_to_hide,
+            seed=seed)
+        
+    if personalization:
+        train_df = dm.change_items_in_dataframe(
+            all=data_df,
+            data=data_df,
+            fraction_to_change=fraction_to_change,
+            change_rating=change_rating,
+            seed=seed
+        )
+
+    # --- 3. Create and Cache Processed Dataset Object ---
     processed_dataset_file = TMP_DIR[dataset] + '/processed_dataset.pkl'
     processed_dataset = None # Initialize
     if not force_reprocess and os.path.exists(processed_dataset_file):
@@ -300,51 +338,13 @@ def preprocess_rl(dataset, want_col, num_rows, ratio, seed, personalization=Fals
                  return
 
         processed_dataset = create_processed_dataset(data_df)
+        # processed_dataset = create_processed_dataset(train_df)
         print(f"Saving processed dataset object to {processed_dataset_file}...")
         try:
             with open(processed_dataset_file, 'wb') as f:
                 pickle.dump(processed_dataset, f)
         except Exception as e:
              print(f"Error saving processed dataset to {processed_dataset_file}: {e}")
-
-    # --- 3. Train/Test Split ---
-    print("Splitting data into train/test sets...")
-    try:
-        train_df, test_df = python_stratified_split(
-            data_df,
-            ratio=ratio,
-            col_user='userID',
-            col_item='itemID',
-            seed=seed
-        )
-        print("Stratified split successful.")
-
-    except Exception as e:
-         print(f"Stratified split failed ({e}), using simple random split.")
-         train_df, test_df = train_test_split(
-            data_df,
-            test_size=1.0-ratio,
-            random_state=seed,
-        )
-    print(f"Train set size: {len(train_df)}, Test set size: {len(test_df)}")
-
-    if privacy:
-        train_df = dm.hide_information_in_dataframe(
-            data=train_df, 
-            hide_type=hide_type, 
-            columns_to_hide=columns_to_hide, 
-            fraction_to_hide=fraction_to_hide,
-            records_to_hide=records_to_hide,
-            seed=seed)
-        
-    if personalization:
-        train_df = dm.change_items_in_dataframe(
-            all=data_df,
-            data=train_df,
-            fraction_to_change=fraction_to_change,
-            change_rating=change_rating,
-            seed=seed
-        )
 
     # --- 4. Generate and Cache Knowledge Graph ---
     kg_file = TMP_DIR[dataset] + '/kg.pkl'

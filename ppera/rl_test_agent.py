@@ -593,7 +593,6 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     if rating_pred_df.empty or rating_true_df.empty:
          print("Cannot calculate metrics: Prediction or Ground Truth DataFrame is empty.")
          return
-    # print('KURWWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
     # print(f"Top K: {top_k}") #TODO: remove
     # print(f"Top: {top}") #TODO: remove
     # print(f"Train: {train}") #TODO: remove
