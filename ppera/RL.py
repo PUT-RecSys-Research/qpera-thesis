@@ -30,6 +30,6 @@ def rl_experiment_loop(TOP_K, dataset, want_col, num_rows, ratio, seed,
     train_agent_rl(dataset=dataset,seed=seed)
 
     print("\n===== Stage 4: Testing & Evaluation =====")
-    test_agent_rl(dataset=dataset, TOP_K=TOP_K, want_col=want_col, num_rows=num_rows, ratio=ratio, seed=seed, data_df=data_df, train_df=train_df, test_df=test_df, privacy=privacy, personalization=personalization)
+    test_agent_rl(dataset=dataset, TOP_K=TOP_K, want_col=want_col, num_rows=num_rows, ratio=ratio, seed=seed, data_df=data_df, train_df=train_df, test_df=test_df, privacy=privacy, fraction_to_hide=fraction_to_hide, personalization=personalization, fraction_to_change=fraction_to_change)
 
     print("\n===== Pipeline Finished =====")

@@ -813,7 +813,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     return metrics, rating_pred_df, human_recs
 
 
-def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, privacy, personalization, args):
+def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, privacy, fraction_to_hide, personalization, fraction_to_change, args):
     policy_file = args.log_dir + '/policy_model_epoch_{}.ckpt'.format(args.epochs)
     path_file = args.log_dir + '/policy_paths_epoch{}.pkl'.format(args.epochs)
 
@@ -868,14 +868,14 @@ def test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, privacy, 
         # print(human_recs)
         # print('########################################################################')
 
-        log_mlflow.log_mlflow(args.dataset, rating_pred_df, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df, privacy=privacy, personalization=personalization) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
+        log_mlflow.log_mlflow(args.dataset, rating_pred_df, metrics, num_rows, args.seed, model, 'RL', rl_hyperparams, data_df, train_df, privacy=privacy, fraction_to_hide=fraction_to_hide, personalization=personalization, fraction_to_change=fraction_to_change) #human_recs_top_k is a dict and dont have atribute head - i have to provide here a single user top_k
 
     else:
         print("Skipping evaluation.")
 
 
 
-def test_agent_rl(dataset, TOP_K, want_col, num_rows, ratio, seed, data_df, train_df, test_df, privacy, personalization):
+def test_agent_rl(dataset, TOP_K, want_col, num_rows, ratio, seed, data_df, train_df, test_df, privacy, fraction_to_hide, personalization, fraction_to_change,):
     boolean = lambda x: (str(x).lower() == 'true')
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
@@ -903,5 +903,5 @@ def test_agent_rl(dataset, TOP_K, want_col, num_rows, ratio, seed, data_df, trai
          print(f"Warning: Log directory {args.log_dir} not found. Ensure '--name' matches training.")
 
     set_random_seed(args.seed)
-    test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, privacy, personalization, args)
+    test(TOP_K, want_col, num_rows, ratio, data_df, train_df, test_df, privacy, fraction_to_hide, personalization, fraction_to_change, args)
 
