@@ -24,10 +24,12 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
     os.makedirs('plots', exist_ok=True)
 
     metrics_base_dir = 'metrics'
-    if privacy is not False: # privacy is not None and fraction_to_hide is not None:
+    if privacy is True:
         specific_metrics_dir = f"privacy_{fraction_to_hide}"
-    elif privacy is not False:# personalization is not None and fraction_to_change is not None:
+    elif personalization is True:
         specific_metrics_dir = f'personalization_{fraction_to_change}'
+    elif privacy is False and personalization is False:
+        specific_metrics_dir = f'clear_loop'
     else:
         specific_metrics_dir = 'None'
     
@@ -145,6 +147,8 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
                     print(f"MLflow: Error during CF (Cornac) signature inference: {e}")
                     signature = None # Ensure signature is None on error
         elif model_type == 'CBF':
+            print(f'typ TRAIN {type(train)}')
+            input_example_for_log = train.head(5)
             signature = infer_signature(train, model.fit(tf, vectors_tokenized))
         elif model_type == 'RL':
             if isinstance(model, ActorCritic):
@@ -215,7 +219,7 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
                         sk_model=model,
                         artifact_path=f"{model_type}-model",
                         signature=signature,
-                        input_example=train,
+                        input_example=input_example_for_log,
                         registered_model_name=f"{model_type}-model-{dataset}",
                     )
                 print(f"MLflow: Logged {model_type} model with signature.")
