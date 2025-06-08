@@ -1,0 +1,2 @@
+precision,precision_at_k,recall,recall_at_k,mae,rmse,mrr,ndcg_at_k,user_coverage,item_coverage,personalization,intra_list_similarity,intra_list_dissimilarity
+0.0,0.06956521739130435,0.0,0.003755650082041856,0.5781232780880399,0.6733253808062817,0.0,0.0,0.0,0.0,0.9765122265122265,0.038718302938195844,0.9612816970618041

@@ -1,0 +1,14 @@
+key,value
+precision,0.0
+precision_at_k,0.0
+recall,0.0
+recall_at_k,0.0
+mae,5.012870812905021
+rmse,5.0131579231644485
+mrr,0.0
+ndcg_at_k,0.0
+user_coverage,0.0
+item_coverage,0.0
+personalization,0.0066833188013271
+intra_list_similarity,4.779502019175624e-05
+intra_list_dissimilarity,0.9999522049798082
