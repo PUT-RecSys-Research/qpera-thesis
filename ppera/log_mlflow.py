@@ -23,20 +23,6 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
     plot_filename = f'plots/top_k_predictions_{model_type}_{dataset}_{timestamp}.png'
     os.makedirs('plots', exist_ok=True)
 
-    metrics_base_dir = 'metrics'
-    if privacy is True:
-        specific_metrics_dir = f"privacy_{fraction_to_hide}"
-    elif personalization is True:
-        specific_metrics_dir = f'personalization_{fraction_to_change}'
-    elif privacy is False and personalization is False:
-        specific_metrics_dir = f'clear_loop'
-    else:
-        specific_metrics_dir = 'None'
-    
-    full_metrics_dir = os.path.join(metrics_base_dir, specific_metrics_dir)
-    os.makedirs(full_metrics_dir, exist_ok=True)
-    metrics_filename = os.path.join(full_metrics_dir, f'{dataset}_{model_type}_metrics.csv')
-
     # Plotting
     plt.figure(figsize=(10, 6))
     plt.plot(top_k_prediction['itemID'], top_k_prediction['prediction'], marker='o', linestyle='-')
@@ -46,6 +32,27 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
     plt.grid(True)
     plt.savefig(plot_filename)
     plt.close()
+
+    metrics_base_dir = 'metrics'
+    if privacy is True:
+        subdir = 'privacy'
+        specific_metrics_dir = f"no_mod_{fraction_to_hide:.2f}"
+    elif personalization is True:
+        subdir = 'personalization'
+        specific_metrics_dir = f'no_mod_{fraction_to_change:.2f}'
+    elif privacy is False and personalization is False:
+        subdir = ''
+        specific_metrics_dir = f'clean_loop/no_mod'
+    else:
+        subdir = ''
+        specific_metrics_dir = 'None'
+
+    
+    full_metrics_dir = os.path.join(metrics_base_dir, subdir, specific_metrics_dir)
+    os.makedirs(full_metrics_dir, exist_ok=True)
+    metrics_filename = os.path.join(full_metrics_dir, f'{model_type}_{dataset}_metrics.csv')
+
+    
 
     mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
@@ -91,7 +98,14 @@ def log_mlflow(dataset, top_k, metrics, num_rows, seed, model, model_type, param
         metrics_df.to_csv(metrics_filename, index=False)
         mlflow.log_artifact(metrics_filename, artifact_path='metrics')
         mlflow.log_params(params)
-        mlflow.log_metrics(metrics)
+
+        # Filter out None values before logging to MLflow
+        clean_metrics = {k: v for k, v in metrics.items() if isinstance(v, (int, float))}
+        mlflow.log_metrics(clean_metrics)
+        none_metrics = {k: v for k, v in metrics.items() if v is None}
+        if none_metrics:
+            print("Skipped logging the following None-valued metrics to MLflow:", none_metrics)
+            
         mlflow.set_tag("Metrics Info", f"{model_type} model for {dataset} dataset")
 
         signature = None
