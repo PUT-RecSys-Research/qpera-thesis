@@ -3,9 +3,9 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "personalization_privacy_and_explainability_of_recommendation_algorithms"
-version = "0.0.1"
-description = "The aim of the project is to analyse in depth the four main families of recommendation algorithms (collaborative filtering, content-based, learning2rank, reinforcement learning) in terms of their resilience to the data burden, their resistance to anonymisation, the ability of the algorithms to generate explanations, and the ethical risks associated with the implementation of a given algorithm. The last point is related to the AI Act recently adopted by the European Union and the introduction of a taxonomy of ethical risks, as well as the Omnibus Directive. The project plans to select different recommendation scenarios (datasets and application areas), implement metrics to assess the robustness of algorithms, and conduct extensive experiments investigating the behaviour of different algorithm families in the space of evaluated criteria."
+name = "ppera"
+version = "1.0"
+description = "The aim of the project is an in-depth analysis of three main families of recommendation algorithms (collaborative filtering, content-based, reinforcement learning) in terms of their resilience to data-related stresses, resistance to anonymization, the ability of algorithms to generate explanations, and ethical risks associated with implementing a given algorithm. The last point is related to the recently adopted AI Act by the European Union and the introduction of an ethical risk taxonomy, as well as the Omnibus Directive. The project plans include selecting different recommendation scenarios (datasets and application areas), implementing metrics to assess the resilience of algorithms, and conducting extensive experiments to examine the behavior of each algorithm family in the context of the evaluated criteria."
 authors = [
   { name = "Julia Podsadna \u0026 Bartosz Chwi\u0142kowski" },
 ]
@@ -15,18 +15,31 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License"
 ]
-requires-python = "~=3.13.0"
+requires-python = ">=3.9"
 
-[tool.black]
-line-length = 99
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.venv
-)/
-'''
+dependencies = [
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "matplotlib",
+    "tqdm",
+    "recommenders",
+    "easydict",
+    "mlflow",
+    "cornac",
+    "scikit-surprise",
+    "fastapi",
+    "category-encoders",
+    "pandera",
+    "gunicorn"
+]
+
+[tool.ruff]
+line-length = 160
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E731", "C901"]
 
 [tool.ruff.lint.isort]
-known_first_party = ["personalization_privacy_and_explainability_of_recommendation_algorithms"]
-force_sort_within_sections = true
+known-first-party = ["ppera"]
