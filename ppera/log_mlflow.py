@@ -8,8 +8,7 @@ import pandas as pd
 import torch
 from mlflow.models.signature import infer_signature
 from recommenders.models.cornac.cornac_utils import predict_ranking
-
-from .rl_train_agent import ActorCritic
+from rl_train_agent import ActorCritic
 
 
 def log_mlflow(
@@ -38,22 +37,8 @@ def log_mlflow(
     print(top_k_prediction)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    plot_filename = f"ppera/plots/top_k_predictions_{model_type}_{dataset}_{timestamp}.png"
+    plot_filename = f"plots/top_k_predictions_{model_type}_{dataset}_{timestamp}.png"
     os.makedirs("plots", exist_ok=True)
-
-    metrics_base_dir = "ppera/metrics"
-    if privacy is True:
-        specific_metrics_dir = f"privacy_{fraction_to_hide}"
-    elif personalization is True:
-        specific_metrics_dir = f"personalization_{fraction_to_change}"
-    elif privacy is False and personalization is False:
-        specific_metrics_dir = "clear_loop"
-    else:
-        specific_metrics_dir = "None"
-
-    full_metrics_dir = os.path.join(metrics_base_dir, specific_metrics_dir)
-    os.makedirs(full_metrics_dir, exist_ok=True)
-    metrics_filename = os.path.join(full_metrics_dir, f"{dataset}_{model_type}_metrics.csv")
 
     # Plotting
     plt.figure(figsize=(10, 6))
@@ -64,6 +49,24 @@ def log_mlflow(
     plt.grid(True)
     plt.savefig(plot_filename)
     plt.close()
+
+    metrics_base_dir = "metrics"
+    if privacy is True:
+        subdir = "privacy"
+        specific_metrics_dir = f"no_mod_{fraction_to_hide:.2f}"
+    elif personalization is True:
+        subdir = "personalization"
+        specific_metrics_dir = f"no_mod_{fraction_to_change:.2f}"
+    elif privacy is False and personalization is False:
+        subdir = ""
+        specific_metrics_dir = "clean_loop/no_mod"
+    else:
+        subdir = ""
+        specific_metrics_dir = "None"
+
+    full_metrics_dir = os.path.join(metrics_base_dir, subdir, specific_metrics_dir)
+    os.makedirs(full_metrics_dir, exist_ok=True)
+    metrics_filename = os.path.join(full_metrics_dir, f"{model_type}_{dataset}_metrics.csv")
 
     mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
@@ -76,49 +79,47 @@ def log_mlflow(
 
     if dataset == MOVIELENS:
         if num_rows is None:
-            file_path = "ppera/datasets/MovieLens/merge_file.csv"
+            file_path = "datasets/MovieLens/merge_file.csv"
         else:
-            file_path = f"ppera/datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
+            file_path = f"datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == AMAZONSALES:
         if num_rows is None:
-            file_path = "ppera/datasets/AmazonSales/merge_file.csv"
+            file_path = "datasets/AmazonSales/merge_file.csv"
         else:
-            file_path = f"ppera/datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
+            file_path = f"datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == POSTRECOMMENDATIONS:
         if num_rows is None:
-            file_path = "ppera/datasets/PostRecommendations/merge_file.csv"
+            file_path = "datasets/PostRecommendations/merge_file.csv"
         else:
-            file_path = f"ppera/datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
+            file_path = f"datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
 
     with mlflow.start_run():
         if dataset == MOVIELENS:
-            mlflow.log_artifact(file_path, artifact_path="ppera/datasets/MovieLens")
+            mlflow.log_artifact(file_path, artifact_path="datasets/MovieLens")
             dataset_df = mlflow.data.from_pandas(data, name="MovieLens Dataset", source=file_path)
-            mlflow.log_input(
-                dataset_df,
-                context=f"Privacy: {privacy} | {fraction_to_hide}, Personalization: {personalization} | {fraction_to_change}",
-            )
+            mlflow.log_input(dataset_df, context=f"Privacy: {privacy} | {fraction_to_hide}, Personalization: {personalization} | {fraction_to_change}")
         elif dataset == AMAZONSALES:
-            mlflow.log_artifact(file_path, artifact_path="ppera/datasets/AmazonSales")
+            mlflow.log_artifact(file_path, artifact_path="datasets/AmazonSales")
             dataset_df = mlflow.data.from_pandas(data, name="AmazonSales Dataset", source=file_path)
-            mlflow.log_input(
-                dataset_df,
-                context=f"Privacy: {privacy} | {fraction_to_hide}, Personalization: {personalization} | {fraction_to_change}",
-            )
+            mlflow.log_input(dataset_df, context=f"Privacy: {privacy} | {fraction_to_hide}, Personalization: {personalization} | {fraction_to_change}")
         elif dataset == POSTRECOMMENDATIONS:
-            mlflow.log_artifact(file_path, artifact_path="ppera/datasets/PostRecommendations")
+            mlflow.log_artifact(file_path, artifact_path="datasets/PostRecommendations")
             dataset_df = mlflow.data.from_pandas(data, name="PostRecommendations Dataset", source=file_path)
-            mlflow.log_input(
-                dataset_df,
-                context=f"Privacy: {privacy} | {fraction_to_hide}, Personalization: {personalization} | {fraction_to_change}",
-            )
+            mlflow.log_input(dataset_df, context=f"Privacy: {privacy} | {fraction_to_hide}, Personalization: {personalization} | {fraction_to_change}")
 
         mlflow.log_artifact(plot_filename, artifact_path="plots")
         metrics_df = pd.DataFrame([metrics])
         metrics_df.to_csv(metrics_filename, index=False)
         mlflow.log_artifact(metrics_filename, artifact_path="metrics")
         mlflow.log_params(params)
-        mlflow.log_metrics(metrics)
+
+        # Filter out None values before logging to MLflow
+        clean_metrics = {k: v for k, v in metrics.items() if isinstance(v, (int, float))}
+        mlflow.log_metrics(clean_metrics)
+        none_metrics = {k: v for k, v in metrics.items() if v is None}
+        if none_metrics:
+            print("Skipped logging the following None-valued metrics to MLflow:", none_metrics)
+
         mlflow.set_tag("Metrics Info", f"{model_type} model for {dataset} dataset")
 
         signature = None
@@ -148,23 +149,11 @@ def log_mlflow(
                             sample_input_df_for_cf = pd.DataFrame(sample_input_data_list)
 
                             # 2. Get sample predictions
-                            sample_predictions_df_cf = predict_ranking(
-                                model,
-                                sample_input_df_for_cf,
-                                usercol=user_col,
-                                itemcol=item_col,
-                                remove_seen=True,
-                            )
+                            sample_predictions_df_cf = predict_ranking(model, sample_input_df_for_cf, usercol=user_col, itemcol=item_col, remove_seen=True)
 
                             if not sample_predictions_df_cf.empty:
                                 signature_input_cf = sample_input_df_for_cf[[user_col]].drop_duplicates().reset_index(drop=True)
-                                signature_output_cf = sample_predictions_df_cf[
-                                    [
-                                        user_col,
-                                        item_col,
-                                        params.get("col_prediction", "prediction"),
-                                    ]
-                                ]
+                                signature_output_cf = sample_predictions_df_cf[[user_col, item_col, params.get("col_prediction", "prediction")]]
 
                                 signature = infer_signature(signature_input_cf, signature_output_cf)
                                 input_example_for_log = signature_input_cf.head(5)  # A small sample of users
@@ -189,10 +178,7 @@ def log_mlflow(
 
                     # 2. Move sample input to the model's device
                     model_device = next(model.parameters()).device
-                    sample_input_tuple_pytorch = (
-                        sample_state_tensor.to(model_device),
-                        sample_act_mask_tensor.to(model_device),
-                    )
+                    sample_input_tuple_pytorch = (sample_state_tensor.to(model_device), sample_act_mask_tensor.to(model_device))
 
                     # 3. Get sample prediction from the model
                     with torch.no_grad():
@@ -259,17 +245,9 @@ def log_mlflow(
                 print("MLflow: Attempting to log model WITHOUT signature as a fallback.")
 
                 if model_type == "RL":
-                    mlflow.pytorch.log_model(
-                        pytorch_model=model,
-                        artifact_path=f"{model_type}-model",
-                        registered_model_name=f"{model_type}-model-{dataset}",
-                    )
+                    mlflow.pytorch.log_model(pytorch_model=model, artifact_path=f"{model_type}-model", registered_model_name=f"{model_type}-model-{dataset}")
                 elif model_type in ["CF", "CBF"]:
-                    mlflow.sklearn.log_model(
-                        sk_model=model,
-                        artifact_path=f"{model_type}-model",
-                        registered_model_name=f"{model_type}-model-{dataset}",
-                    )
+                    mlflow.sklearn.log_model(sk_model=model, artifact_path=f"{model_type}-model", registered_model_name=f"{model_type}-model-{dataset}")
                 else:
                     print(f"MLflow: Model type {model_type} not recognized for fallback logging.")
 
@@ -278,17 +256,9 @@ def log_mlflow(
         elif model:
             print(f"MLflow: Signature not inferred for {model_type}. Logging model without signature.")
             if model_type == "RL":
-                mlflow.pytorch.log_model(
-                    pytorch_model=model,
-                    artifact_path=f"{model_type}-model",
-                    registered_model_name=f"{model_type}-model-{dataset}",
-                )
+                mlflow.pytorch.log_model(pytorch_model=model, artifact_path=f"{model_type}-model", registered_model_name=f"{model_type}-model-{dataset}")
             elif model_type in ["CF", "CBF"]:
-                mlflow.sklearn.log_model(
-                    sk_model=model,
-                    artifact_path=f"{model_type}-model",
-                    registered_model_name=f"{model_type}-model-test",
-                )
+                mlflow.sklearn.log_model(sk_model=model, artifact_path=f"{model_type}-model", registered_model_name=f"{model_type}-model-test")
             print(f"MLflow: Logged {model_type} model without signature.")
         else:
             print(f"MLflow: Model object for {model_type} not available. Skipping model logging entirely.")

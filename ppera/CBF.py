@@ -1,15 +1,8 @@
+import data_manipulation as dm
+import datasets_loader
+import log_mlflow
 import numpy as np
-from recommenders.datasets.python_splitters import python_stratified_split
-from recommenders.evaluation.python_evaluation import (
-    mae,
-    ndcg_at_k,
-    rmse,
-)
-from recommenders.models.tfidf.tfidf_utils import TfidfRecommender
-
-from . import data_manipulation as dm
-from . import datasets_loader, log_mlflow
-from .metrics import (
+from metrics import (
     intra_list_dissimilarity,
     intra_list_similarity_score,
     item_coverage,
@@ -19,6 +12,13 @@ from .metrics import (
     recall_at_k,
     user_coverage,
 )
+from recommenders.datasets.python_splitters import python_stratified_split
+from recommenders.evaluation.python_evaluation import (
+    mae,
+    ndcg_at_k,
+    rmse,
+)
+from recommenders.models.tfidf.tfidf_utils import TfidfRecommender
 
 
 def cbf_experiment_loop(
@@ -95,22 +95,11 @@ def cbf_experiment_loop(
 
     if privacy:
         train = dm.hide_information_in_dataframe(
-            data=train,
-            hide_type=hide_type,
-            columns_to_hide=columns_to_hide,
-            fraction_to_hide=fraction_to_hide,
-            records_to_hide=records_to_hide,
-            seed=seed,
+            data=train, hide_type=hide_type, columns_to_hide=columns_to_hide, fraction_to_hide=fraction_to_hide, records_to_hide=records_to_hide, seed=seed
         )
 
     if personalization:
-        train = dm.change_items_in_dataframe(
-            all=data,
-            data=train,
-            fraction_to_change=fraction_to_change,
-            change_rating=change_rating,
-            seed=seed,
-        )
+        train = dm.change_items_in_dataframe(all=data, data=train, fraction_to_change=fraction_to_change, change_rating=change_rating, seed=seed)
 
     df_clean = train.drop(columns=["userID", "rating", "timestamp"])
     df_clean = df_clean.drop_duplicates(subset=["itemID"])
@@ -143,54 +132,41 @@ def cbf_experiment_loop(
     top = filtered_top_k.loc[idx]
 
     # Metrics
-    eval_precision_at_k = precision_at_k(
-        test,
-        top_k,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        k=TOP_K,
-    )
-    eval_recall_at_k = recall_at_k(
-        test,
-        top_k,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        k=TOP_K,
-    )
-    eval_ndcg = ndcg_at_k(
-        test,
-        top,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        relevancy_method="top_k",
-        k=1,
-    )
-    eval_precision = precision_at_k(
-        test,
-        top_k,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        k=1,
-    )
-    eval_recall = recall_at_k(
-        test,
-        top_k,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        k=1,
-    )
-    eval_mae = mae(test, top_k)
-    eval_rmse = rmse(test, top_k)
+    try:
+        eval_precision_at_k = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+    except Exception as e:
+        eval_precision_at_k = None
+        print(f"Error calculating precision at k: {e}")
+    try:
+        eval_recall_at_k = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+    except Exception as e:
+        eval_recall_at_k = None
+        print(f"Error calculating recall at k: {e}")
+    try:
+        eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k", k=1)
+    except Exception as e:
+        eval_ndcg = None
+        print(f"Error calculating NDCG: {e}")
+    try:
+        eval_precision = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    except Exception as e:
+        eval_precision = None
+        print(f"Error calculating precision: {e}")
+    try:
+        eval_recall = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    except Exception as e:
+        eval_recall = None
+        print(f"Error calculating recall: {e}")
+    try:
+        eval_mae = mae(test, top_k)
+    except Exception as e:
+        eval_mae = None
+        print(f"Error calculating MAE: {e}")
+    try:
+        eval_rmse = rmse(test, top_k)
+    except Exception as e:
+        eval_rmse = None
+        print(f"Error calculating RMSE: {e}")
 
     # eval_novelty = novelty(train, top)
     # eval_historical_item_novelty = historical_item_novelty(train, top)
@@ -201,56 +177,62 @@ def cbf_experiment_loop(
     # eval_distributional_coverage = distributional_coverage(train, top)
 
     # eval_f1 = f1(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-    eval_mrr = mrr(
-        test,
-        top_k,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-    )
+    try:
+        eval_mrr = mrr(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    except Exception as e:
+        eval_mrr = None
+        print(f"Error calculating MRR: {e}")
     # eval_accuracy = accuracy(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-    eval_user_coverage = user_coverage(
-        test,
-        top,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-    )
-    eval_item_coverage = item_coverage(
-        test,
-        top,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-    )
+    try:
+        eval_user_coverage = user_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    except Exception as e:
+        eval_user_coverage = None
+        print(f"Error calculating user coverage: {e}")
+    try:
+        eval_item_coverage = item_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    except Exception as e:
+        eval_item_coverage = None
+        print(f"Error calculating item coverage: {e}")
 
-    eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=["genres"])
-    eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=["genres"])
-    eval_personalization = personalization_score(train, top)
+    try:
+        eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=["genres"])
+    except Exception as e:
+        eval_intra_list_similarity = None
+        print(f"Error calculating intra-list similarity: {e}")
+    try:
+        eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=["genres"])
+    except Exception as e:
+        eval_intra_list_dissimilarity = None
+        print(f"Error calculating intra-list dissimilarity: {e}")
+    try:
+        eval_personalization = personalization_score(train, top)
+    except Exception as e:
+        eval_personalization = None
+        print(f"Error calculating personalization: {e}")
+
+    def format_metric(metric):
+        return f"{metric:.4f}" if isinstance(metric, (float, int)) else "N/A"
 
     print(
-        "Precision:\t%f" % eval_precision,
-        "Precision@K:\t%f" % eval_precision_at_k,
-        "Recall:\t%f" % eval_recall,
-        "Recall@K:\t%f" % eval_recall_at_k,
-        # "F1:\t%f" % eval_f1,
-        # "Accuracy:\t%f" % eval_accuracy,
-        "MAE:\t%f" % eval_mae,
-        "RMSE:\t%f" % eval_rmse,
-        "NDCG:\t%f" % eval_ndcg,
-        "MRR:\t%f" % eval_mrr,
-        # "Novelty:\t%f" % eval_novelty,
-        # "Serendipity:\t%f" % eval_serendipity,
-        "User coverage:\t%f" % eval_user_coverage,
-        "Item coverage:\t%f" % eval_item_coverage,
-        # "Catalog coverage:\t%f" % eval_catalog_coverage,
-        # "Distributional coverage:\t%f" % eval_distributional_coverage,
-        "Personalization:\t%f" % eval_personalization,
-        "Intra-list similarity:\t%f" % eval_intra_list_similarity,
-        "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
+        "Precision:\t" + format_metric(eval_precision),
+        "Precision@K:\t" + format_metric(eval_precision_at_k),
+        "Recall:\t" + format_metric(eval_recall),
+        "Recall@K:\t" + format_metric(eval_recall_at_k),
+        # "F1:\t" + format_metric(eval_f1),
+        # "Accuracy:\t" + format_metric(eval_accuracy),
+        "MAE:\t" + format_metric(eval_mae),
+        "RMSE:\t" + format_metric(eval_rmse),
+        "NDCG:\t" + format_metric(eval_ndcg),
+        "MRR:\t" + format_metric(eval_mrr),
+        # "Novelty:\t" + format_metric(eval_novelty),
+        # "Serendipity:\t" + format_metric(eval_serendipity),
+        "User coverage:\t" + format_metric(eval_user_coverage),
+        "Item coverage:\t" + format_metric(eval_item_coverage),
+        # "Catalog coverage:\t" + format_metric(eval_catalog_coverage),
+        # "Distributional coverage:\t" + format_metric(eval_distributional_coverage),
+        "Personalization:\t" + format_metric(eval_personalization),
+        "Intra-list similarity:\t" + format_metric(eval_intra_list_similarity),
+        "Intra-list dissimilarity:\t" + format_metric(eval_intra_list_dissimilarity),
         sep="\n",
     )
 
