@@ -80,7 +80,7 @@ run-all:
 	trap 'echo "--- Shutting down MLflow server (PID: $$MLFLOW_PID)..."; kill $$MLFLOW_PID' EXIT ; \
 	echo "--- MLflow server is up (PID: $$MLFLOW_PID). Cleanup trap is set." ; \
 	echo "--- Running the main script..." ; \
-	conda run -n $(CONDA_ENV_NAME) $(PYTHON_INTERPRETER) -m $(SRC_DIR).main ; \
+	conda run -n $(CONDA_ENV_NAME) --no-capture-output $(PYTHON_INTERPRETER) -u -m $(SRC_DIR).main ; \
 	echo "--- Main script finished."
 
 ## Run the entire pipeline and PAUSE before shutting down the MLflow server
@@ -94,7 +94,7 @@ run-interactive:
 	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1) ; \
 	echo "--- MLflow server is up (PID: $$MLFLOW_PID). You can view it at http://$(MLFLOW_HOST):$(MLFLOW_PORT)" ; \
 	echo "--- Running the main script..." ; \
-	conda run -n $(CONDA_ENV_NAME) $(PYTHON_INTERPRETER) -m $(SRC_DIR).main ; \
+	conda run -n $(CONDA_ENV_NAME) --no-capture-output $(PYTHON_INTERPRETER) -u -m $(SRC_DIR).main ; \
 	echo "" ; \
 	echo "--- ✅ Main script finished. The MLflow server is still running." ; \
 	echo -n "--- Press [Enter] to shut down the MLflow server..." ; \
