@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 from mlflow.models.signature import infer_signature
 from recommenders.models.cornac.cornac_utils import predict_ranking
-from rl_train_agent import ActorCritic
+from .rl_train_agent import ActorCritic
 
 
 def log_mlflow(

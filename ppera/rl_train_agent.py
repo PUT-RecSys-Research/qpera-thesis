@@ -9,8 +9,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from rl_kg_env import BatchKGEnvironment
-from rl_utils import TMP_DIR, USERID, get_logger, set_random_seed
+from .rl_kg_env import BatchKGEnvironment
+from .rl_utils import TMP_DIR, USERID, get_logger, set_random_seed
 from torch.distributions import Categorical
 
 logger = None

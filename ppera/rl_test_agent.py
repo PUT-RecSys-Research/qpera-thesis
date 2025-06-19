@@ -5,12 +5,12 @@ import os
 import pickle
 from functools import reduce
 
-import log_mlflow
+from . import log_mlflow
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
-from metrics import (
+from .metrics import (
     intra_list_dissimilarity,
     intra_list_similarity_score,
     item_coverage,
@@ -25,11 +25,11 @@ from recommenders.evaluation.python_evaluation import (
     ndcg_at_k,
     rmse,
 )
-from rl_decoder import RLRecommenderDecoder
-from rl_kg_env import BatchKGEnvironment
-from rl_prediction import calculate_predictons
-from rl_train_agent import ActorCritic
-from rl_utils import (
+from .rl_decoder import RLRecommenderDecoder
+from .rl_kg_env import BatchKGEnvironment
+from .rl_prediction import calculate_predictons
+from .rl_train_agent import ActorCritic
+from .rl_utils import (
     AMAZONSALES,
     ITEMID,
     KG_RELATION,

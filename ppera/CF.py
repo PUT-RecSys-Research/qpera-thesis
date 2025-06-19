@@ -1,8 +1,8 @@
 import cornac
-import data_manipulation as dm
-import datasets_loader
-import log_mlflow
-from metrics import (
+from . import data_manipulation as dm
+from . import datasets_loader
+from . import log_mlflow
+from .metrics import (
     intra_list_dissimilarity,
     intra_list_similarity_score,
     item_coverage,

@@ -4,13 +4,13 @@ import os
 import pickle
 from collections import defaultdict
 
-import data_manipulation as dm
+from . import data_manipulation as dm
 import numpy as np
 import pandas as pd
-from datasets_loader import loader as load_dataframe
+from .datasets_loader import loader as load_dataframe
 from recommenders.datasets.python_splitters import python_stratified_split
-from rl_knowledge_graph import KnowledgeGraph
-from rl_utils import (
+from .rl_knowledge_graph import KnowledgeGraph
+from .rl_utils import (
     BELONG_TO,
     DESCRIBED_AS,
     GENRES,

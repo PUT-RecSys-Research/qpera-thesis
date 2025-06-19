@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import random
 
 import numpy as np
-from rl_utils import ITEMID, KG_RELATION, PATH_PATTERN, RATED, SELF_LOOP, TITLE, USERID, WATCHED, load_embed, load_kg
+from .rl_utils import ITEMID, KG_RELATION, PATH_PATTERN, RATED, SELF_LOOP, TITLE, USERID, WATCHED, load_embed, load_kg
 
 
 class KGState(object):

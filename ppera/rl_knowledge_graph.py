@@ -1,4 +1,4 @@
-from rl_utils import KG_RELATION, get_entities, get_entity_tail, get_relations
+from .rl_utils import KG_RELATION, get_entities, get_entity_tail, get_relations
 
 
 class KnowledgeGraph:

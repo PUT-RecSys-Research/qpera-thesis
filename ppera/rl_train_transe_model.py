@@ -8,8 +8,8 @@ import sys
 import numpy as np
 import torch
 import torch.optim as optim
-from rl_transe_model import KnowledgeEmbedding
-from rl_utils import (
+from .rl_transe_model import KnowledgeEmbedding
+from .rl_utils import (
     BELONG_TO,
     DESCRIBED_AS,
     GENRES,
