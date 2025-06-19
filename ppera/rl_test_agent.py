@@ -5,11 +5,18 @@ import os
 import pickle
 from functools import reduce
 
-from . import log_mlflow
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
+from recommenders.evaluation.python_evaluation import (
+    mae,
+    ndcg_at_k,
+    rmse,
+)
+from tqdm import tqdm
+
+from . import log_mlflow
 from .metrics import (
     intra_list_dissimilarity,
     intra_list_similarity_score,
@@ -19,11 +26,6 @@ from .metrics import (
     precision_at_k,
     recall_at_k,
     user_coverage,
-)
-from recommenders.evaluation.python_evaluation import (
-    mae,
-    ndcg_at_k,
-    rmse,
 )
 from .rl_decoder import RLRecommenderDecoder
 from .rl_kg_env import BatchKGEnvironment
@@ -44,7 +46,6 @@ from .rl_utils import (
     load_labels,
     set_random_seed,
 )
-from tqdm import tqdm
 
 
 def batch_beam_search(env, model, uids, device, topk=[25, 5, 1]):

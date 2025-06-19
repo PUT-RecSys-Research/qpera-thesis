@@ -1,7 +1,15 @@
 import cornac
+from recommenders.datasets.python_splitters import python_stratified_split
+from recommenders.evaluation.python_evaluation import (
+    mae,
+    ndcg_at_k,
+    rmse,
+)
+from recommenders.models.cornac.cornac_utils import predict_ranking
+from recommenders.utils.timer import Timer
+
 from . import data_manipulation as dm
-from . import datasets_loader
-from . import log_mlflow
+from . import datasets_loader, log_mlflow
 from .metrics import (
     intra_list_dissimilarity,
     intra_list_similarity_score,
@@ -12,14 +20,6 @@ from .metrics import (
     recall_at_k,
     user_coverage,
 )
-from recommenders.datasets.python_splitters import python_stratified_split
-from recommenders.evaluation.python_evaluation import (
-    mae,
-    ndcg_at_k,
-    rmse,
-)
-from recommenders.models.cornac.cornac_utils import predict_ranking
-from recommenders.utils.timer import Timer
 
 
 def cf_experiment_loop(

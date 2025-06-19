@@ -2,9 +2,9 @@ import os
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
-from . import frequency_based_rating_gen
 import pandas as pd
-from . import rating_timestamp_gen
+
+from . import frequency_based_rating_gen, rating_timestamp_gen
 
 
 class BaseDatasetLoader(ABC):

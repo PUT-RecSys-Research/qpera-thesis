@@ -4,11 +4,13 @@ import os
 import pickle
 from collections import defaultdict
 
-from . import data_manipulation as dm
 import numpy as np
 import pandas as pd
-from .datasets_loader import loader as load_dataframe
 from recommenders.datasets.python_splitters import python_stratified_split
+from sklearn.model_selection import train_test_split
+
+from . import data_manipulation as dm
+from .datasets_loader import loader as load_dataframe
 from .rl_knowledge_graph import KnowledgeGraph
 from .rl_utils import (
     BELONG_TO,
@@ -29,7 +31,6 @@ from .rl_utils import (
     save_kg,
     save_labels,
 )
-from sklearn.model_selection import train_test_split
 
 
 def create_processed_dataset(df: pd.DataFrame) -> dict:
