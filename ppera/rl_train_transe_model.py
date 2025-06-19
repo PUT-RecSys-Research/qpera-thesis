@@ -1,24 +1,43 @@
 from __future__ import absolute_import, division, print_function
 
-import os
-import sys
 import argparse
+import os
+import pickle
+import sys
+
 import numpy as np
 import torch
 import torch.optim as optim
-import pickle
-from rl_utils import *
 from rl_transe_model import KnowledgeEmbedding
+from rl_utils import (
+    BELONG_TO,
+    DESCRIBED_AS,
+    GENRES,
+    ITEMID,
+    RATED,
+    RATING,
+    RATING_VALUE_FOR_ITEM,
+    TITLE,
+    TMP_DIR,
+    USER_RATED_WITH_VALUE,
+    USERID,
+    WATCHED,
+    get_logger,
+    save_embed,
+    set_random_seed,
+)
 
 logger = None
+
 
 class KGTrainerDataLoader:
     """
     Dataloader for KGE training.
     Yields batches of positive triples (head_idx, relation_idx, tail_idx).
     """
+
     def __init__(self, processed_dataset, batch_size):
-        self.relations_dict = processed_dataset.get('relations', {})
+        self.relations_dict = processed_dataset.get("relations", {})
         self.batch_size = batch_size
 
         self.relation_names_ordered = sorted(list(self.relations_dict.keys()))
@@ -33,11 +52,10 @@ class KGTrainerDataLoader:
                 for head_idx, tail_idx in head_tail_list:
                     self.triples.append((head_idx, rel_idx, tail_idx))
             else:
-                 print(f"Warning: Relation '{rel_name}' found in data but not in mapped relations. Skipping.")
-
+                print(f"Warning: Relation '{rel_name}' found in data but not in mapped relations. Skipping.")
 
         if not self.triples:
-             raise ValueError("No training triples found in the processed dataset!")
+            raise ValueError("No training triples found in the processed dataset!")
 
         self.num_triples = len(self.triples)
         print(f"KGTrainerDataLoader initialized with {self.num_triples} positive triples.")
@@ -73,11 +91,12 @@ class KGTrainerDataLoader:
     def __len__(self):
         return (self.num_triples + self.batch_size - 1) // self.batch_size
 
+
 def train(args):
-    processed_dataset_file = TMP_DIR[args.dataset] + '/processed_dataset.pkl'
+    processed_dataset_file = TMP_DIR[args.dataset] + "/processed_dataset.pkl"
     print(f"Loading processed dataset from {processed_dataset_file}")
     try:
-        with open(processed_dataset_file, 'rb') as f:
+        with open(processed_dataset_file, "rb") as f:
             processed_dataset = pickle.load(f)
     except FileNotFoundError:
         logger.error(f"Error: Processed dataset file not found at {processed_dataset_file}")
@@ -87,17 +106,17 @@ def train(args):
         logger.error(f"Error loading processed dataset: {e}")
         sys.exit(1)
 
-    if 'distributions' not in processed_dataset:
-         logger.error("Error: Negative sampling distributions not found in processed_dataset.pkl.")
-         logger.error("Please ensure preprocess.py calculates and saves these distributions.")
-         sys.exit(1)
+    if "distributions" not in processed_dataset:
+        logger.error("Error: Negative sampling distributions not found in processed_dataset.pkl.")
+        logger.error("Please ensure preprocess.py calculates and saves these distributions.")
+        sys.exit(1)
 
     dataloader = KGTrainerDataLoader(processed_dataset, args.batch_size)
     total_triples_to_train = args.epochs * dataloader.num_triples
 
     model = KnowledgeEmbedding(processed_dataset, dataloader.idx_to_rel_name, args).to(args.device)
-    logger.info('Model Class: ' + model.__class__.__name__)
-    logger.info('Parameters:' + str([i[0] for i in model.named_parameters()]))
+    logger.info("Model Class: " + model.__class__.__name__)
+    logger.info("Parameters:" + str([i[0] for i in model.named_parameters()]))
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
     steps = 0
@@ -113,10 +132,11 @@ def train(args):
             lr = args.lr * lr_decay_factor
 
             for pg in optimizer.param_groups:
-                pg['lr'] = lr
+                pg["lr"] = lr
 
             batch_triples = dataloader.get_batch()
-            if batch_triples is None: continue
+            if batch_triples is None:
+                continue
 
             batch_tensor = torch.from_numpy(batch_triples).to(args.device)
 
@@ -131,18 +151,27 @@ def train(args):
             batch_num += 1
             if steps % args.steps_per_checkpoint == 0:
                 avg_smooth_loss = smooth_loss / args.steps_per_checkpoint
-                logger.info('Epoch: {:02d} | Batch: {:d}/{:d} | Triples: ~{:d}/{:d} | Lr: {:.5f} | Smooth loss: {:.5f}'.format(
-                            epoch, batch_num, len(dataloader), triples_processed, total_triples_to_train, lr, avg_smooth_loss))
+                logger.info(
+                    "Epoch: {:02d} | Batch: {:d}/{:d} | Triples: ~{:d}/{:d} | Lr: {:.5f} | Smooth loss: {:.5f}".format(
+                        epoch,
+                        batch_num,
+                        len(dataloader),
+                        triples_processed,
+                        total_triples_to_train,
+                        lr,
+                        avg_smooth_loss,
+                    )
+                )
                 smooth_loss = 0.0
 
-        ckpt_file = '{}/transe_model_sd_epoch_{}.ckpt'.format(args.log_dir, epoch)
+        ckpt_file = "{}/transe_model_sd_epoch_{}.ckpt".format(args.log_dir, epoch)
         logger.info(f"Saving checkpoint to {ckpt_file}")
         torch.save(model.state_dict(), ckpt_file)
 
 
 def extract_embeddings(args):
     """Extracts embeddings using new entity/relation names."""
-    model_file = '{}/transe_model_sd_epoch_{}.ckpt'.format(args.log_dir, args.epochs)
+    model_file = "{}/transe_model_sd_epoch_{}.ckpt".format(args.log_dir, args.epochs)
     logger.info(f"Loading embeddings from final model: {model_file}")
     try:
         state_dict = torch.load(model_file, map_location=lambda storage, loc: storage)
@@ -159,19 +188,19 @@ def extract_embeddings(args):
     missing_keys = []
 
     entity_layer_names = {
-        USERID: 'user_id.weight',
-        ITEMID: 'item_id.weight',
-        TITLE: 'title.weight',
-        GENRES: 'genres.weight',
-        RATING: 'rating.weight',
+        USERID: "user_id.weight",
+        ITEMID: "item_id.weight",
+        TITLE: "title.weight",
+        GENRES: "genres.weight",
+        RATING: "rating.weight",
     }
     relation_param_names = {
-        WATCHED: ('watched', 'watched_bias.weight'),
-        RATED: ('rated', 'rated_bias.weight'),
-        DESCRIBED_AS: ('described_as', 'described_as_bias.weight'),
-        BELONG_TO: ('belongs_to', 'belongs_to_bias.weight'),
-        USER_RATED_WITH_VALUE: ('user_rated_with_value', 'user_rated_with_value_bias.weight'),
-        RATING_VALUE_FOR_ITEM: ('rating_value_for_item', 'rating_value_for_item_bias.weight'),
+        WATCHED: ("watched", "watched_bias.weight"),
+        RATED: ("rated", "rated_bias.weight"),
+        DESCRIBED_AS: ("described_as", "described_as_bias.weight"),
+        BELONG_TO: ("belongs_to", "belongs_to_bias.weight"),
+        USER_RATED_WITH_VALUE: ("user_rated_with_value", "user_rated_with_value_bias.weight"),
+        RATING_VALUE_FOR_ITEM: ("rating_value_for_item", "rating_value_for_item_bias.weight"),
     }
 
     for entity_const, layer_name in entity_layer_names.items():
@@ -210,33 +239,34 @@ def extract_embeddings(args):
         save_embed(args.dataset, embeds)
         logger.info("Embeddings extracted and saved successfully.")
 
-def train_transe_model_rl(dataset,seed):
+
+def train_transe_model_rl(dataset, seed):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
-    parser.add_argument('--name', type=str, default='train_transe_model', help='model name.')
-    parser.add_argument('--seed', type=int, default=seed, help='random seed.')
-    parser.add_argument('--gpu', type=str, default='1', help='gpu device.')
-    parser.add_argument('--epochs', type=int, default=30, help='number of epochs to train.') #default=30 fast_test=1
-    parser.add_argument('--batch_size', type=int, default=64, help='batch size.')
-    parser.add_argument('--lr', type=float, default=0.5, help='learning rate.')
-    parser.add_argument('--weight_decay', type=float, default=0, help='weight decay for adam.')
-    parser.add_argument('--l2_lambda', type=float, default=0, help='l2 lambda')
-    parser.add_argument('--max_grad_norm', type=float, default=5.0, help='Clipping gradient.')
-    parser.add_argument('--embed_size', type=int, default=100, help='knowledge embedding size.') #default=100 fast_test=10
-    parser.add_argument('--num_neg_samples', type=int, default=5, help='number of negative samples.') #default=5 fast_test=1
-    parser.add_argument('--steps_per_checkpoint', type=int, default=200, help='Number of steps for checkpoint.')
+    parser.add_argument("--dataset", type=str, default=dataset, help="Dataset name (set automatically).")
+    parser.add_argument("--name", type=str, default="train_transe_model", help="model name.")
+    parser.add_argument("--seed", type=int, default=seed, help="random seed.")
+    parser.add_argument("--gpu", type=str, default="1", help="gpu device.")
+    parser.add_argument("--epochs", type=int, default=30, help="number of epochs to train.")  # default=30 fast_test=1
+    parser.add_argument("--batch_size", type=int, default=64, help="batch size.")
+    parser.add_argument("--lr", type=float, default=0.5, help="learning rate.")
+    parser.add_argument("--weight_decay", type=float, default=0, help="weight decay for adam.")
+    parser.add_argument("--l2_lambda", type=float, default=0, help="l2 lambda")
+    parser.add_argument("--max_grad_norm", type=float, default=5.0, help="Clipping gradient.")
+    parser.add_argument("--embed_size", type=int, default=100, help="knowledge embedding size.")  # default=100 fast_test=10
+    parser.add_argument("--num_neg_samples", type=int, default=5, help="number of negative samples.")  # default=5 fast_test=1
+    parser.add_argument("--steps_per_checkpoint", type=int, default=200, help="Number of steps for checkpoint.")
     args = parser.parse_args()
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-    args.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {args.device}")
 
-    args.log_dir = '{}/{}'.format(TMP_DIR[args.dataset], args.name)
+    args.log_dir = "{}/{}".format(TMP_DIR[args.dataset], args.name)
     if not os.path.isdir(args.log_dir):
         os.makedirs(args.log_dir)
 
     global logger
-    logger = get_logger(args.log_dir + '/train_log.txt')
+    logger = get_logger(args.log_dir + "/train_log.txt")
     logger.info("----- Train KGE Start -----")
     logger.info(args)
 
@@ -244,4 +274,3 @@ def train_transe_model_rl(dataset,seed):
     train(args)
     extract_embeddings(args)
     logger.info("----- Train KGE End -----")
-

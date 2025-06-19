@@ -2,7 +2,8 @@ from __future__ import absolute_import, division, print_function
 
 import random
 
-from rl_utils import *
+import numpy as np
+from rl_utils import ITEMID, KG_RELATION, PATH_PATTERN, RATED, SELF_LOOP, TITLE, USERID, WATCHED, load_embed, load_kg
 
 
 class KGState(object):
@@ -16,19 +17,34 @@ class KGState(object):
         elif history_len == 2:
             self.dim = 6 * embed_size
         else:
-            raise Exception('history length should be one of {0, 1, 2}')
+            raise Exception("history length should be one of {0, 1, 2}")
 
-    def __call__(self, user_embed, node_embed, last_node_embed, last_relation_embed, older_node_embed,
-                 older_relation_embed):
+    def __call__(
+        self,
+        user_embed,
+        node_embed,
+        last_node_embed,
+        last_relation_embed,
+        older_node_embed,
+        older_relation_embed,
+    ):
         if self.history_len == 0:
             return np.concatenate([user_embed, node_embed])
         elif self.history_len == 1:
             return np.concatenate([user_embed, node_embed, last_node_embed, last_relation_embed])
         elif self.history_len == 2:
-            return np.concatenate([user_embed, node_embed, last_node_embed, last_relation_embed, older_node_embed,
-                                   older_relation_embed])
+            return np.concatenate(
+                [
+                    user_embed,
+                    node_embed,
+                    last_node_embed,
+                    last_relation_embed,
+                    older_node_embed,
+                    older_relation_embed,
+                ]
+            )
         else:
-            raise Exception('mode should be one of {full, current}')
+            raise Exception("mode should be one of {full, current}")
 
 
 class BatchKGEnvironment(object):
@@ -118,7 +134,7 @@ class BatchKGEnvironment(object):
             score = np.matmul(src_embed, self.embeds[next_node_type][next_node_id])
 
             scores.append(score)
-        candidate_idxs = np.argsort(scores)[-self.max_acts:]
+        candidate_idxs = np.argsort(scores)[-self.max_acts :]
         candidate_acts = sorted([candidate_acts[i] for i in candidate_idxs], key=lambda x: (x[0], x[1]))
         actions.extend(candidate_acts)
         return actions
@@ -140,15 +156,27 @@ class BatchKGEnvironment(object):
         last_node_embed = self.embeds[last_node_type][last_node_id]
         last_relation_embed, _ = self.embeds[last_relation]
         if len(path) == 2:
-            state = self.state_gen(user_embed, curr_node_embed, last_node_embed, last_relation_embed, zero_embed,
-                                   zero_embed)
+            state = self.state_gen(
+                user_embed,
+                curr_node_embed,
+                last_node_embed,
+                last_relation_embed,
+                zero_embed,
+                zero_embed,
+            )
             return state
 
         _, older_node_type, older_node_id = path[-3]
         older_node_embed = self.embeds[older_node_type][older_node_id]
         older_relation_embed, _ = self.embeds[older_relation]
-        state = self.state_gen(user_embed, curr_node_embed, last_node_embed, last_relation_embed, older_node_embed,
-                               older_relation_embed)
+        state = self.state_gen(
+            user_embed,
+            curr_node_embed,
+            last_node_embed,
+            last_relation_embed,
+            older_node_embed,
+            older_relation_embed,
+        )
         return state
 
     def _batch_get_state(self, batch_path):
@@ -238,8 +266,7 @@ class BatchKGEnvironment(object):
 
     def print_path(self):
         for path in self._batch_path:
-            msg = 'Path: {}({})'.format(path[0][1], path[0][2])
+            msg = "Path: {}({})".format(path[0][1], path[0][2])
             for node in path[1:]:
-                msg += ' =={}=> {}({})'.format(node[0], node[1], node[2])
+                msg += " =={}=> {}({})".format(node[0], node[1], node[2])
             print(msg)
-

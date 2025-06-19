@@ -1,20 +1,21 @@
 from __future__ import absolute_import, division, print_function
 
-import os
 import argparse
+import os
 from collections import namedtuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.distributions import Categorical
-
 from rl_kg_env import BatchKGEnvironment
-from rl_utils import *
+from rl_utils import TMP_DIR, USERID, get_logger, set_random_seed
+from torch.distributions import Categorical
 
 logger = None
 
-SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
+SavedAction = namedtuple("SavedAction", ["log_prob", "value"])
 
 
 class ActorCritic(nn.Module):
@@ -41,7 +42,7 @@ class ActorCritic(nn.Module):
         x = F.dropout(F.elu(out), p=0.5)
 
         actor_logits = self.actor(x)
-        actor_logits[~act_mask] = -999999.0 
+        actor_logits[~act_mask] = -999999.0
         act_probs = F.softmax(actor_logits, dim=-1)
 
         state_values = self.critic(x)
@@ -116,7 +117,7 @@ class ACDataLoader(object):
         if not self._has_next:
             return None
         end_idx = min(self._start_idx + self.batch_size, self.num_users)
-        batch_idx = self._rand_perm[self._start_idx:end_idx]
+        batch_idx = self._rand_perm[self._start_idx : end_idx]
         batch_uids = self.uids[batch_idx]
         self._has_next = self._has_next and end_idx < self.num_users
         self._start_idx = end_idx
@@ -124,11 +125,16 @@ class ACDataLoader(object):
 
 
 def train(args):
-    env = BatchKGEnvironment(args.dataset, args.max_acts, max_path_len=args.max_path_len, state_history=args.state_history)
+    env = BatchKGEnvironment(
+        args.dataset,
+        args.max_acts,
+        max_path_len=args.max_path_len,
+        state_history=args.state_history,
+    )
     uids = list(env.kg(USERID).keys())
     dataloader = ACDataLoader(uids, args.batch_size)
     model = ActorCritic(env.state_dim, env.act_dim, gamma=args.gamma, hidden_sizes=args.hidden).to(args.device)
-    logger.info('Parameters:' + str([i[0] for i in model.named_parameters()]))
+    logger.info("Parameters:" + str([i[0] for i in model.named_parameters()]))
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     total_losses, total_plosses, total_vlosses, total_entropy, total_rewards = [], [], [], [], []
@@ -151,7 +157,7 @@ def train(args):
 
             lr = args.lr * max(1e-4, 1.0 - float(step) / (args.epochs * len(uids) / args.batch_size))
             for pg in optimizer.param_groups:
-                pg['lr'] = lr
+                pg["lr"] = lr
 
             # Update policy
             total_rewards.append(np.sum(model.rewards))
@@ -169,50 +175,56 @@ def train(args):
                 avg_ploss = np.mean(total_plosses)
                 avg_vloss = np.mean(total_vlosses)
                 avg_entropy = np.mean(total_entropy)
-                total_losses, total_plosses, total_vlosses, total_entropy, total_rewards = [], [], [], [], []
+                total_losses, total_plosses, total_vlosses, total_entropy, total_rewards = (
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                )
                 logger.info(
-                        'epoch/step={:d}/{:d}'.format(epoch, step) +
-                        ' | loss={:.5f}'.format(avg_loss) +
-                        ' | ploss={:.5f}'.format(avg_ploss) +
-                        ' | vloss={:.5f}'.format(avg_vloss) +
-                        ' | entropy={:.5f}'.format(avg_entropy) +
-                        ' | reward={:.5f}'.format(avg_reward))
+                    "epoch/step={:d}/{:d}".format(epoch, step)
+                    + " | loss={:.5f}".format(avg_loss)
+                    + " | ploss={:.5f}".format(avg_ploss)
+                    + " | vloss={:.5f}".format(avg_vloss)
+                    + " | entropy={:.5f}".format(avg_entropy)
+                    + " | reward={:.5f}".format(avg_reward)
+                )
         ### END of epoch ###
 
-        policy_file = '{}/policy_model_epoch_{}.ckpt'.format(args.log_dir, epoch)
+        policy_file = "{}/policy_model_epoch_{}.ckpt".format(args.log_dir, epoch)
         logger.info("Save model to " + policy_file)
         torch.save(model.state_dict(), policy_file)
 
 
-def train_agent_rl(dataset,seed):
+def train_agent_rl(dataset, seed):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default=dataset, help='Dataset name (set automatically).')
-    parser.add_argument('--name', type=str, default='train_agent', help='directory name.')
-    parser.add_argument('--seed', type=int, default=seed, help='random seed.')
-    parser.add_argument('--gpu', type=str, default='0', help='gpu device.')
-    parser.add_argument('--epochs', type=int, default=50, help='Max number of epochs.') # default=50 fast_test=1
-    parser.add_argument('--batch_size', type=int, default=32, help='batch size.') # default=32 fast_test=16
-    parser.add_argument('--lr', type=float, default=1e-4, help='learning rate.')
-    parser.add_argument('--max_acts', type=int, default=250, help='Max number of actions.') # default=250 fast_test=50
-    parser.add_argument('--max_path_len', type=int, default=3, help='Max path length.') # default=3 fast_test=1
-    parser.add_argument('--gamma', type=float, default=0.99, help='reward discount factor.')
-    parser.add_argument('--ent_weight', type=float, default=1e-3, help='weight factor for entropy loss')
-    parser.add_argument('--act_dropout', type=float, default=0.5, help='action dropout rate.')
-    parser.add_argument('--state_history', type=int, default=1, help='state history length')
-    parser.add_argument('--hidden', type=int, nargs='*', default=[512, 256], help='number of samples') # default=[512, 256] fast_test=[32, 16]
+    parser.add_argument("--dataset", type=str, default=dataset, help="Dataset name (set automatically).")
+    parser.add_argument("--name", type=str, default="train_agent", help="directory name.")
+    parser.add_argument("--seed", type=int, default=seed, help="random seed.")
+    parser.add_argument("--gpu", type=str, default="0", help="gpu device.")
+    parser.add_argument("--epochs", type=int, default=50, help="Max number of epochs.")  # default=50 fast_test=1
+    parser.add_argument("--batch_size", type=int, default=32, help="batch size.")  # default=32 fast_test=16
+    parser.add_argument("--lr", type=float, default=1e-4, help="learning rate.")
+    parser.add_argument("--max_acts", type=int, default=250, help="Max number of actions.")  # default=250 fast_test=50
+    parser.add_argument("--max_path_len", type=int, default=3, help="Max path length.")  # default=3 fast_test=1
+    parser.add_argument("--gamma", type=float, default=0.99, help="reward discount factor.")
+    parser.add_argument("--ent_weight", type=float, default=1e-3, help="weight factor for entropy loss")
+    parser.add_argument("--act_dropout", type=float, default=0.5, help="action dropout rate.")
+    parser.add_argument("--state_history", type=int, default=1, help="state history length")
+    parser.add_argument("--hidden", type=int, nargs="*", default=[512, 256], help="number of samples")  # default=[512, 256] fast_test=[32, 16]
     args = parser.parse_args()
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-    args.device = torch.device('cuda:0') if torch.cuda.is_available() else 'cpu'
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    args.device = torch.device("cuda:0") if torch.cuda.is_available() else "cpu"
 
-    args.log_dir = '{}/{}'.format(TMP_DIR[args.dataset], args.name)
+    args.log_dir = "{}/{}".format(TMP_DIR[args.dataset], args.name)
     if not os.path.isdir(args.log_dir):
         os.makedirs(args.log_dir)
 
     global logger
-    logger = get_logger(args.log_dir + '/train_log.txt')
+    logger = get_logger(args.log_dir + "/train_log.txt")
     logger.info(args)
 
     set_random_seed(args.seed)
     train(args)
-

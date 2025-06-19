@@ -1,45 +1,56 @@
-import numpy as np
-import datasets_loader
-import mlflow
-
 import data_manipulation as dm
-from recommenders.models.tfidf.tfidf_utils import TfidfRecommender
-from recommenders.datasets.python_splitters import python_stratified_split
-from recommenders.evaluation.python_evaluation import map_at_k, ndcg_at_k, mae, rmse, novelty, historical_item_novelty, user_item_serendipity, user_serendipity, serendipity, catalog_coverage, distributional_coverage
-from metrics import precision_at_k, recall_at_k, f1, mrr, accuracy, user_coverage, item_coverage, intra_list_similarity_score, intra_list_dissimilarity, personalization_score
-from mlflow.models import infer_signature
+import datasets_loader
 import log_mlflow
+import numpy as np
+from metrics import (
+    intra_list_dissimilarity,
+    intra_list_similarity_score,
+    item_coverage,
+    mrr,
+    personalization_score,
+    precision_at_k,
+    recall_at_k,
+    user_coverage,
+)
+from recommenders.datasets.python_splitters import python_stratified_split
+from recommenders.evaluation.python_evaluation import (
+    mae,
+    ndcg_at_k,
+    rmse,
+)
+from recommenders.models.tfidf.tfidf_utils import TfidfRecommender
+
 
 def cbf_experiment_loop(
-        TOP_K, 
-        dataset, 
-        want_col, 
-        num_rows, 
-        ratio, 
-        seed,
-        personalization=False,
-        fraction_to_change = 0,
-        change_rating = False,
-        privacy=False,
-        hide_type="values_in_column",
-        columns_to_hide=None,
-        fraction_to_hide = 0,
-        records_to_hide=None
-        ):
+    TOP_K,
+    dataset,
+    want_col,
+    num_rows,
+    ratio,
+    seed,
+    personalization=False,
+    fraction_to_change=0,
+    change_rating=False,
+    privacy=False,
+    hide_type="values_in_column",
+    columns_to_hide=None,
+    fraction_to_hide=0,
+    records_to_hide=None,
+):
     TOP_K = TOP_K
     dataset = dataset
     want_col = want_col
     num_rows = num_rows
     ratio = ratio
     seed = seed
-    personalization=personalization
-    fraction_to_change=fraction_to_change
-    change_rating=change_rating
+    personalization = personalization
+    fraction_to_change = fraction_to_change
+    change_rating = change_rating
     privacy = privacy
-    hide_type=hide_type
-    columns_to_hide=columns_to_hide
-    fraction_to_hide=fraction_to_hide
-    records_to_hide=records_to_hide
+    hide_type = hide_type
+    columns_to_hide = columns_to_hide
+    fraction_to_hide = fraction_to_hide
+    records_to_hide = records_to_hide
 
     params = {
         "dataset": dataset,
@@ -64,12 +75,10 @@ def cbf_experiment_loop(
     data["rating"] = data["rating"].astype(np.float32)
 
     # Create a TF-IDF model
-    recommender = TfidfRecommender(id_col='itemID', tokenization_method='bert')
+    recommender = TfidfRecommender(id_col="itemID", tokenization_method="bert")
     # data['genres'] = data['genres'].str.replace('|', ' ', regex=False)
 
-    train, test = python_stratified_split(
-        data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed
-    )
+    train, test = python_stratified_split(data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed)
 
     # df_clean = train.drop(columns=['userID', 'rating', 'timestamp'])
     # df_clean = df_clean.drop_duplicates(subset=['itemID'])
@@ -86,26 +95,27 @@ def cbf_experiment_loop(
 
     if privacy:
         train = dm.hide_information_in_dataframe(
-            data=train, 
-            hide_type=hide_type, 
-            columns_to_hide=columns_to_hide, 
+            data=train,
+            hide_type=hide_type,
+            columns_to_hide=columns_to_hide,
             fraction_to_hide=fraction_to_hide,
             records_to_hide=records_to_hide,
-            seed=seed)
-        
+            seed=seed,
+        )
+
     if personalization:
         train = dm.change_items_in_dataframe(
             all=data,
             data=train,
             fraction_to_change=fraction_to_change,
             change_rating=change_rating,
-            seed=seed
+            seed=seed,
         )
 
-    df_clean = train.drop(columns=['userID', 'rating', 'timestamp'])
-    df_clean = df_clean.drop_duplicates(subset=['itemID'])
-    cols_to_clean = ['title','genres']
-    clean_col = 'cleaned_text'
+    df_clean = train.drop(columns=["userID", "rating", "timestamp"])
+    df_clean = df_clean.drop_duplicates(subset=["itemID"])
+    cols_to_clean = ["title", "genres"]
+    clean_col = "cleaned_text"
     df_clean = recommender.clean_dataframe(df_clean, cols_to_clean, clean_col)
 
     df_clean = df_clean.reset_index(drop=True)
@@ -120,11 +130,11 @@ def cbf_experiment_loop(
     print(list(tokens.keys())[:10])
 
     top_k_items = recommender.recommend_top_k_items(df_clean, k=5)
-    merged_df = data.merge(top_k_items, on='itemID', how='inner')
-    merged_df['prediction'] = merged_df['rating'] * merged_df['rec_score']
-    top_k = merged_df[['userID', 'rec_itemID', 'prediction']].copy()
-    top_k.rename(columns={'rec_itemID': 'itemID'}, inplace=True)
-    
+    merged_df = data.merge(top_k_items, on="itemID", how="inner")
+    merged_df["prediction"] = merged_df["rating"] * merged_df["rec_score"]
+    top_k = merged_df[["userID", "rec_itemID", "prediction"]].copy()
+    top_k.rename(columns={"rec_itemID": "itemID"}, inplace=True)
+
     filtered_top_k = top_k.merge(train, on=["userID", "itemID"], how="left", indicator=True)
     filtered_top_k = filtered_top_k[filtered_top_k["_merge"] == "left_only"].drop(columns=["_merge"])
     filtered_top_k = filtered_top_k[["userID", "itemID", "prediction"]]
@@ -133,13 +143,52 @@ def cbf_experiment_loop(
     top = filtered_top_k.loc[idx]
 
     # Metrics
-    # eval_map = map_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
-    # eval_ndcg_at_k = ndcg_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction",relevancy_method="top_k", k=TOP_K)
-    eval_precision_at_k = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
-    eval_recall_at_k = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
-    eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k",k=1)
-    eval_precision = precision_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-    eval_recall = recall_at_k(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    eval_precision_at_k = precision_at_k(
+        test,
+        top_k,
+        col_user="userID",
+        col_item="itemID",
+        col_rating="rating",
+        col_prediction="prediction",
+        k=TOP_K,
+    )
+    eval_recall_at_k = recall_at_k(
+        test,
+        top_k,
+        col_user="userID",
+        col_item="itemID",
+        col_rating="rating",
+        col_prediction="prediction",
+        k=TOP_K,
+    )
+    eval_ndcg = ndcg_at_k(
+        test,
+        top,
+        col_user="userID",
+        col_item="itemID",
+        col_rating="rating",
+        col_prediction="prediction",
+        relevancy_method="top_k",
+        k=1,
+    )
+    eval_precision = precision_at_k(
+        test,
+        top_k,
+        col_user="userID",
+        col_item="itemID",
+        col_rating="rating",
+        col_prediction="prediction",
+        k=1,
+    )
+    eval_recall = recall_at_k(
+        test,
+        top_k,
+        col_user="userID",
+        col_item="itemID",
+        col_rating="rating",
+        col_prediction="prediction",
+        k=1,
+    )
     eval_mae = mae(test, top_k)
     eval_rmse = rmse(test, top_k)
 
@@ -152,14 +201,34 @@ def cbf_experiment_loop(
     # eval_distributional_coverage = distributional_coverage(train, top)
 
     # eval_f1 = f1(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-    eval_mrr = mrr(test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_mrr = mrr(
+        test,
+        top_k,
+        col_user="userID",
+        col_item="itemID",
+        col_rating="rating",
+        col_prediction="prediction",
+    )
     # eval_accuracy = accuracy(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-    eval_user_coverage = user_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-    eval_item_coverage = item_coverage(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    eval_user_coverage = user_coverage(
+        test,
+        top,
+        col_user="userID",
+        col_item="itemID",
+        col_rating="rating",
+        col_prediction="prediction",
+    )
+    eval_item_coverage = item_coverage(
+        test,
+        top,
+        col_user="userID",
+        col_item="itemID",
+        col_rating="rating",
+        col_prediction="prediction",
+    )
 
-
-    eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=['genres'])
-    eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=['genres'])
+    eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=["genres"])
+    eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k, feature_cols=["genres"])
     eval_personalization = personalization_score(train, top)
 
     print(
@@ -182,22 +251,22 @@ def cbf_experiment_loop(
         "Personalization:\t%f" % eval_personalization,
         "Intra-list similarity:\t%f" % eval_intra_list_similarity,
         "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
-      sep='\n')
+        sep="\n",
+    )
 
-    
     metrics = {
         "precision": eval_precision,
         "precision_at_k": eval_precision_at_k,
         "recall": eval_recall,
         "recall_at_k": eval_recall_at_k,
         # "f1": eval_f1,
-        "mae": eval_mae,                      
-        "rmse": eval_rmse,   
-        'mrr': eval_mrr,                
-        "ndcg_at_k": eval_ndcg,               
+        "mae": eval_mae,
+        "rmse": eval_rmse,
+        "mrr": eval_mrr,
+        "ndcg_at_k": eval_ndcg,
         # "novelty": eval_novelty,
         # "serendipity": eval_serendipity,
-        "user_coverage": eval_user_coverage,  
+        "user_coverage": eval_user_coverage,
         "item_coverage": eval_item_coverage,
         # "catalog_coverage": eval_catalog_coverage,
         # "distributional_coverage": eval_distributional_coverage,
@@ -206,4 +275,21 @@ def cbf_experiment_loop(
         "intra_list_dissimilarity": eval_intra_list_dissimilarity,
     }
 
-    log_mlflow.log_mlflow(dataset, top_k, metrics, num_rows, seed, recommender, 'CBF', params, train, data, tf, vectors_tokenized, privacy=privacy, fraction_to_hide=fraction_to_hide, personalization=personalization, fraction_to_change=fraction_to_change)
+    log_mlflow.log_mlflow(
+        dataset,
+        top_k,
+        metrics,
+        num_rows,
+        seed,
+        recommender,
+        "CBF",
+        params,
+        train,
+        data,
+        tf,
+        vectors_tokenized,
+        privacy=privacy,
+        fraction_to_hide=fraction_to_hide,
+        personalization=personalization,
+        fraction_to_change=fraction_to_change,
+    )
