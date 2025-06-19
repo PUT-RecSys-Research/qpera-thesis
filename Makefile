@@ -70,15 +70,16 @@ clean:
 
 ## Run the entire pipeline: start MLflow, wait, run main script, and cleanup
 run-all:
-	@echo "--- Starting MLflow server in the background..."
-	@conda run -n $(CONDA_ENV_NAME) mlflow server --host $(MLFLOW_HOST) --port $(MLFLOW_PORT) &
-	@MLFLOW_PID=$$! ; \
-	trap 'echo "--- Shutting down MLflow server (PID: $$MLFLOW_PID)..."; kill $$MLFLOW_PID' EXIT ; \
-	echo "--- Waiting for MLflow server to be ready at http://$(MLFLOW_HOST):$(MLFLOW_PORT)..." ; \
+	@echo "--- Starting MLflow server in the background..." ; \
+	conda run -n $(CONDA_ENV_NAME) mlflow server --host $(MLFLOW_HOST) --port $(MLFLOW_PORT) & \
+	echo "--- Waiting for MLflow server to be ready..." ; \
 	while ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) > /dev/null; do \
-	    sleep 1; \
+	    sleep 0.5; \
 	done ; \
-	echo "--- MLflow server is up. Running the main script." ; \
+	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1) ; \
+	trap 'echo "--- Shutting down MLflow server (PID: $$MLFLOW_PID)..."; kill $$MLFLOW_PID' EXIT ; \
+	echo "--- MLflow server is up (PID: $$MLFLOW_PID). Cleanup trap is set." ; \
+	echo "--- Running the main script..." ; \
 	conda run -n $(CONDA_ENV_NAME) $(PYTHON_INTERPRETER) -m $(SRC_DIR).main ; \
 	echo "--- Main script finished."
 

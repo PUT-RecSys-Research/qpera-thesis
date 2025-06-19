@@ -82,7 +82,7 @@ class BaseDatasetLoader(ABC):
 
 
 class AmazonSalesDataset(BaseDatasetLoader):
-    def __init__(self, data_path: str = "datasets/AmazonSales"):
+    def __init__(self, data_path: str = "ppera/datasets/AmazonSales"):
         super().__init__(data_path)
         self.dataset = os.path.join(self.data_path, "amazon.csv")
         self.column_mapping = {
@@ -127,7 +127,7 @@ class AmazonSalesDataset(BaseDatasetLoader):
 
 
 class MovieLensDataset(BaseDatasetLoader):
-    def __init__(self, data_path: str = "datasets/MovieLens"):
+    def __init__(self, data_path: str = "ppera/datasets/MovieLens"):
         super().__init__(data_path)
         self.ratings_file = os.path.join(self.data_path, "rating.csv")
         self.movies_file = os.path.join(self.data_path, "movie.csv")
@@ -163,7 +163,7 @@ class MovieLensDataset(BaseDatasetLoader):
 
 
 class PostRecommendationsDataset(BaseDatasetLoader):
-    def __init__(self, data_path: str = "datasets/PostRecommendations"):
+    def __init__(self, data_path: str = "ppera/datasets/PostRecommendations"):
         super().__init__(data_path)
         self.userData_file = os.path.join(self.data_path, "user_data.csv")
         self.viewData_file = os.path.join(self.data_path, "view_data.csv")

@@ -37,10 +37,10 @@ def log_mlflow(
     print(top_k_prediction)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    plot_filename = f"plots/top_k_predictions_{model_type}_{dataset}_{timestamp}.png"
+    plot_filename = f"ppera/plots/top_k_predictions_{model_type}_{dataset}_{timestamp}.png"
     os.makedirs("plots", exist_ok=True)
 
-    metrics_base_dir = "metrics"
+    metrics_base_dir = "ppera/metrics"
     if privacy is True:
         specific_metrics_dir = f"privacy_{fraction_to_hide}"
     elif personalization is True:
@@ -75,37 +75,37 @@ def log_mlflow(
 
     if dataset == MOVIELENS:
         if num_rows is None:
-            file_path = "datasets/MovieLens/merge_file.csv"
+            file_path = "ppera/datasets/MovieLens/merge_file.csv"
         else:
-            file_path = f"datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
+            file_path = f"ppera/datasets/MovieLens/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == AMAZONSALES:
         if num_rows is None:
-            file_path = "datasets/AmazonSales/merge_file.csv"
+            file_path = "ppera/datasets/AmazonSales/merge_file.csv"
         else:
-            file_path = f"datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
+            file_path = f"ppera/datasets/AmazonSales/merge_file_r{num_rows}_s{seed}.csv"
     elif dataset == POSTRECOMMENDATIONS:
         if num_rows is None:
-            file_path = "datasets/PostRecommendations/merge_file.csv"
+            file_path = "ppera/datasets/PostRecommendations/merge_file.csv"
         else:
-            file_path = f"datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
+            file_path = f"ppera/datasets/PostRecommendations/merge_file_r{num_rows}_s{seed}.csv"
 
     with mlflow.start_run():
         if dataset == MOVIELENS:
-            mlflow.log_artifact(file_path, artifact_path="datasets/MovieLens")
+            mlflow.log_artifact(file_path, artifact_path="ppera/datasets/MovieLens")
             dataset_df = mlflow.data.from_pandas(data, name="MovieLens Dataset", source=file_path)
             mlflow.log_input(
                 dataset_df,
                 context=f"Privacy: {privacy} | {fraction_to_hide}, Personalization: {personalization} | {fraction_to_change}",
             )
         elif dataset == AMAZONSALES:
-            mlflow.log_artifact(file_path, artifact_path="datasets/AmazonSales")
+            mlflow.log_artifact(file_path, artifact_path="ppera/datasets/AmazonSales")
             dataset_df = mlflow.data.from_pandas(data, name="AmazonSales Dataset", source=file_path)
             mlflow.log_input(
                 dataset_df,
                 context=f"Privacy: {privacy} | {fraction_to_hide}, Personalization: {personalization} | {fraction_to_change}",
             )
         elif dataset == POSTRECOMMENDATIONS:
-            mlflow.log_artifact(file_path, artifact_path="datasets/PostRecommendations")
+            mlflow.log_artifact(file_path, artifact_path="ppera/datasets/PostRecommendations")
             dataset_df = mlflow.data.from_pandas(data, name="PostRecommendations Dataset", source=file_path)
             mlflow.log_input(
                 dataset_df,
