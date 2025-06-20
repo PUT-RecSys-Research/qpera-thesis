@@ -59,7 +59,7 @@ This Master's thesis presents an in-depth analysis of three main families of rec
 
 The research is particularly relevant given the recently adopted **EU AI Act** and the introduction of ethical risk taxonomy, as well as the **Omnibus Directive**. The project encompasses multiple recommendation scenarios across different datasets and application domains, implementing comprehensive metrics to assess algorithm behavior across the evaluated criteria.
 
-**Note**: This project builds upon existing implementations from the [Microsoft Recommenders](https://github.com/recommenders-team/recommenders) library (CF & CBF algorithms) and [PGPR](https://github.com/Master-s-thesis-PPERA/PGPR) (RL algorithms), with significant modifications and a unified custom dataset loader for comparative analysis.
+**Note**: This project builds upon existing implementations from the [Microsoft Recommenders](https://github.com/recommenders-team/recommenders) library (CF & CBF algorithms) and [PGPR](https://github.com/orcax/PGPR) (RL algorithms), with significant modifications and a unified custom dataset loader for comparative analysis.
 
 ---
 
@@ -81,7 +81,7 @@ This research addresses the following key questions:
 
 - 🔄 **Multi-Algorithm Implementation**: 
   - Collaborative Filtering & Content-Based Filtering (adapted from [Microsoft Recommenders](https://github.com/recommenders-team/recommenders))
-  - Reinforcement Learning (extensively modified from [PGPR](https://github.com/Master-s-thesis-PPERA/PGPR))
+  - Reinforcement Learning (extensively modified from [PGPR](https://github.com/orcax/PGPR))
 - 🔗 **Unified Data Pipeline**: Custom dataset loader ensuring consistent data processing across all algorithms
 - 🛡️ **Privacy-Preserving Techniques**: Data anonymization and perturbation methods
 - 📊 **Comprehensive Evaluation**: Multiple datasets (MovieLens, Amazon Sales, PostRecommendations)
@@ -507,7 +507,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Source Repositories
 - **Microsoft Recommenders Team**: For the foundational CF and CBF implementations ([GitHub](https://github.com/recommenders-team/recommenders))
-- **PGPR Authors**: For the original reinforcement learning recommendation framework ([GitHub](https://github.com/Master-s-thesis-PPERA/PGPR))
+- **PGPR Authors**: For the original reinforcement learning recommendation framework ([GitHub](https://github.com/orcax/PGPR))
 
 ### Academic Support
 - **Supervisor**: Prof. Mikołaj Morzy for guidance and support
@@ -520,6 +520,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Related Work
 - Zhao, W. X., et al. "RecBole: Towards a unified, comprehensive and efficient framework for recommendation algorithms." *Proceedings of the 30th ACM International Conference on Information & Knowledge Management.* 2021.
 - Xian, Y., et al. "Reinforcement knowledge graph reasoning for explainable recommendation." *Proceedings of the 42nd international ACM SIGIR conference on research and development in information retrieval.* 2019.
+
+#### PGPR Framework
+- Xian, Y., Fu, Z., Muthukrishnan, S., De Melo, G., and Zhang, Y. "Reinforcement knowledge graph reasoning for explainable recommendation." *Proceedings of the 42nd international ACM SIGIR conference on research and development in information retrieval*, pages 2071-2074, 2019.
 
 #### Microsoft Recommenders Framework
 - Argyriou, A., González-Fierro, M., and Zhang, L. "Microsoft Recommenders: Best Practices for Production-Ready Recommendation Systems." *WWW 2020: International World Wide Web Conference Taipei*, 2020. Available: https://dl.acm.org/doi/abs/10.1145/3366424.3382692
@@ -559,6 +562,21 @@ Please also cite the original works:
   howpublished={\url{https://github.com/recommenders-team/recommenders}}
 }
 
+@misc{pgpr2019,
+  title={PGPR: Policy Guided Path Reasoning for Explainable Recommendation},
+  author={Xian, Yikun and Fu, Zuohui and Muthukrishnan, S and De Melo, Gerard and Zhang, Yongfeng},
+  year={2019},
+  howpublished={\url{https://github.com/orcax/PGPR}}
+}
+
+@inproceedings{xian2019reinforcement,
+  title={Reinforcement knowledge graph reasoning for explainable recommendation},
+  author={Xian, Yikun and Fu, Zuohui and Muthukrishnan, S and De Melo, Gerard and Zhang, Yongfeng},
+  booktitle={Proceedings of the 42nd international ACM SIGIR conference on research and development in information retrieval},
+  pages={2071--2074},
+  year={2019}
+}
+
 @inproceedings{argyriou2020microsoft,
   title={Microsoft Recommenders: Best Practices for Production-Ready Recommendation Systems},
   author={Argyriou, Andreas and González-Fierro, Miguel and Zhang, Liang},
@@ -580,13 +598,6 @@ Please also cite the original works:
   author={Zhang, Liang and Wu, Tao and Xie, Xing and Argyriou, Andreas and González-Fierro, Miguel and Lian, Jianxun},
   booktitle={Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining},
   pages={2788--2789},
-  year={2019}
-}
-
-@article{xian2019reinforcement,
-  title={Reinforcement knowledge graph reasoning for explainable recommendation},
-  author={Xian, Yikun and Fu, Zuohui and Muthukrishnan, S and De Melo, Gerard and Zhang, Yongfeng},
-  journal={Proceedings of the 42nd international ACM SIGIR conference on research and development in information retrieval},
   year={2019}
 }
 ```
