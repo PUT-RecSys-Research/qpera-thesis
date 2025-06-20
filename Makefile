@@ -65,7 +65,7 @@ clean:
 	rm -rf .pytest_cache .ruff_cache
 
 #################################################################################
-# AUTOMATED WORKFLOWS                                                           #
+# WORKFLOWS                                                                     #
 #################################################################################
 
 ## Run the entire pipeline: start MLflow, wait, run main script, and cleanup
@@ -100,6 +100,22 @@ run-interactive:
 	echo -n "--- Press [Enter] to shut down the MLflow server..." ; \
     read dummy < /dev/tty ; \
 	kill $$MLFLOW_PID
+
+# Run mlflow server in the background
+run-mlflow:
+	@echo "--- Starting MLflow server in the background..." ; \
+	conda run -n $(CONDA_ENV_NAME) mlflow server --host $(MLFLOW_HOST) --port $(MLFLOW_PORT) & \
+	echo "--- Waiting for MLflow server to be ready..." ; \
+	while ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) > /dev/null; do \
+	    sleep 0.5; \
+	done ; \
+	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1) ; \
+	echo "--- MLflow server is up (PID: $$MLFLOW_PID). You can view it at http://$(MLFLOW_HOST):$(MLFLOW_PORT)" ; \
+	echo -n "--- Press [Enter] to shut down the MLflow server..." ; \
+    read dummy < /dev/tty ; \
+	kill $$MLFLOW_PID
+
+
 
 #################################################################################
 # Self Documenting Commands                                                     #
