@@ -2,63 +2,119 @@
 # GLOBALS                                                                       #
 #################################################################################
 
-PROJECT_NAME = personalization-privacy-and-explainability-of-recommendation-algorithms
-PYTHON_VERSION = 3.13.0
+CONDA_ENV_NAME = ppera-env
+SRC_DIR = ppera
 PYTHON_INTERPRETER = python
+MLFLOW_HOST = 127.0.0.1
+MLFLOW_PORT = 8080
+
+# Let the Makefile know that these are not actual files to be built
+.PHONY: help install setup requirements lint format clean run-all
 
 #################################################################################
-# COMMANDS                                                                      #
+# SETUP COMMANDS                                                                #
 #################################################################################
 
+## Create the conda environment from the environment.yml file
+# In your Makefile...
 
-## Install Python Dependencies
-.PHONY: requirements
+## Create the conda environment AND install special PyTorch dependencies
+install:
+	@echo "--- Step 1/2: Creating conda environment '$(CONDA_ENV_NAME)' from environment.yml..."
+	@conda env create -f environment.yml --name $(CONDA_ENV_NAME)
+	@echo ""
+	@echo "--- Step 2/2: Installing PyTorch for CPU from special index..."
+	@conda run -n $(CONDA_ENV_NAME) pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+	@echo ""
+	@echo ">>> Environment created successfully."
+	@echo ">>> Recommended next steps:"
+	@echo "    conda activate $(CONDA_ENV_NAME)"
+	@echo "    make setup"
+
+## Install the project package in editable mode (CRUCIAL STEP)
+setup:
+	@echo ">>> Installing project package '$(SRC_DIR)' in editable mode..."
+	# This command assumes you have activated the conda environment
+	$(PYTHON_INTERPRETER) -m pip install -e .
+
+## Update python dependencies from environment.yml for an existing environment
 requirements:
-	conda env update --name $(PROJECT_NAME) --file environment.yml --prune
-	
+	@echo ">>> Updating conda environment '$(CONDA_ENV_NAME)'..."
+	conda env update --name $(CONDA_ENV_NAME) --file environment.yml --prune
 
+#################################################################################
+# DEVELOPMENT COMMANDS                                                          #
+#################################################################################
 
+## Lint and check formatting with ruff
+lint:
+	@echo ">>> Linting and checking format with ruff..."
+	ruff check $(SRC_DIR)
 
-## Delete all compiled Python files
-.PHONY: clean
+## Format the code AND apply safe fixes with ruff
+format:
+	@echo ">>> Formatting code and applying safe fixes with ruff..."
+	ruff format $(SRC_DIR)
+	ruff check $(SRC_DIR) --fix
+
+## Delete all compiled Python files and caches
 clean:
+	@echo ">>> Cleaning up project..."
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
-
-## Lint using flake8 and black (use `make format` to do formatting)
-.PHONY: lint
-lint:
-	flake8 personalization_privacy_and_explainability_of_recommendation_algorithms
-	isort --check --diff --profile black personalization_privacy_and_explainability_of_recommendation_algorithms
-	black --check --config pyproject.toml personalization_privacy_and_explainability_of_recommendation_algorithms
-
-## Format source code with black
-.PHONY: format
-format:
-	black --config pyproject.toml personalization_privacy_and_explainability_of_recommendation_algorithms
-
-
-
-
-## Set up python interpreter environment
-.PHONY: create_environment
-create_environment:
-	conda env create --name $(PROJECT_NAME) -f environment.yml
-	
-	@echo ">>> conda env created. Activate with:\nconda activate $(PROJECT_NAME)"
-	
-
-
+	rm -rf .pytest_cache .ruff_cache
 
 #################################################################################
-# PROJECT RULES                                                                 #
+# WORKFLOWS                                                                     #
 #################################################################################
 
+## Run the entire pipeline: start MLflow, wait, run main script, and cleanup
+run-all:
+	@echo "--- Starting MLflow server in the background..." ; \
+	conda run -n $(CONDA_ENV_NAME) mlflow server --host $(MLFLOW_HOST) --port $(MLFLOW_PORT) & \
+	echo "--- Waiting for MLflow server to be ready..." ; \
+	while ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) > /dev/null; do \
+	    sleep 0.5; \
+	done ; \
+	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1) ; \
+	trap 'echo "--- Shutting down MLflow server (PID: $$MLFLOW_PID)..."; kill $$MLFLOW_PID' EXIT ; \
+	echo "--- MLflow server is up (PID: $$MLFLOW_PID). Cleanup trap is set." ; \
+	echo "--- Running the main script..." ; \
+	conda run -n $(CONDA_ENV_NAME) --no-capture-output $(PYTHON_INTERPRETER) -u -m $(SRC_DIR).main ; \
+	echo "--- Main script finished."
 
-## Make Dataset
-.PHONY: data
-data: requirements
-	$(PYTHON_INTERPRETER) personalization_privacy_and_explainability_of_recommendation_algorithms/dataset.py
+## Run the entire pipeline and PAUSE before shutting down the MLflow server
+run-interactive:
+	@echo "--- Starting MLflow server in the background..." ; \
+	conda run -n $(CONDA_ENV_NAME) mlflow server --host $(MLFLOW_HOST) --port $(MLFLOW_PORT) & \
+	echo "--- Waiting for MLflow server to be ready..." ; \
+	while ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) > /dev/null; do \
+	    sleep 0.5; \
+	done ; \
+	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1) ; \
+	echo "--- MLflow server is up (PID: $$MLFLOW_PID). You can view it at http://$(MLFLOW_HOST):$(MLFLOW_PORT)" ; \
+	echo "--- Running the main script..." ; \
+	conda run -n $(CONDA_ENV_NAME) --no-capture-output $(PYTHON_INTERPRETER) -u -m $(SRC_DIR).main ; \
+	echo "" ; \
+	echo "--- ✅ Main script finished. The MLflow server is still running." ; \
+	echo -n "--- Press [Enter] to shut down the MLflow server..." ; \
+    read dummy < /dev/tty ; \
+	kill $$MLFLOW_PID
+
+# Run mlflow server in the background
+run-mlflow:
+	@echo "--- Starting MLflow server in the background..." ; \
+	conda run -n $(CONDA_ENV_NAME) mlflow server --host $(MLFLOW_HOST) --port $(MLFLOW_PORT) & \
+	echo "--- Waiting for MLflow server to be ready..." ; \
+	while ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) > /dev/null; do \
+	    sleep 0.5; \
+	done ; \
+	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1) ; \
+	echo "--- MLflow server is up (PID: $$MLFLOW_PID). You can view it at http://$(MLFLOW_HOST):$(MLFLOW_PORT)" ; \
+	echo -n "--- Press [Enter] to shut down the MLflow server..." ; \
+    read dummy < /dev/tty ; \
+	kill $$MLFLOW_PID
+
 
 
 #################################################################################

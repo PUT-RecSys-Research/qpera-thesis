@@ -1,24 +1,21 @@
+from typing import List
+
 import numpy as np
 import pandas as pd
-from recommenders.evaluation.python_evaluation import merge_rating_true_pred, merge_ranking_true_pred
-from sklearn.metrics import (
-    label_ranking_average_precision_score,
-    accuracy_score
+import scipy.sparse as sp
+from recommenders.evaluation.python_evaluation import (
+    merge_rating_true_pred,
 )
-from sklearn.metrics._classification import _prf_divide
-
 from recommenders.utils.constants import (
-    DEFAULT_USER_COL,
     DEFAULT_ITEM_COL,
-    DEFAULT_RATING_COL,
     DEFAULT_PREDICTION_COL,
-    DEFAULT_RELEVANCE_COL,
-    DEFAULT_SIMILARITY_COL,
-    DEFAULT_ITEM_FEATURES_COL,
-    DEFAULT_ITEM_SIM_MEASURE,
-    DEFAULT_K,
+    DEFAULT_RATING_COL,
     DEFAULT_THRESHOLD,
+    DEFAULT_USER_COL,
 )
+from sklearn.metrics import accuracy_score
+from sklearn.metrics.pairwise import cosine_similarity
+
 
 def precision_at_k(
     rating_true,
@@ -27,11 +24,11 @@ def precision_at_k(
     col_item=DEFAULT_ITEM_COL,
     col_rating=DEFAULT_RATING_COL,
     col_prediction=DEFAULT_PREDICTION_COL,
-    k=10
+    k=10,
 ):
     """
     Oblicza precyzję na poziomie k dla rekomendacji.
-    
+
     Args:
         rating_true (pd.DataFrame): Zbiór rzeczywistych ocen zawierający kolumny [user, item, rating].
         rating_pred (pd.DataFrame): Zbiór przewidywanych ocen zawierający kolumny [user, item, prediction].
@@ -40,31 +37,32 @@ def precision_at_k(
         col_rating (str): Nazwa kolumny z rzeczywistymi ocenami.
         col_prediction (str): Nazwa kolumny z przewidywanymi ocenami.
         k (int): Liczba rekomendacji do uwzględnienia w ocenie.
-    
+
     Returns:
         float: Wartość precyzji na poziomie k.
     """
     users = rating_true[col_user].unique()
     precisions = []
-    
+
     for user in users:
         # Pobranie rzeczywistych pozytywnie ocenionych elementów
         true_items = set(rating_true[(rating_true[col_user] == user) & (rating_true[col_rating] > 0)][col_item])
-        
+
         # Pobranie k najlepszych rekomendacji
         user_pred = rating_pred[rating_pred[col_user] == user].nlargest(k, col_prediction)
         top_k_items = set(user_pred[col_item])
-        
+
         # Jeśli użytkownik nie ma rekomendacji, pomijamy go
         if not top_k_items:
             continue
-        
+
         # Obliczenie precyzji
         precision = len(true_items & top_k_items)
         precision = 1 if precision > 0 else 0
         precisions.append(precision)
-    
+
     return sum(precisions) / len(precisions) if precisions else 0.0
+
 
 def recall_at_k(
     rating_true,
@@ -73,11 +71,11 @@ def recall_at_k(
     col_item=DEFAULT_ITEM_COL,
     col_rating=DEFAULT_RATING_COL,
     col_prediction=DEFAULT_PREDICTION_COL,
-    k=10
+    k=10,
 ):
     """
     Oblicza recall na poziomie k dla rekomendacji.
-    
+
     Args:
         rating_true (pd.DataFrame): Zbiór rzeczywistych ocen zawierający kolumny [user, item, rating].
         rating_pred (pd.DataFrame): Zbiór przewidywanych ocen zawierający kolumny [user, item, prediction].
@@ -86,29 +84,29 @@ def recall_at_k(
         col_rating (str): Nazwa kolumny z rzeczywistymi ocenami.
         col_prediction (str): Nazwa kolumny z przewidywanymi ocenami.
         k (int): Liczba rekomendacji do uwzględnienia w ocenie.
-    
+
     Returns:
         float: Wartość recall na poziomie k.
     """
     users = rating_true[col_user].unique()
     recalls = []
-    
+
     for user in users:
         # Pobranie rzeczywistych pozytywnie ocenionych elementów
         true_items = set(rating_true[(rating_true[col_user] == user) & (rating_true[col_rating] > 0)][col_item])
-        
+
         # Pobranie k najlepszych rekomendacji
         user_pred = rating_pred[rating_pred[col_user] == user].nlargest(k, col_prediction)
         top_k_items = set(user_pred[col_item])
-        
+
         # Jeśli użytkownik nie ma prawdziwych pozytywnych ocen, pomijamy go
         if not true_items:
             continue
-        
+
         # Obliczenie recall
         recall = len(true_items & top_k_items) / len(true_items)
         recalls.append(recall)
-    
+
     return sum(recalls) / len(recalls) if recalls else 0.0
 
 
@@ -123,7 +121,8 @@ def f1(
 ):
     precision = precision_at_k(rating_true, rating_pred, col_user, col_item, col_rating, col_prediction, k)
     recall = recall_at_k(rating_true, rating_pred, col_user, col_item, col_rating, col_prediction, k)
-    return (2*precision*recall)/(precision+recall)
+    return (2 * precision * recall) / (precision + recall)
+
 
 def mrr(
     rating_true,
@@ -134,18 +133,8 @@ def mrr(
     col_prediction=DEFAULT_PREDICTION_COL,
     k=1,
 ):
-    top_k_pred = (
-        rating_pred
-        .sort_values(by=[col_user, col_prediction], ascending=[True, False])
-        .groupby(col_user)
-        .head(k)
-    )
-    true_items = (
-        rating_true
-        .groupby(col_user)[col_item]
-        .apply(set)
-        .to_dict()
-    )
+    top_k_pred = rating_pred.sort_values(by=[col_user, col_prediction], ascending=[True, False]).groupby(col_user).head(k)
+    true_items = rating_true.groupby(col_user)[col_item].apply(set).to_dict()
 
     mrr_total = 0.0
     user_count = 0
@@ -162,7 +151,6 @@ def mrr(
         user_count += 1
 
     return mrr_total / user_count if user_count > 0 else 0.0
-
 
 
 def accuracy(
@@ -183,6 +171,7 @@ def accuracy(
     )
     y_pred = np.round(y_pred)
     return accuracy_score(y_true, y_pred)
+
 
 def user_coverage(
     rating_true,
@@ -222,9 +211,10 @@ def user_coverage(
     meaningful_users = len(meaningful_users_table)
     total_users_table = rating_true[col_user].unique()
     total_users = len(total_users_table)
-    
+
     coverage = meaningful_users / total_users if total_users > 0 else 0
     return coverage
+
 
 def item_coverage(
     rating_true,
@@ -233,7 +223,7 @@ def item_coverage(
     col_item=DEFAULT_ITEM_COL,
     col_rating=DEFAULT_RATING_COL,
     col_prediction=DEFAULT_PREDICTION_COL,
-    threshold=DEFAULT_THRESHOLD
+    threshold=DEFAULT_THRESHOLD,
 ):
     """
     Calculates the item coverage metric, which represents the percentage of items for which meaningful recommendations can be generated.
@@ -264,26 +254,15 @@ def item_coverage(
     meaningful_items = len(meaningful_items_table)
     total_items_table = rating_true[col_item].unique()
     total_items = len(total_items_table)
-    
+
     coverage = meaningful_items / total_items if total_items > 0 else 0
     return coverage
+
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
 # The code below was copied from recmetrics
 # https://github.com/statisticianinstilettos/recmetrics/blob/master/recmetrics/metrics.py
 
-import random
-from itertools import product
-from math import sqrt
-from typing import List
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import scipy.sparse as sp
-from sklearn.metrics import confusion_matrix, mean_squared_error
-from sklearn.metrics.pairwise import cosine_similarity
-import warnings
 
 def _single_list_similarity(predicted: list, feature_df: pd.DataFrame, u: int) -> float:
     """
@@ -302,23 +281,24 @@ def _single_list_similarity(predicted: list, feature_df: pd.DataFrame, u: int) -
         The intra-list similarity for a single list of recommendations.
     """
     # exception predicted list empty
-    if not(predicted):
-        raise Exception('Predicted list is empty, index: {0}'.format(u))
+    if not (predicted):
+        raise Exception("Predicted list is empty, index: {0}".format(u))
 
-    #get features for all recommended items
+    # get features for all recommended items
     recs_content = feature_df.loc[predicted]
     recs_content = recs_content.dropna()
     recs_content = sp.csr_matrix(recs_content.values)
 
-    #calculate similarity scores for all items in list
+    # calculate similarity scores for all items in list
     similarity = cosine_similarity(X=recs_content, dense_output=False)
 
-    #get indicies for upper right triangle w/o diagonal
+    # get indicies for upper right triangle w/o diagonal
     upper_right = np.triu_indices(similarity.shape[0], k=1)
 
-    #calculate average similarity score of all recommended items in list
+    # calculate average similarity score of all recommended items in list
     ils_single_user = np.mean(similarity[upper_right])
     return ils_single_user
+
 
 def intra_list_similarity(predicted: List[list], feature_df: pd.DataFrame) -> float:
     """
@@ -341,6 +321,7 @@ def intra_list_similarity(predicted: List[list], feature_df: pd.DataFrame) -> fl
     ils = [_single_list_similarity(predicted[u], feature_df, u) for u in Users]
     return np.mean(ils)
 
+
 def personalization(predicted: List[list]) -> float:
     """
     Personalization measures recommendation similarity across users.
@@ -358,25 +339,31 @@ def personalization(predicted: List[list]) -> float:
     """
 
     def make_rec_matrix(predicted: List[list]) -> sp.csr_matrix:
-        df = pd.DataFrame(data=predicted).reset_index().melt(
-            id_vars='index', value_name='item',
+        df = (
+            pd.DataFrame(data=predicted)
+            .reset_index()
+            .melt(
+                id_vars="index",
+                value_name="item",
+            )
         )
-        df = df[['index', 'item']].pivot(index='index', columns='item', values='item')
-        df = pd.notna(df)*1
+        df = df[["index", "item"]].pivot(index="index", columns="item", values="item")
+        df = pd.notna(df) * 1
         rec_matrix = sp.csr_matrix(df.values)
         return rec_matrix
 
-    #create matrix for recommendations
+    # create matrix for recommendations
     predicted = np.array(predicted)
     rec_matrix_sparse = make_rec_matrix(predicted)
 
-    #calculate similarity for every user's recommendation list
+    # calculate similarity for every user's recommendation list
     similarity = cosine_similarity(X=rec_matrix_sparse, dense_output=False)
 
-    #calculate average similarity
+    # calculate average similarity
     dim = similarity.shape[0]
     personalization = (similarity.sum() - dim) / (dim * (dim - 1))
-    return 1-personalization
+    return 1 - personalization
+
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -397,7 +384,7 @@ def personalization(predicted: List[list]) -> float:
 #     :param feature_cols: Lista kolumn zawierających cechy itemów
 #     :return: Średnia intra-list similarity
 #     """
-    
+
 #     if feature_cols is None:
 #         raise ValueError("Musisz podać feature_cols — listę kolumn cech itemów")
 
@@ -407,7 +394,7 @@ def personalization(predicted: List[list]) -> float:
 
 #     # Scalanie rating_pred z cechami z item_features
 #     rating_pred_with_features = pd.merge(rating_pred, item_features[[col_item] + feature_cols], on=col_item, how='left')
-    
+
 #     # Debugging: Sprawdzenie, czy po scaleniu mamy odpowiednie dane
 #     print(f"Zmergowane dane:\n{rating_pred_with_features.head()}")
 
@@ -437,12 +424,13 @@ def personalization(predicted: List[list]) -> float:
 #     # Obliczenie intra-list similarity
 #     return intra_list_similarity(predicted=rating_pred_with_features, feature_df=feature_df)
 
+
 def intra_list_similarity_score(
     item_features: pd.DataFrame,
     rating_pred: pd.DataFrame,
-    col_user: str = 'userID',
-    col_item: str = 'itemID',
-    feature_cols: list = None
+    col_user: str = "userID",
+    col_item: str = "itemID",
+    feature_cols: list = None,
 ) -> float:
     """
     Oblicza średnie podobieństwo między itemami w przewidywanej liście rekomendacji dla każdego użytkownika.
@@ -459,19 +447,14 @@ def intra_list_similarity_score(
         raise ValueError("Musisz podać feature_cols — listę kolumn cech itemów")
 
     # Połącz dane predykcji z cechami itemów
-    rating_pred_with_features = pd.merge(
-        rating_pred,
-        item_features[[col_item] + feature_cols],
-        on=col_item,
-        how='left'
-    )
+    rating_pred_with_features = pd.merge(rating_pred, item_features[[col_item] + feature_cols], on=col_item, how="left")
 
     # Przekształć cechy (np. tekstowe) na wektory (one-hot/dummy)
     feature_df = rating_pred_with_features[[col_item] + feature_cols].copy()
     for col in feature_cols:
-        if feature_df[col].dtype == 'object':
-            if feature_df[col].str.contains('|', regex=False).any():
-                dummies = feature_df[col].str.get_dummies(sep='|')
+        if feature_df[col].dtype == "object":
+            if feature_df[col].str.contains("|", regex=False).any():
+                dummies = feature_df[col].str.get_dummies(sep="|")
             else:
                 dummies = pd.get_dummies(feature_df[col], prefix=col)
             feature_df = pd.concat([feature_df.drop(columns=[col]), dummies], axis=1)
@@ -500,7 +483,7 @@ def intra_list_similarity_score(
 
         try:
             item_vectors = feature_df.loc[user_list].values
-        except KeyError as e:
+        except KeyError:
             continue  # pomiń, jeśli nie można znaleźć itemów
 
         # Oblicz macierz podobieństw
@@ -518,15 +501,15 @@ def intra_list_similarity_score(
     return np.mean(ils_values) if ils_values else 0.0
 
 
+def intra_list_dissimilarity(item_features, rating_pred, col_user="userID", col_item="itemID", feature_cols=None) -> float:
+    return 1 - intra_list_similarity_score(
+        item_features=item_features,
+        rating_pred=rating_pred,
+        col_user=col_user,
+        col_item=col_item,
+        feature_cols=feature_cols,
+    )
 
-def intra_list_dissimilarity(    
-    item_features,
-    rating_pred,
-    col_user = 'userID',
-    col_item = 'itemID',
-    feature_cols = None
-) -> float:
-    return 1 - intra_list_similarity_score(item_features=item_features, rating_pred=rating_pred, col_user=col_user, col_item=col_item, feature_cols=feature_cols)
 
 def personalization_score(
     rating_true,
@@ -539,7 +522,7 @@ def personalization_score(
     """
     Interfejs do funkcji personalization.
     Mierzy stopień personalizacji rekomendacji między użytkownikami.
-    
+
     :param rating_true: Prawdziwe oceny użytkowników (nieużywane w tej funkcji)
     :param rating_pred: Przewidywane oceny użytkowników
     :param col_user: Kolumna identyfikująca użytkownika

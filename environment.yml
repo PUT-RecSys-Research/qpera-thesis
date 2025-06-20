@@ -1,23 +1,35 @@
-name: personalization-privacy-and-explainability-of-recommendation-algorithms
+# A clean, portable, and minimal environment for the PPERA project
+name: ppera-env
 channels:
   - conda-forge
+  - defaults
 dependencies:
-  - python=3.13.0
-  - black
-  - flake8
-  - isort
+  # === Core Python and Data Science Stack (via Conda) ===
+  # Let Conda handle these complex binary packages for better stability.
+  - python=3.9
   - pip
-  - typer
-  - loguru
-  - tqdm
-  - ipython
-  - jupyterlab
-  - matplotlib
-  - notebook
-  - numpy
   - pandas
+  - scipy
   - scikit-learn
+  - matplotlib
+  - tqdm
+  - ruff
+
+  # === Python Packages (via Pip) ===
+  # Pip will handle the rest of the application-level dependencies.
   - pip:
-    - python-dotenv
-    - mkdocs
-    - -e .
+    # --- Key Libraries from your manual install ---
+    - recommenders
+    - easydict
+
+    # --- Other important top-level libraries identified ---
+    - mlflow # For experiment tracking
+    - cornac # Another recommender library
+    - scikit-surprise # Another recommender library
+    - fastapi # For serving/API
+    - category-encoders
+    - pandera # For data validation
+    - gunicorn # For running the FastAPI server
+
+# NOTE: PyTorch (torch, torchvision, torchaudio) is intentionally NOT listed here.
+# It requires a special installation command that will be handled by the Makefile.
