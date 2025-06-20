@@ -159,6 +159,7 @@ def get_logger(logname):
     logger.addHandler(fh)
     return logger
 
+
 def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -168,6 +169,7 @@ def set_random_seed(seed):
     torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
 
 def save_dataset(dataset, dataset_obj):
     dataset_file = TMP_DIR[dataset] + "/dataset.pkl"

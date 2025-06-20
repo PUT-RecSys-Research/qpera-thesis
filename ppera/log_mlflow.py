@@ -121,7 +121,7 @@ def log_mlflow(
         none_metrics = {k: v for k, v in metrics.items() if v is None}
         if none_metrics:
             print("Skipped logging the following None-valued metrics to MLflow:", none_metrics)
-            
+
         mlflow.set_tag("Metrics Info", f"{model_type} model for {dataset} dataset")
 
         signature = None

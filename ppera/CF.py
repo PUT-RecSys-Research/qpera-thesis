@@ -198,6 +198,7 @@ def cf_experiment_loop(
     except Exception as e:
         eval_personalization = None
         print(f"Error calculating personalization: {e}")
+
     def format_metric(metric):
         return f"{metric:.4f}" if isinstance(metric, (float, int)) else "N/A"
 

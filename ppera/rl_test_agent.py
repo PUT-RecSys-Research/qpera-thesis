@@ -822,6 +822,7 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     except Exception as e:
         eval_personalization = None
         print(f"Error calculating personalization_score: {e}")
+
     def format_metric(metric):
         return f"{metric:.4f}" if isinstance(metric, (float, int)) else "N/A"
 
