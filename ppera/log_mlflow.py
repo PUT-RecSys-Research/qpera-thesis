@@ -38,6 +38,7 @@ def log_mlflow(
     print(top_k_prediction)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
     plot_filename = f"ppera/plots/top_k_predictions_{model_type}_{dataset}_{timestamp}.png"
     os.makedirs("plots", exist_ok=True)
 
@@ -120,7 +121,7 @@ def log_mlflow(
         none_metrics = {k: v for k, v in metrics.items() if v is None}
         if none_metrics:
             print("Skipped logging the following None-valued metrics to MLflow:", none_metrics)
-
+            
         mlflow.set_tag("Metrics Info", f"{model_type} model for {dataset} dataset")
 
         signature = None

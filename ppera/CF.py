@@ -183,7 +183,6 @@ def cf_experiment_loop(
     except Exception as e:
         eval_item_coverage = None
         print(f"Error calculating item coverage: {e}")
-
     try:
         eval_intra_list_similarity = intra_list_similarity_score(data, top_k, feature_cols=["genres"])
     except Exception as e:
@@ -199,7 +198,6 @@ def cf_experiment_loop(
     except Exception as e:
         eval_personalization = None
         print(f"Error calculating personalization: {e}")
-
     def format_metric(metric):
         return f"{metric:.4f}" if isinstance(metric, (float, int)) else "N/A"
 

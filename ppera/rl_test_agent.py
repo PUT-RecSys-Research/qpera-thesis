@@ -807,7 +807,6 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     except Exception as e:
         eval_item_coverage = None
         print(f"Error calculating item_coverage: {e}")
-
     try:
         eval_intra_list_similarity = intra_list_similarity_score(data, top_k_filtered, feature_cols=["genres"])
     except Exception as e:
@@ -823,7 +822,6 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     except Exception as e:
         eval_personalization = None
         print(f"Error calculating personalization_score: {e}")
-
     def format_metric(metric):
         return f"{metric:.4f}" if isinstance(metric, (float, int)) else "N/A"
 
