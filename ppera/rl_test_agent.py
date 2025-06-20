@@ -744,58 +744,44 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
         print("Cannot calculate metrics: Prediction or Ground Truth DataFrame is empty.")
         return
 
-    # try:
-
     # Metrics
-    eval_precision_at_k = precision_at_k(
-        test,
-        top_k_filtered,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        k=TOP_K,
-    )
-    eval_recall_at_k = recall_at_k(
-        test,
-        top_k_filtered,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        k=TOP_K,
-    )
-    eval_ndcg = ndcg_at_k(
-        test,
-        top,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        relevancy_method="top_k",
-        k=1,
-    )
-    eval_precision = precision_at_k(
-        test,
-        top_k_filtered,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        k=1,
-    )
-    eval_recall = recall_at_k(
-        test,
-        top_k_filtered,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-        k=1,
-    )
-    eval_mae = mae(test, top_k_filtered)
-    eval_rmse = rmse(test, top_k_filtered)
-
+    try:
+        eval_precision_at_k = precision_at_k(
+            test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K
+        )
+    except Exception as e:
+        eval_precision_at_k = None
+        print(f"Error calculating precision_at_k: {e}")
+    try:
+        eval_recall_at_k = recall_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)
+    except Exception as e:
+        eval_recall_at_k = None
+        print(f"Error calculating recall_at_k: {e}")
+    try:
+        eval_ndcg = ndcg_at_k(test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k", k=1)
+    except Exception as e:
+        eval_ndcg = None
+        print(f"Error calculating ndcg_at_k: {e}")
+    try:
+        eval_precision = precision_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    except Exception as e:
+        eval_precision = None
+        print(f"Error calculating precision_at_k: {e}")
+    try:
+        eval_recall = recall_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+    except Exception as e:
+        eval_recall = None
+        print(f"Error calculating recall_at_k: {e}")
+    try:
+        eval_mae = mae(test, top_k_filtered)
+    except Exception as e:
+        eval_mae = None
+        print(f"Error calculating mae: {e}")
+    try:
+        eval_rmse = rmse(test, top_k_filtered)
+    except Exception as e:
+        eval_rmse = None
+        print(f"Error calculating rmse: {e}")
     # eval_novelty = novelty(train, top_filtered)
     # eval_historical_item_novelty = historical_item_novelty(train, top_filtered)
     # eval_user_item_serendipity = user_item_serendipity(train, top_filtered)
@@ -805,60 +791,66 @@ def run_evaluation(path_file, train_labels, test_labels, TOP_K, data, train, tes
     # eval_distributional_coverage = distributional_coverage(train, top_filtered)
 
     # eval_f1 = f1(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
-    eval_mrr = mrr(
-        test,
-        top_k_filtered,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-    )
+    try:
+        eval_mrr = mrr(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    except Exception as e:
+        eval_mrr = None
+        print(f"Error calculating mrr: {e}")
     # eval_accuracy = accuracy(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
-    eval_user_coverage = user_coverage(
-        test,
-        top_filtered,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-    )
-    eval_item_coverage = item_coverage(
-        test,
-        top_filtered,
-        col_user="userID",
-        col_item="itemID",
-        col_rating="rating",
-        col_prediction="prediction",
-    )
+    try:
+        eval_user_coverage = user_coverage(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    except Exception as e:
+        eval_user_coverage = None
+        print(f"Error calculating user_coverage: {e}")
+    try:
+        eval_item_coverage = item_coverage(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+    except Exception as e:
+        eval_item_coverage = None
+        print(f"Error calculating item_coverage: {e}")
 
-    eval_intra_list_similarity = intra_list_similarity_score(data, top_k_filtered, feature_cols=["genres"])
-    eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k_filtered, feature_cols=["genres"])
-    eval_personalization = personalization_score(train, top_filtered)
+    try:
+        eval_intra_list_similarity = intra_list_similarity_score(data, top_k_filtered, feature_cols=["genres"])
+    except Exception as e:
+        eval_intra_list_similarity = None
+        print(f"Error calculating intra_list_similarity: {e}")
+    try:
+        eval_intra_list_dissimilarity = intra_list_dissimilarity(data, top_k_filtered, feature_cols=["genres"])
+    except Exception as e:
+        eval_intra_list_dissimilarity = None
+        print(f"Error calculating intra_list_dissimilarity: {e}")
+    try:
+        eval_personalization = personalization_score(train, top_filtered)
+    except Exception as e:
+        eval_personalization = None
+        print(f"Error calculating personalization_score: {e}")
+
+    def format_metric(metric):
+        return f"{metric:.4f}" if isinstance(metric, (float, int)) else "N/A"
 
     print(
-        "Precision:\t%f" % eval_precision,
-        "Precision@K:\t%f" % eval_precision_at_k,
-        "Recall:\t%f" % eval_recall,
-        "Recall@K:\t%f" % eval_recall_at_k,
-        # "F1:\t%f" % eval_f1,
-        # "Accuracy:\t%f" % eval_accuracy,
-        "MAE:\t%f" % eval_mae,
-        "RMSE:\t%f" % eval_rmse,
-        "NDCG:\t%f" % eval_ndcg,
-        "MRR:\t%f" % eval_mrr,
-        # "Novelty:\t%f" % eval_novelty,
-        # "Serendipity:\t%f" % eval_serendipity,
-        "User covarage:\t%f" % eval_user_coverage,
-        "Item coverage:\t%f" % eval_item_coverage,
-        # "Catalog coverage:\t%f" % eval_catalog_coverage,
-        # "Distributional coverage:\t%f" % eval_distributional_coverage,
-        "Personalization:\t%f" % eval_personalization,
-        "Intra-list similarity:\t%f" % eval_intra_list_similarity,
-        "Intra-list dissimilarity:\t%f" % eval_intra_list_dissimilarity,
+        "Precision:\t" + format_metric(eval_precision),
+        "Precision@K:\t" + format_metric(eval_precision_at_k),
+        "Recall:\t" + format_metric(eval_recall),
+        "Recall@K:\t" + format_metric(eval_recall_at_k),
+        # "F1:\t" + format_metric(eval_f1),
+        # "Accuracy:\t" + format_metric(eval_accuracy),
+        "MAE:\t" + format_metric(eval_mae),
+        "RMSE:\t" + format_metric(eval_rmse),
+        "NDCG:\t" + format_metric(eval_ndcg),
+        "MRR:\t" + format_metric(eval_mrr),
+        # "Novelty:\t" + format_metric(eval_novelty),
+        # "Serendipity:\t" + format_metric(eval_serendipity),
+        "User coverage:\t" + format_metric(eval_user_coverage),
+        "Item coverage:\t" + format_metric(eval_item_coverage),
+        # "Catalog coverage:\t" + format_metric(eval_catalog_coverage),
+        # "Distributional coverage:\t" + format_metric(eval_distributional_coverage),
+        "Personalization:\t" + format_metric(eval_personalization),
+        "Intra-list similarity:\t" + format_metric(eval_intra_list_similarity),
+        "Intra-list dissimilarity:\t" + format_metric(eval_intra_list_dissimilarity),
         sep="\n",
     )
 
-    # # mlflow
+    # mlflow
     metrics = {
         "precision": eval_precision,
         "precision_at_k": eval_precision_at_k,
