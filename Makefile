@@ -71,11 +71,11 @@ clean:
 ## Download all datasets from Kaggle
 download-datasets:
 	@echo "Downloading datasets from Kaggle..."
-	@conda run -n $(CONDA_ENV_NAME) --no-capture-output python ppera/datasets_download.py
+	@conda run -n $(CONDA_ENV_NAME) --no-capture-output python ppera/datasets_downloader.py
 
 ## Show Kaggle authentication setup instructions
 kaggle-setup-help:
-	@conda run -n $(CONDA_ENV_NAME) --no-capture-output python ppera/datasets_download.py --setup-help
+	@conda run -n $(CONDA_ENV_NAME) --no-capture-output python ppera/datasets_downloader.py --setup-help
 
 ## Verify all datasets are downloaded correctly
 verify-datasets:
