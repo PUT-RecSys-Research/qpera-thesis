@@ -20,6 +20,17 @@ class BaseDatasetLoader(ABC):
         # Ensure processed directory exists
         os.makedirs(self.processed_data_path, exist_ok=True)
         
+        # Check if required files exist (no auto-download)
+        if not self._check_local_files_exist():
+            raise FileNotFoundError(
+                f"Required dataset files not found in {self.raw_data_path}. "
+                f"Please run 'make check-datasets' to download them automatically."
+            )
+
+    def _check_local_files_exist(self) -> bool:
+        """Check if required dataset files exist locally."""
+        # This method should be implemented by subclasses
+        return False
 
     def load_dataset(
         self,
@@ -33,6 +44,7 @@ class BaseDatasetLoader(ABC):
         Args:
             columns: Optional list of column names to return.
             num_rows: Optional integer specifying the number of rows to load. If None, loads all rows.
+            seed: Optional seed for random number generator, used when limiting number of rows.
 
         Returns:
             A pandas DataFrame.
@@ -116,6 +128,10 @@ class AmazonSalesDataset(BaseDatasetLoader):
         
         # Now call parent constructor
         super().__init__(raw_data_path, processed_data_path)
+
+    def _check_local_files_exist(self) -> bool:
+        """Check if all required Amazon Sales files exist."""
+        return os.path.exists(self.dataset_file)
 
     def merge_datasets(self) -> pd.DataFrame:
         rating_timestamp_gen.rating_timestamp_gen(self.dataset_file, self.dataset_file)
@@ -220,6 +236,12 @@ class PostRecommendationsDataset(BaseDatasetLoader):
         
         # Now call parent constructor
         super().__init__(raw_data_path, processed_data_path)
+
+    def _check_local_files_exist(self) -> bool:
+        """Check if all required Post Recommendations files exist."""
+        return (os.path.exists(self.userData_file) and 
+                os.path.exists(self.viewData_file) and 
+                os.path.exists(self.postData_file))
 
     def merge_datasets(self) -> pd.DataFrame:
         user_df = pd.read_csv(self.userData_file)

@@ -65,6 +65,27 @@ clean:
 	rm -rf .pytest_cache .ruff_cache
 
 #################################################################################
+# DATASET MANAGEMENT                                                            #
+#################################################################################
+
+## Download all datasets from Kaggle
+download-datasets:
+	@echo "Downloading datasets from Kaggle..."
+	@conda run -n $(CONDA_ENV_NAME) --no-capture-output python ppera/datasets_download.py
+
+## Show Kaggle authentication setup instructions
+kaggle-setup-help:
+	@conda run -n $(CONDA_ENV_NAME) --no-capture-output python ppera/datasets_download.py --setup-help
+
+## Verify all datasets are downloaded correctly
+verify-datasets:
+	@echo "Verifying dataset downloads..."
+	@for dataset in AmazonSales MovieLens PostRecommendations; do \
+		echo "Checking datasets/$$dataset/"; \
+		ls -la datasets/$$dataset/ 2>/dev/null || echo "$$dataset not found"; \
+	done
+
+#################################################################################
 # WORKFLOWS                                                                     #
 #################################################################################
 
