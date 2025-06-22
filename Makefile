@@ -80,10 +80,23 @@ kaggle-setup-help:
 ## Verify all datasets are downloaded correctly
 verify-datasets:
 	@echo "Verifying dataset downloads..."
-	@for dataset in AmazonSales MovieLens PostRecommendations; do \
-		echo "Checking datasets/$$dataset/"; \
-		ls -la datasets/$$dataset/ 2>/dev/null || echo "$$dataset not found"; \
-	done
+	@failed=0; \
+	for dataset in AmazonSales MovieLens PostRecommendations; do \
+		echo -n "Checking datasets/$$dataset/... "; \
+		if [ -d "datasets/$$dataset" ] && [ "$$(ls -A datasets/$$dataset 2>/dev/null | wc -l)" -gt 0 ]; then \
+			echo "OK"; \
+		else \
+			echo "MISSING"; \
+			failed=$$((failed + 1)); \
+		fi; \
+	done; \
+	echo ""; \
+	if [ $$failed -eq 0 ]; then \
+		echo "All datasets verified successfully!"; \
+	else \
+		echo "$$failed dataset(s) missing or empty. Run 'make download-datasets' to fix."; \
+		exit 1; \
+	fi
 
 #################################################################################
 # WORKFLOWS                                                                     #
@@ -91,11 +104,14 @@ verify-datasets:
 
 ## Run the entire pipeline: start MLflow, wait, run main script, and cleanup
 run-all:
-	@echo "--- Starting MLflow server in the background..." ; \
+	@echo "--- Running the entire pipeline..." ; \
+	echo "Downloading datasets from Kaggle..." ; \
+	conda run -n $(CONDA_ENV_NAME) --no-capture-output python ppera/datasets_downloader.py ; \
+	echo "--- Starting MLflow server in the background..." ; \
 	conda run -n $(CONDA_ENV_NAME) mlflow server --host $(MLFLOW_HOST) --port $(MLFLOW_PORT) & \
 	echo "--- Waiting for MLflow server to be ready..." ; \
 	while ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) > /dev/null; do \
-	    sleep 0.5; \
+		sleep 0.5; \
 	done ; \
 	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1) ; \
 	trap 'echo "--- Shutting down MLflow server (PID: $$MLFLOW_PID)..."; kill $$MLFLOW_PID' EXIT ; \
@@ -110,16 +126,16 @@ run-interactive:
 	conda run -n $(CONDA_ENV_NAME) mlflow server --host $(MLFLOW_HOST) --port $(MLFLOW_PORT) & \
 	echo "--- Waiting for MLflow server to be ready..." ; \
 	while ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) > /dev/null; do \
-	    sleep 0.5; \
+		sleep 0.5; \
 	done ; \
 	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1) ; \
 	echo "--- MLflow server is up (PID: $$MLFLOW_PID). You can view it at http://$(MLFLOW_HOST):$(MLFLOW_PORT)" ; \
 	echo "--- Running the main script..." ; \
 	conda run -n $(CONDA_ENV_NAME) --no-capture-output $(PYTHON_INTERPRETER) -u -m $(SRC_DIR).main ; \
 	echo "" ; \
-	echo "--- ✅ Main script finished. The MLflow server is still running." ; \
+	echo "--- Main script finished. The MLflow server is still running." ; \
 	echo -n "--- Press [Enter] to shut down the MLflow server..." ; \
-    read dummy < /dev/tty ; \
+	read dummy < /dev/tty ; \
 	kill $$MLFLOW_PID
 
 # Run mlflow server in the background
@@ -128,12 +144,12 @@ run-mlflow:
 	conda run -n $(CONDA_ENV_NAME) mlflow server --host $(MLFLOW_HOST) --port $(MLFLOW_PORT) & \
 	echo "--- Waiting for MLflow server to be ready..." ; \
 	while ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) > /dev/null; do \
-	    sleep 0.5; \
+		sleep 0.5; \
 	done ; \
 	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1) ; \
 	echo "--- MLflow server is up (PID: $$MLFLOW_PID). You can view it at http://$(MLFLOW_HOST):$(MLFLOW_PORT)" ; \
 	echo -n "--- Press [Enter] to shut down the MLflow server..." ; \
-    read dummy < /dev/tty ; \
+	read dummy < /dev/tty ; \
 	kill $$MLFLOW_PID
 
 

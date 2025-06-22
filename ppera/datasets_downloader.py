@@ -306,20 +306,13 @@ Kaggle Setup Instructions:
    - Click "Create New API Token"
    - Download kaggle.json file
 
-3. Install Kaggle CLI:
-   conda activate ppera-env
-   pip install kaggle
-
-4. Setup Authentication:
+3. Setup Authentication:
    mkdir -p ~/.kaggle
    mv ~/Downloads/kaggle.json ~/.kaggle/
    chmod 600 ~/.kaggle/kaggle.json
 
-5. Test Setup:
+4. Test Setup:
    kaggle datasets list --max-size 1
-
-6. Run Dataset Download:
-   python -c "from ppera.dataset_downloader import KaggleDatasetDownloader; KaggleDatasetDownloader().download_all_datasets()"
 """
 
 
