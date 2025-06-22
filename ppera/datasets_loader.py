@@ -60,26 +60,33 @@ class BaseDatasetLoader(ABC):
                     dataset_df = dataset_df[columns]
                 return dataset_df
 
-        # Load or create the full merged file
+        # Load or create the merged file with sequential row limiting
         if os.path.exists(self.merge_file):
             print(f"Loading existing merged file: {self.merge_file}")
-            dataset_df = pd.read_csv(self.merge_file)
+            # KEY CHANGE: Use nrows for sequential limiting instead of loading all then sampling
+            if num_rows is not None:
+                try:
+                    dataset_df = pd.read_csv(self.merge_file, nrows=num_rows)
+                    print(f"Loaded first {num_rows} rows sequentially from existing file")
+                except ValueError:  # Fallback if file has fewer rows
+                    dataset_df = pd.read_csv(self.merge_file)
+                    print(f"File has fewer than {num_rows} rows, loaded all {len(dataset_df)} rows")
+            else:
+                dataset_df = pd.read_csv(self.merge_file)
         else:
             print(f"Merging datasets from {self.raw_data_path} and creating: {self.merge_file}")
             dataset_df = self.merge_datasets()
             dataset_df.to_csv(self.merge_file, index=False)
-
-        # Apply row limiting if specified
-        if num_rows is not None and len(dataset_df) > num_rows:
-            print(f"Limiting dataset from {len(dataset_df)} to {num_rows} rows with seed {seed}")
-            if seed is not None:
-                dataset_df = dataset_df.sample(n=num_rows, random_state=seed).reset_index(drop=True)
-            else:
-                dataset_df = dataset_df.head(num_rows)
             
-            # Save the limited dataset for future use
-            if seed is not None:
-                limited_file = self.merge_file.replace(".csv", f"_r{num_rows}_s{seed}.csv")
+            # Apply sequential limiting after merging if needed
+            if num_rows is not None and len(dataset_df) > num_rows:
+                print(f"Limiting merged dataset to first {num_rows} rows")
+                dataset_df = dataset_df.head(num_rows)
+
+        # Save the limited dataset for future use (only if using sequential limiting)
+        if num_rows is not None and seed is not None and len(dataset_df) <= num_rows:
+            limited_file = self.merge_file.replace(".csv", f"_r{num_rows}_s{seed}.csv")
+            if not os.path.exists(limited_file):
                 dataset_df.to_csv(limited_file, index=False)
                 print(f"Saved limited dataset: {limited_file}")
 
