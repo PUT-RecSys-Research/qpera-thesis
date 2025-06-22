@@ -46,14 +46,14 @@ def print_experiment_header(run_config_label, algorithm_name, dataset_name, num_
 # --- Experiment Definitions (Algo/Dataset combinations) ---
 experiments_to_run = [
     {"algo": "CBF", "module": CBF, "func": "cbf_experiment_loop", "dataset": "movielens", "rows": 14000},
-    {"algo": "CF", "module": CF, "func": "cf_experiment_loop", "dataset": "movielens", "rows": 14000},
-    {"algo": "RL", "module": RL, "func": "rl_experiment_loop", "dataset": "movielens", "rows": 14000},
+    # {"algo": "CF", "module": CF, "func": "cf_experiment_loop", "dataset": "movielens", "rows": 14000},
+    # {"algo": "RL", "module": RL, "func": "rl_experiment_loop", "dataset": "movielens", "rows": 14000},
     {"algo": "CBF", "module": CBF, "func": "cbf_experiment_loop", "dataset": "amazonsales"},
-    {"algo": "CF", "module": CF, "func": "cf_experiment_loop", "dataset": "amazonsales"},
-    {"algo": "RL", "module": RL, "func": "rl_experiment_loop", "dataset": "amazonsales"},
+    # {"algo": "CF", "module": CF, "func": "cf_experiment_loop", "dataset": "amazonsales"},
+    # {"algo": "RL", "module": RL, "func": "rl_experiment_loop", "dataset": "amazonsales"},
     {"algo": "CBF", "module": CBF, "func": "cbf_experiment_loop", "dataset": "postrecommendations", "rows": 14000},
-    {"algo": "CF", "module": CF, "func": "cf_experiment_loop", "dataset": "postrecommendations", "rows": 14000},
-    {"algo": "RL", "module": RL, "func": "rl_experiment_loop", "dataset": "postrecommendations", "rows": 14000},
+    # {"algo": "CF", "module": CF, "func": "cf_experiment_loop", "dataset": "postrecommendations", "rows": 14000},
+    # {"algo": "RL", "module": RL, "func": "rl_experiment_loop", "dataset": "postrecommendations", "rows": 14000},
 ]
 
 # --- Parameter Configurations ---
@@ -81,36 +81,36 @@ clear_config = {**base_params, **default_conditional_params}
 clear_config.update({"run_label": "Clear", "privacy": False, "personalization": False})
 all_param_configurations.append(clear_config)
 
-# 2. Privacy configurations
-privacy_fractions = [0.1, 0.25, 0.5, 0.8]
-for p_frac in privacy_fractions:
-    privacy_config = {**base_params, **default_conditional_params}
-    privacy_config.update(
-        {
-            "run_label": f"Privacy_{p_frac:.2f}",
-            "privacy": True,
-            "hide_type": "values_in_column",
-            "columns_to_hide": ["title", "genres"],
-            "fraction_to_hide": p_frac,
-            "personalization": False,
-        }
-    )
-    all_param_configurations.append(privacy_config)
+# # 2. Privacy configurations
+# privacy_fractions = [0.1, 0.25, 0.5, 0.8]
+# for p_frac in privacy_fractions:
+#     privacy_config = {**base_params, **default_conditional_params}
+#     privacy_config.update(
+#         {
+#             "run_label": f"Privacy_{p_frac:.2f}",
+#             "privacy": True,
+#             "hide_type": "values_in_column",
+#             "columns_to_hide": ["title", "genres"],
+#             "fraction_to_hide": p_frac,
+#             "personalization": False,
+#         }
+#     )
+#     all_param_configurations.append(privacy_config)
 
-# 3. Personalization configurations
-personalization_fractions = [0.1, 0.25, 0.5, 0.8]
-for pers_frac in personalization_fractions:
-    personalization_config = {**base_params, **default_conditional_params}
-    personalization_config.update(
-        {
-            "run_label": f"Personalization_{pers_frac:.2f}",
-            "privacy": False,
-            "personalization": True,
-            "fraction_to_change": pers_frac,
-            "change_rating": True,
-        }
-    )
-    all_param_configurations.append(personalization_config)
+# # 3. Personalization configurations
+# personalization_fractions = [0.1, 0.25, 0.5, 0.8]
+# for pers_frac in personalization_fractions:
+#     personalization_config = {**base_params, **default_conditional_params}
+#     personalization_config.update(
+#         {
+#             "run_label": f"Personalization_{pers_frac:.2f}",
+#             "privacy": False,
+#             "personalization": True,
+#             "fraction_to_change": pers_frac,
+#             "change_rating": True,
+#         }
+#     )
+#     all_param_configurations.append(personalization_config)
 
 
 # --- Run Experiments ---
