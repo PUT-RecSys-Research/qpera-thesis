@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 import cornac
 import matplotlib.pyplot as plt
@@ -27,6 +27,10 @@ MODEL_TYPES = {
     "RL": "Reinforcement Learning"
 }
 
+# Sampling configuration
+DEFAULT_SAMPLE_SIZE = 1000
+MIN_SAMPLE_SIZE = 100
+
 
 def log_mlflow(
     dataset: str,
@@ -45,6 +49,7 @@ def log_mlflow(
     fraction_to_hide: Optional[float] = None,
     personalization: Optional[bool] = None,
     fraction_to_change: Optional[float] = None,
+    sample_size: int = DEFAULT_SAMPLE_SIZE,
 ) -> None:
     """
     Log experiment results, metrics, and models to MLflow with artifacts.
@@ -66,6 +71,7 @@ def log_mlflow(
         fraction_to_hide: Fraction of data hidden for privacy
         personalization: Whether personalization modifications were applied
         fraction_to_change: Fraction of data changed for personalization
+        sample_size: Size of representative sample for MLflow logging (default: 1000)
     """
     
     # Generate timestamp for unique file naming
@@ -90,8 +96,177 @@ def log_mlflow(
     _log_to_mlflow(
         dataset, data, dataset_file_path, privacy, fraction_to_hide,
         personalization, fraction_to_change, timestamp, metrics_filename,
-        params, metrics, model_type, model, train, tf, vectors_tokenized
+        params, metrics, model_type, model, train, tf, vectors_tokenized,
+        sample_size
     )
+
+
+def _create_representative_sample(
+    data: pd.DataFrame, 
+    sample_size: int = DEFAULT_SAMPLE_SIZE,
+    stratify_cols: Optional[List[str]] = None,
+    random_state: int = 42
+) -> pd.DataFrame:
+    """
+    Create a representative sample of the dataset maintaining key distributions.
+    
+    Args:
+        data: Full dataset to sample from
+        sample_size: Target size of the sample
+        stratify_cols: Columns to use for stratified sampling
+        random_state: Random seed for reproducibility
+        
+    Returns:
+        Representative sample of the dataset
+    """
+    if len(data) <= sample_size:
+        print(f"Dataset size ({len(data)}) <= sample size ({sample_size}). Using full dataset.")
+        return data.copy()
+    
+    print(f"Creating representative sample: {sample_size} rows from {len(data)} total rows")
+    
+    # Default stratification columns based on typical recommendation dataset structure
+    if stratify_cols is None:
+        available_cols = data.columns.tolist()
+        stratify_cols = []
+        
+        # Add user column if available
+        user_cols = ['userID', 'user_id', 'userId', 'user']
+        for col in user_cols:
+            if col in available_cols:
+                stratify_cols.append(col)
+                break
+        
+        # Add rating column if available
+        rating_cols = ['rating', 'score', 'stars']
+        for col in rating_cols:
+            if col in available_cols:
+                stratify_cols.append(col)
+                break
+    
+    # Filter to only existing columns
+    stratify_cols = [col for col in (stratify_cols or []) if col in data.columns]
+    
+    if not stratify_cols:
+        print("No stratification columns found. Using simple random sampling.")
+        return data.sample(n=sample_size, random_state=random_state).reset_index(drop=True)
+    
+    print(f"Stratifying by columns: {stratify_cols}")
+    
+    try:
+        # Multi-level stratified sampling
+        sample_data = _stratified_sample_multi_column(data, stratify_cols, sample_size, random_state)
+        
+        # Ensure we have the target sample size (within tolerance)
+        if len(sample_data) < min(sample_size * 0.8, len(data)):
+            print(f"Stratified sampling yielded {len(sample_data)} rows. Filling with random sampling.")
+            remaining_needed = min(sample_size - len(sample_data), len(data) - len(sample_data))
+            if remaining_needed > 0:
+                remaining_data = data.drop(sample_data.index)
+                additional_sample = remaining_data.sample(n=remaining_needed, random_state=random_state)
+                sample_data = pd.concat([sample_data, additional_sample]).reset_index(drop=True)
+        
+        return sample_data
+        
+    except Exception as e:
+        print(f"Stratified sampling failed: {e}. Falling back to random sampling.")
+        return data.sample(n=sample_size, random_state=random_state).reset_index(drop=True)
+
+
+def _stratified_sample_multi_column(
+    data: pd.DataFrame, 
+    stratify_cols: List[str], 
+    sample_size: int, 
+    random_state: int
+) -> pd.DataFrame:
+    """
+    Perform stratified sampling across multiple columns.
+    """
+    # Start with the most important stratification column (usually user)
+    primary_col = stratify_cols[0]
+    
+    # Calculate proportional samples for each stratum
+    value_counts = data[primary_col].value_counts()
+    total_rows = len(data)
+    
+    sampled_dfs = []
+    
+    for value, count in value_counts.items():
+        # Calculate proportional sample size for this stratum
+        stratum_data = data[data[primary_col] == value]
+        stratum_sample_size = max(1, int((count / total_rows) * sample_size))
+        stratum_sample_size = min(stratum_sample_size, len(stratum_data))
+        
+        # If we have additional stratification columns, apply them within this stratum
+        if len(stratify_cols) > 1 and len(stratum_data) > stratum_sample_size:
+            try:
+                # Secondary stratification within the primary stratum
+                secondary_col = stratify_cols[1]
+                if secondary_col in stratum_data.columns and stratum_data[secondary_col].nunique() > 1:
+                    stratum_sample = stratum_data.groupby(secondary_col).apply(
+                        lambda x: x.sample(n=min(len(x), max(1, stratum_sample_size // stratum_data[secondary_col].nunique())), 
+                                         random_state=random_state)
+                    ).reset_index(drop=True)
+                    
+                    # Adjust if we need more samples
+                    if len(stratum_sample) < stratum_sample_size:
+                        remaining_data = stratum_data.drop(stratum_sample.index)
+                        if len(remaining_data) > 0:
+                            additional_needed = stratum_sample_size - len(stratum_sample)
+                            additional_sample = remaining_data.sample(n=min(additional_needed, len(remaining_data)), 
+                                                                    random_state=random_state)
+                            stratum_sample = pd.concat([stratum_sample, additional_sample])
+                else:
+                    stratum_sample = stratum_data.sample(n=stratum_sample_size, random_state=random_state)
+            except Exception:
+                stratum_sample = stratum_data.sample(n=stratum_sample_size, random_state=random_state)
+        else:
+            stratum_sample = stratum_data.sample(n=stratum_sample_size, random_state=random_state)
+        
+        sampled_dfs.append(stratum_sample)
+    
+    return pd.concat(sampled_dfs, ignore_index=True)
+
+
+def _log_dataset_statistics(data: pd.DataFrame, sample_data: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Log comprehensive dataset statistics for comparison.
+    """
+    stats = {
+        # Overall statistics
+        "dataset_total_rows": len(data),
+        "dataset_sample_rows": len(sample_data),
+        "sample_ratio": len(sample_data) / len(data),
+    }
+    
+    # User statistics
+    if 'userID' in data.columns:
+        stats.update({
+            "dataset_total_users": data['userID'].nunique(),
+            "dataset_sample_users": sample_data['userID'].nunique(),
+            "user_coverage": sample_data['userID'].nunique() / data['userID'].nunique(),
+        })
+    
+    # Item statistics  
+    if 'itemID' in data.columns:
+        stats.update({
+            "dataset_total_items": data['itemID'].nunique(),
+            "dataset_sample_items": sample_data['itemID'].nunique(),
+            "item_coverage": sample_data['itemID'].nunique() / data['itemID'].nunique(),
+        })
+    
+    # Rating statistics
+    if 'rating' in data.columns:
+        stats.update({
+            "dataset_rating_min": float(data['rating'].min()),
+            "dataset_rating_max": float(data['rating'].max()),
+            "dataset_rating_mean": float(data['rating'].mean()),
+            "sample_rating_min": float(sample_data['rating'].min()),
+            "sample_rating_max": float(sample_data['rating'].max()),
+            "sample_rating_mean": float(sample_data['rating'].mean()),
+        })
+    
+    return stats
 
 
 def _create_prediction_plot(top_k: pd.DataFrame, model_type: str, dataset: str, timestamp: str) -> str:
@@ -181,14 +356,15 @@ def _log_to_mlflow(
     personalization: Optional[bool], fraction_to_change: Optional[float],
     timestamp: str, metrics_filename: str, params: Dict[str, Any],
     metrics: Dict[str, Any], model_type: str, model: Any,
-    train: pd.DataFrame, tf: Any, vectors_tokenized: Any
+    train: pd.DataFrame, tf: Any, vectors_tokenized: Any,
+    sample_size: int
 ) -> None:
     """Log all experiment data to MLflow."""
     
     with mlflow.start_run():
-        # Log dataset
+        # Log dataset with representative sampling
         _log_dataset_to_mlflow(dataset, data, dataset_file_path, privacy, fraction_to_hide, 
-                              personalization, fraction_to_change)
+                              personalization, fraction_to_change, sample_size)
         
         # Log artifacts
         plot_filename = f"ppera/plots/top_k_predictions_{model_type}_{dataset}_{timestamp}.png"
@@ -209,9 +385,10 @@ def _log_to_mlflow(
 def _log_dataset_to_mlflow(
     dataset: str, data: pd.DataFrame, file_path: str,
     privacy: Optional[bool], fraction_to_hide: Optional[float],
-    personalization: Optional[bool], fraction_to_change: Optional[float]
+    personalization: Optional[bool], fraction_to_change: Optional[float],
+    sample_size: int = DEFAULT_SAMPLE_SIZE
 ) -> None:
-    """Log dataset information to MLflow."""
+    """Log dataset information to MLflow with representative sampling."""
     
     dataset_names = {
         DATASET_NAMES["MOVIELENS"]: ("MovieLens Dataset", "ppera/datasets/MovieLens"),
@@ -219,13 +396,61 @@ def _log_dataset_to_mlflow(
         DATASET_NAMES["POSTRECOMMENDATIONS"]: ("PostRecommendations Dataset", "ppera/datasets/PostRecommendations")
     }
     
-    if dataset in dataset_names:
-        name, artifact_path = dataset_names[dataset]
-        mlflow.log_artifact(file_path, artifact_path=artifact_path)
+    if dataset not in dataset_names:
+        print(f"Warning: Unknown dataset '{dataset}' for MLflow logging")
+        return
+    
+    name, artifact_path = dataset_names[dataset]
+    
+    # Create representative sample
+    sample_data = _create_representative_sample(data, sample_size)
+    
+    # Log dataset statistics
+    dataset_stats = _log_dataset_statistics(data, sample_data)
+    mlflow.log_params(dataset_stats)
+    
+    # Save and log the sample
+    try:
+        # Create temporary sample file
+        sample_filename = file_path.replace('.csv', f'_sample_{len(sample_data)}.csv')
+        sample_data.to_csv(sample_filename, index=False)
         
-        dataset_df = mlflow.data.from_pandas(data, name=name, source=file_path)
-        context = f"Privacy: {privacy} | {fraction_to_hide}, Personalization: {personalization} | {fraction_to_change}"
+        # Log the sample as an artifact
+        mlflow.log_artifact(sample_filename, artifact_path=f"{artifact_path}/sample")
+        
+        # Log sample as MLflow dataset
+        dataset_df = mlflow.data.from_pandas(
+            sample_data, 
+            name=f"{name} (Sample)", 
+            source=sample_filename
+        )
+        context = (f"Privacy: {privacy} | {fraction_to_hide}, "
+                  f"Personalization: {personalization} | {fraction_to_change}"
+                  f"Representative sample of {len(sample_data)} rows from {len(data)} total. ")
         mlflow.log_input(dataset_df, context=context)
+        
+        # Log sampling information
+        sampling_info = (f"Sampling Strategy: Stratified by user and rating\n"
+                        f"Original dataset: {len(data)} rows\n"
+                        f"Sample dataset: {len(sample_data)} rows\n"
+                        f"Sample ratio: {len(sample_data)/len(data):.3f}\n"
+                        f"Target sample size: {sample_size}")
+        mlflow.log_text(sampling_info, "sampling_info.txt")
+        
+        print(f"✅ MLflow: Logged representative sample ({len(sample_data)} rows) for {dataset}")
+        
+        # Clean up temporary file
+        if os.path.exists(sample_filename):
+            os.remove(sample_filename)
+            
+    except Exception as e:
+        print(f"MLflow: Error logging dataset sample for {dataset}: {e}")
+        # Fallback: log basic dataset info without the actual data
+        try:
+            basic_stats = {"error": "Failed to log dataset sample", "original_rows": len(data)}
+            mlflow.log_params(basic_stats)
+        except Exception as fallback_error:
+            print(f"MLflow: Fallback logging also failed: {fallback_error}")
 
 
 def _log_metrics_to_mlflow(metrics: Dict[str, Any]) -> None:
