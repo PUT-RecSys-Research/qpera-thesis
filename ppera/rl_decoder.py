@@ -1,30 +1,18 @@
 from __future__ import absolute_import, division, print_function
 
 import pickle
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
-from .rl_utils import (
-    AMAZONSALES, 
-    BELONG_TO, 
-    DESCRIBED_AS, 
-    GENRES, 
-    ITEMID, 
-    MOVIELENS, 
-    POSTRECOMMENDATIONS, 
-    PREDICTION, 
-    TITLE, 
-    TMP_DIR, 
-    USERID
-)
+from .rl_utils import AMAZONSALES, BELONG_TO, DESCRIBED_AS, GENRES, ITEMID, MOVIELENS, POSTRECOMMENDATIONS, PREDICTION, TITLE, TMP_DIR, USERID
 
 
 class RLRecommenderDecoder:
     """
     Decodes the output of the RL agent's evaluation phase into human-readable
     recommendations and a DataFrame compatible with metrics.py.
-    
+
     This class handles the conversion from internal indices to original IDs
     and provides detailed item information including titles and genres.
     """
@@ -35,14 +23,14 @@ class RLRecommenderDecoder:
 
         Args:
             dataset_name: The name of the dataset (e.g., 'movielens')
-            
+
         Raises:
             FileNotFoundError: If processed dataset file is not found
             Exception: If dataset loading fails
         """
         processed_dataset_file = f"{TMP_DIR[dataset_name]}/processed_dataset.pkl"
         print(f"Decoder: Loading processed dataset from {processed_dataset_file}")
-        
+
         try:
             with open(processed_dataset_file, "rb") as f:
                 processed_dataset = pickle.load(f)
@@ -88,10 +76,10 @@ class RLRecommenderDecoder:
     def get_item_details(self, item_idx: int) -> Dict[str, Any]:
         """
         Retrieve details for a single item index.
-        
+
         Args:
             item_idx: Internal item index
-            
+
         Returns:
             Dictionary containing item details (original_id, title, genres, etc.)
         """
@@ -105,10 +93,7 @@ class RLRecommenderDecoder:
 
         # Get genres
         genre_idxs = self.item_to_genre_idxs.get(item_idx, [])
-        genres = [
-            self.genre_inv_map.get(g_idx, "UNKNOWN_GENRE") 
-            for g_idx in genre_idxs
-        ]
+        genres = [self.genre_inv_map.get(g_idx, "UNKNOWN_GENRE") for g_idx in genre_idxs]
 
         return {
             "item_idx": item_idx,
@@ -120,22 +105,17 @@ class RLRecommenderDecoder:
     def get_user_details(self, user_idx: int) -> Dict[str, Any]:
         """
         Retrieve details for a single user index.
-        
+
         Args:
             user_idx: Internal user index
-            
+
         Returns:
             Dictionary containing user details
         """
         original_user_id_val = self.user_inv_map.get(user_idx, f"UNKNOWN_IDX_{user_idx}")
         return {"user_idx": user_idx, "original_userID": original_user_id_val}
 
-    def decode(
-        self, 
-        dataset_name: str, 
-        pred_labels: Dict[int, List[int]], 
-        k: int = 10
-    ) -> Tuple[Dict[int, Dict], pd.DataFrame]:
+    def decode(self, dataset_name: str, pred_labels: Dict[int, List[int]], k: int = 10) -> Tuple[Dict[int, Dict], pd.DataFrame]:
         """
         Decode predicted item indices for users into human-readable recommendations.
 
@@ -157,9 +137,7 @@ class RLRecommenderDecoder:
         print(f"Decoder: Decoding recommendations for {len(pred_labels)} users...")
 
         for user_idx, ascending_item_idxs in pred_labels.items():
-            user_recs = self._process_user_recommendations(
-                user_idx, ascending_item_idxs, k, pred_df_data
-            )
+            user_recs = self._process_user_recommendations(user_idx, ascending_item_idxs, k, pred_df_data)
             human_readable_recs[user_idx] = user_recs
 
         # Create and format DataFrame
@@ -170,16 +148,10 @@ class RLRecommenderDecoder:
         print(f"Decoder: Finished decoding. Generated DataFrame with {len(rating_pred_df)} rows.")
         if not rating_pred_df.empty:
             print(f"Decoder: rating_pred_df dtypes:\n{rating_pred_df.dtypes.to_string()}")
-            
+
         return human_readable_recs, rating_pred_df
 
-    def _process_user_recommendations(
-        self, 
-        user_idx: int, 
-        ascending_item_idxs: List[int], 
-        k: int,
-        pred_df_data: List[Dict]
-    ) -> Dict[str, Any]:
+    def _process_user_recommendations(self, user_idx: int, ascending_item_idxs: List[int], k: int, pred_df_data: List[Dict]) -> Dict[str, Any]:
         """Process recommendations for a single user."""
         user_details = self.get_user_details(user_idx)
         original_userID_for_human_recs = user_details["original_userID"]
@@ -190,8 +162,7 @@ class RLRecommenderDecoder:
 
         # Handle empty recommendations
         if not top_k_item_idxs:
-            print(f"Warning: No recommendations found for user_idx {user_idx} "
-                  f"(Original ID: {original_userID_for_human_recs})")
+            print(f"Warning: No recommendations found for user_idx {user_idx} (Original ID: {original_userID_for_human_recs})")
             return {
                 "original_userID": original_userID_for_human_recs,
                 "recommendations": [],
@@ -200,7 +171,7 @@ class RLRecommenderDecoder:
         # Generate recommendations
         max_rank_score = len(top_k_item_idxs)
         current_user_recommendations_list = []
-        
+
         for rank, item_idx in enumerate(top_k_item_idxs, 1):
             item_details = self.get_item_details(item_idx)
             item_details["rank"] = rank
@@ -208,24 +179,22 @@ class RLRecommenderDecoder:
 
             # Add to DataFrame data
             pred_score = float(max_rank_score - rank + 1)
-            pred_df_data.append({
-                USERID: user_idx,
-                "userID": original_userID_for_human_recs,
-                ITEMID: item_idx,
-                "itemID": item_details["original_id"],
-                PREDICTION: pred_score,
-            })
+            pred_df_data.append(
+                {
+                    USERID: user_idx,
+                    "userID": original_userID_for_human_recs,
+                    ITEMID: item_idx,
+                    "itemID": item_details["original_id"],
+                    PREDICTION: pred_score,
+                }
+            )
 
         return {
             "original_userID": original_userID_for_human_recs,
             "recommendations": current_user_recommendations_list,
         }
 
-    def _format_dataframe_columns(
-        self, 
-        rating_pred_df: pd.DataFrame, 
-        dataset_name: str
-    ) -> pd.DataFrame:
+    def _format_dataframe_columns(self, rating_pred_df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
         """Format DataFrame columns with appropriate data types."""
         # Format internal index columns
         if USERID in rating_pred_df.columns:
@@ -254,8 +223,7 @@ class RLRecommenderDecoder:
             try:
                 rating_pred_df["userID"] = rating_pred_df["userID"].astype(int)
             except ValueError:
-                print(f"Warning (Decoder): Could not cast 'userID' to int for {dataset_name}. "
-                      "Keeping as string.")
+                print(f"Warning (Decoder): Could not cast 'userID' to int for {dataset_name}. Keeping as string.")
                 rating_pred_df["userID"] = rating_pred_df["userID"].astype(str)
 
     def _format_item_id_column(self, rating_pred_df: pd.DataFrame, dataset_name: str) -> None:
@@ -271,6 +239,5 @@ class RLRecommenderDecoder:
             try:
                 rating_pred_df["itemID"] = rating_pred_df["itemID"].astype(int)
             except ValueError:
-                print(f"Warning (Decoder): Could not cast 'itemID' to int for {dataset_name}. "
-                      "Keeping as string.")
+                print(f"Warning (Decoder): Could not cast 'itemID' to int for {dataset_name}. Keeping as string.")
                 rating_pred_df["itemID"] = rating_pred_df["itemID"].astype(str)

@@ -4,7 +4,7 @@ import argparse
 import os
 import pickle
 from functools import reduce
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -50,25 +50,22 @@ from .rl_utils import (
 
 
 def batch_beam_search(
-    env: BatchKGEnvironment, 
-    model: ActorCritic, 
-    uids: List[int], 
-    device: torch.device, 
-    topk: List[int] = [25, 5, 1]
+    env: BatchKGEnvironment, model: ActorCritic, uids: List[int], device: torch.device, topk: List[int] = [25, 5, 1]
 ) -> Tuple[List[List[Tuple]], List[float]]:
     """
     Perform batch beam search to generate recommendation paths.
-    
+
     Args:
         env: Batch knowledge graph environment
         model: Trained actor-critic model
         uids: List of user IDs to generate paths for
         device: PyTorch device for computation
         topk: Top-k values for each hop in beam search
-        
+
     Returns:
         Tuple of (paths, probabilities) for all generated paths
     """
+
     def _batch_acts_to_masks(batch_acts: List[List[Tuple]]) -> np.ndarray:
         """Convert batch actions to boolean masks."""
         batch_masks = []
@@ -84,14 +81,14 @@ def batch_beam_search(
     path_pool = env._batch_path
     probs_pool = [[] for _ in uids]
     model.eval()
-    
+
     # Perform beam search for specified number of hops
     for hop in range(3):
         state_tensor = torch.FloatTensor(state_pool).to(device)
         acts_pool = env._batch_get_actions(path_pool, False)
         actmask_pool = _batch_acts_to_masks(acts_pool)
         actmask_tensor = torch.BoolTensor(actmask_pool).to(device)
-        
+
         # Get action probabilities from model
         with torch.no_grad():
             probs, _ = model((state_tensor, actmask_tensor))
@@ -115,10 +112,8 @@ def batch_beam_search(
         topk_probs = topk_probs.cpu().numpy()
 
         # Expand paths based on top-k actions
-        new_path_pool, new_probs_pool = _expand_paths(
-            path_pool, probs_pool, acts_pool, actmask_pool, topk_idxs, topk_probs
-        )
-        
+        new_path_pool, new_probs_pool = _expand_paths(path_pool, probs_pool, acts_pool, actmask_pool, topk_idxs, topk_probs)
+
         path_pool = new_path_pool
         probs_pool = new_probs_pool
 
@@ -136,22 +131,16 @@ def batch_beam_search(
                 break
 
     # Calculate final probabilities
-    final_probs = [
-        reduce(lambda x, y: x * y, p_list) if p_list else 0.0 
-        for p_list in probs_pool
-    ]
-    
+    final_probs = [reduce(lambda x, y: x * y, p_list) if p_list else 0.0 for p_list in probs_pool]
+
     return path_pool, final_probs
 
 
-def _handle_nan_probabilities(
-    probs: torch.Tensor, 
-    actmask_tensor: torch.Tensor
-) -> torch.Tensor:
+def _handle_nan_probabilities(probs: torch.Tensor, actmask_tensor: torch.Tensor) -> torch.Tensor:
     """Handle NaN values in probability tensor."""
     print("Warning: NaNs detected in probabilities after softmax!")
     nan_rows = torch.isnan(probs).any(dim=1)
-    
+
     for r_idx in torch.where(nan_rows)[0]:
         num_valid_actions = actmask_tensor[r_idx].sum().item()
         if num_valid_actions > 0:
@@ -159,7 +148,7 @@ def _handle_nan_probabilities(
             probs[r_idx, ~actmask_tensor[r_idx]] = 0.0
         else:
             probs[r_idx] = 0.0
-    
+
     return probs
 
 
@@ -169,11 +158,11 @@ def _expand_paths(
     acts_pool: List[List[Tuple]],
     actmask_pool: np.ndarray,
     topk_idxs: np.ndarray,
-    topk_probs: np.ndarray
+    topk_probs: np.ndarray,
 ) -> Tuple[List[List[Tuple]], List[List[float]]]:
     """Expand paths based on top-k actions."""
     new_path_pool, new_probs_pool = [], []
-    
+
     for row in range(topk_idxs.shape[0]):
         path = path_pool[row]
 
@@ -194,8 +183,7 @@ def _expand_paths(
                 next_node_type = path[-1][1]
             else:
                 current_node_type = path[-1][1]
-                if (current_node_type not in KG_RELATION or 
-                    relation not in KG_RELATION[current_node_type]):
+                if current_node_type not in KG_RELATION or relation not in KG_RELATION[current_node_type]:
                     print(f"Warning: Invalid relation '{relation}' for node type '{current_node_type}'. Skipping path extension.")
                     continue
                 next_node_type = KG_RELATION[current_node_type][relation]
@@ -211,17 +199,17 @@ def _expand_paths(
 def predict_paths(policy_file: str, path_file: str, args: argparse.Namespace) -> Optional[ActorCritic]:
     """
     Generate prediction paths using trained model and beam search.
-    
+
     Args:
         policy_file: Path to trained model file
         path_file: Path to save generated paths
         args: Configuration arguments
-        
+
     Returns:
         Loaded model if successful, None otherwise
     """
     print("Predicting paths using beam search...")
-    
+
     # Initialize environment
     env = BatchKGEnvironment(
         args.dataset,
@@ -229,7 +217,7 @@ def predict_paths(policy_file: str, path_file: str, args: argparse.Namespace) ->
         max_path_len=args.max_path_len,
         state_history=args.state_history,
     )
-    
+
     # Load trained model
     model = _load_trained_model(policy_file, env, args)
     if model is None:
@@ -242,9 +230,7 @@ def predict_paths(policy_file: str, path_file: str, args: argparse.Namespace) ->
     test_uids = list(test_labels.keys())
 
     # Generate paths in batches
-    all_paths, all_probs = _generate_paths_in_batches(
-        env, model, test_uids, args.device, args.topk
-    )
+    all_paths, all_probs = _generate_paths_in_batches(env, model, test_uids, args.device, args.topk)
 
     if not all_paths:
         print("ERROR: No paths were generated during prediction. Check beam search logic and model loading.")
@@ -252,15 +238,11 @@ def predict_paths(policy_file: str, path_file: str, args: argparse.Namespace) ->
 
     # Save predictions
     _save_predictions(all_paths, all_probs, path_file)
-    
+
     return model
 
 
-def _load_trained_model(
-    policy_file: str, 
-    env: BatchKGEnvironment, 
-    args: argparse.Namespace
-) -> Optional[ActorCritic]:
+def _load_trained_model(policy_file: str, env: BatchKGEnvironment, args: argparse.Namespace) -> Optional[ActorCritic]:
     """Load trained model from file."""
     try:
         pretrain_sd = torch.load(policy_file, map_location=args.device)
@@ -272,10 +254,8 @@ def _load_trained_model(
         print(f"ERROR: Failed to load policy file {policy_file}: {e}")
         return None
 
-    model = ActorCritic(
-        env.state_dim, env.act_dim, gamma=args.gamma, hidden_sizes=args.hidden
-    ).to(args.device)
-    
+    model = ActorCritic(env.state_dim, env.act_dim, gamma=args.gamma, hidden_sizes=args.hidden).to(args.device)
+
     try:
         model.load_state_dict(pretrain_sd)
         print("Successfully loaded state dict into the model.")
@@ -289,22 +269,17 @@ def _load_trained_model(
 
 
 def _generate_paths_in_batches(
-    env: BatchKGEnvironment,
-    model: ActorCritic,
-    test_uids: List[int],
-    device: torch.device,
-    topk: List[int],
-    batch_size: int = 16
+    env: BatchKGEnvironment, model: ActorCritic, test_uids: List[int], device: torch.device, topk: List[int], batch_size: int = 16
 ) -> Tuple[List[List[Tuple]], List[float]]:
     """Generate paths for all test users in batches."""
     all_paths, all_probs = [], []
     start_idx = 0
-    
+
     pbar = tqdm(total=len(test_uids))
     while start_idx < len(test_uids):
         end_idx = min(start_idx + batch_size, len(test_uids))
         batch_uids = test_uids[start_idx:end_idx]
-        
+
         try:
             with torch.no_grad():
                 paths, probs = batch_beam_search(env, model, batch_uids, device, topk=topk)
@@ -316,20 +291,16 @@ def _generate_paths_in_batches(
 
         start_idx = end_idx
         pbar.update(len(batch_uids))
-    
+
     pbar.close()
     return all_paths, all_probs
 
 
-def _save_predictions(
-    all_paths: List[List[Tuple]], 
-    all_probs: List[float], 
-    path_file: str
-) -> None:
+def _save_predictions(all_paths: List[List[Tuple]], all_probs: List[float], path_file: str) -> None:
     """Save predictions to file."""
     predicts = {"paths": all_paths, "probs": all_probs}
     print(f"Saving {len(all_paths)} paths and probabilities to {path_file}")
-    
+
     try:
         with open(path_file, "wb") as f:
             pickle.dump(predicts, f)
@@ -345,11 +316,11 @@ def run_evaluation(
     data: pd.DataFrame,
     train: pd.DataFrame,
     test: pd.DataFrame,
-    args: argparse.Namespace
+    args: argparse.Namespace,
 ) -> Tuple[Dict[str, float], pd.DataFrame, Dict[int, Dict]]:
     """
     Run evaluation using decoded recommendations and calculate metrics.
-    
+
     Args:
         path_file: File containing predicted paths
         train_labels: Training labels
@@ -359,7 +330,7 @@ def run_evaluation(
         train: Training data
         test: Test data
         args: Configuration arguments
-        
+
     Returns:
         Tuple of (metrics, prediction_dataframe, human_readable_recommendations)
     """
@@ -375,27 +346,19 @@ def run_evaluation(
     base_scores, median_score, scale_factor = _load_embeddings_and_scores(args.dataset)
 
     # Process paths to get candidates
-    best_path_candidates = _process_paths_to_candidates(
-        pred_paths_raw, pred_probs_raw, test_labels, train_labels, base_scores
-    )
+    best_path_candidates = _process_paths_to_candidates(pred_paths_raw, pred_probs_raw, test_labels, train_labels, base_scores)
 
     # Generate ranked recommendations
-    pred_labels, all_users_top_k_full_candidates = _generate_ranked_recommendations(
-        best_path_candidates, k, base_scores, train_labels, args
-    )
+    pred_labels, all_users_top_k_full_candidates = _generate_ranked_recommendations(best_path_candidates, k, base_scores, train_labels, args)
 
     # Calculate predictions using sigmoid
-    top, top_k = _calculate_sigmoid_predictions(
-        all_users_top_k_full_candidates, median_score, scale_factor, k
-    )
+    top, top_k = _calculate_sigmoid_predictions(all_users_top_k_full_candidates, median_score, scale_factor, k)
 
     # Map IDs for specific datasets
     top, top_k = _map_ids_for_dataset(top, top_k, args.dataset)
 
     # Standardize data types
-    train, test, top, top_k = _standardize_dataframe_types(
-        train, test, top, top_k, args.dataset
-    )
+    train, test, top, top_k = _standardize_dataframe_types(train, test, top, top_k, args.dataset)
 
     # Decode recommendations
     decoder = RLRecommenderDecoder(args.dataset)
@@ -408,9 +371,7 @@ def run_evaluation(
     top_filtered, top_k_filtered = _filter_training_items(top, top_k, train)
 
     # Calculate metrics
-    metrics = _calculate_all_metrics(
-        test, top_filtered, top_k_filtered, data, train, TOP_K
-    )
+    metrics = _calculate_all_metrics(test, top_filtered, top_k_filtered, data, train, TOP_K)
 
     return metrics, rating_pred_df, human_recs
 
@@ -440,7 +401,7 @@ def _load_embeddings_and_scores(dataset: str) -> Tuple[Optional[np.ndarray], flo
 
         median_score = np.median(base_scores)
         scale_factor = np.std(base_scores)
-        
+
         return base_scores, median_score, scale_factor
 
     except Exception as e:
@@ -453,22 +414,22 @@ def _process_paths_to_candidates(
     pred_probs_raw: List[float],
     test_labels: Dict[int, List[Tuple]],
     train_labels: Dict[int, List[Tuple]],
-    base_scores: Optional[np.ndarray]
+    base_scores: Optional[np.ndarray],
 ) -> Dict[int, List[Tuple]]:
     """Process paths and probabilities to get candidate items per user."""
     print("Processing paths to select candidate items...")
-    
+
     pred_paths_by_user = {uid: {} for uid in test_labels}
 
     # Group paths by user and item
     for path, path_prob in zip(pred_paths_raw, pred_probs_raw):
         if not path or path[-1][1] != ITEMID:
             continue
-        
+
         uid = path[0][2]
         if uid not in pred_paths_by_user:
             continue
-        
+
         pid = path[-1][2]
         path_score = base_scores[uid][pid] if base_scores is not None else 0.0
 
@@ -484,14 +445,12 @@ def _process_paths_to_candidates(
         raw_train_list = train_labels.get(uid, [])
         train_pids = set(item_idx for item_idx, _ in raw_train_list)
         user_candidates = []
-        
+
         for pid, path_tuples in item_paths_dict.items():
             if pid in train_pids:
                 continue
 
-            sorted_paths_for_item = sorted(
-                path_tuples, key=lambda x: (x[1], x[0]), reverse=True
-            )
+            sorted_paths_for_item = sorted(path_tuples, key=lambda x: (x[1], x[0]), reverse=True)
             best_score, best_prob, _ = sorted_paths_for_item[0]
             user_candidates.append((best_score, best_prob, pid))
 
@@ -506,11 +465,11 @@ def _generate_ranked_recommendations(
     base_scores: Optional[np.ndarray],
     train_labels: Dict[int, List[Tuple]],
     args: argparse.Namespace,
-    sort_by: str = "score"
+    sort_by: str = "score",
 ) -> Tuple[Dict[int, List[int]], Dict[int, List[Tuple]]]:
     """Generate final ranked recommendations."""
     print(f"Generating final top-{k} ranked list for {len(best_path_candidates)} users...")
-    
+
     pred_labels = {}
     all_users_top_k_full_candidates = {}
 
@@ -527,44 +486,33 @@ def _generate_ranked_recommendations(
 
         # Add products if requested and available
         if args.add_products and len(top_k_pids) < k and base_scores is not None:
-            top_k_pids = _add_additional_products(
-                uid, top_k_pids, k, base_scores, train_labels
-            )
+            top_k_pids = _add_additional_products(uid, top_k_pids, k, base_scores, train_labels)
 
         pred_labels[uid] = top_k_pids[::-1]  # Reverse for lowest score first
 
     return pred_labels, all_users_top_k_full_candidates
 
 
-def _add_additional_products(
-    uid: int,
-    top_k_pids: List[int],
-    k: int,
-    base_scores: np.ndarray,
-    train_labels: Dict[int, List[Tuple]]
-) -> List[int]:
+def _add_additional_products(uid: int, top_k_pids: List[int], k: int, base_scores: np.ndarray, train_labels: Dict[int, List[Tuple]]) -> List[int]:
     """Add additional products to reach k recommendations."""
     train_pids_tuples = train_labels.get(uid, [])
     train_pids = set(item_idx for item_idx, _ in train_pids_tuples)
     cand_pids_from_scores = np.argsort(base_scores[uid])
     num_needed = k - len(top_k_pids)
     filled_count = 0
-    
+
     for cand_pid in cand_pids_from_scores[::-1]:
         if cand_pid not in train_pids and cand_pid not in top_k_pids:
             top_k_pids.append(cand_pid)
             filled_count += 1
             if filled_count >= num_needed:
                 break
-    
+
     return top_k_pids
 
 
 def _calculate_sigmoid_predictions(
-    all_users_top_k_full_candidates: Dict[int, List[Tuple]],
-    median_score: float,
-    scale_factor: float,
-    k: int
+    all_users_top_k_full_candidates: Dict[int, List[Tuple]], median_score: float, scale_factor: float, k: int
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Calculate sigmoid-based predictions."""
     print(f"DEBUG: Calling calculate_predictons with all_users_top_k_full_candidates for {len(all_users_top_k_full_candidates)} users.")
@@ -573,11 +521,7 @@ def _calculate_sigmoid_predictions(
     return top, top_k
 
 
-def _map_ids_for_dataset(
-    top: pd.DataFrame, 
-    top_k: pd.DataFrame, 
-    dataset: str
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def _map_ids_for_dataset(top: pd.DataFrame, top_k: pd.DataFrame, dataset: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Map integer IDs to original IDs for specific datasets."""
     if dataset == AMAZONSALES:
         return _map_ids_amazonsales(top, top_k, dataset)
@@ -587,19 +531,15 @@ def _map_ids_for_dataset(
         return top, top_k
 
 
-def _map_ids_amazonsales(
-    top: pd.DataFrame, 
-    top_k: pd.DataFrame, 
-    dataset: str
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def _map_ids_amazonsales(top: pd.DataFrame, top_k: pd.DataFrame, dataset: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Map IDs for Amazon Sales dataset."""
     print("DEBUG: Mapping integer indices in 'top' and 'top_k' to original string IDs for AmazonSales.")
-    
+
     try:
         processed_dataset_file_map = TMP_DIR[dataset] + "/processed_dataset.pkl"
         with open(processed_dataset_file_map, "rb") as f_map:
             processed_dataset_for_map = pickle.load(f_map)
-        
+
         user_inv_map = processed_dataset_for_map.get("entity_maps", {}).get(USERID, {}).get("inv_map", {})
         item_inv_map = processed_dataset_for_map.get("entity_maps", {}).get(ITEMID, {}).get("inv_map", {})
 
@@ -627,19 +567,15 @@ def _map_ids_amazonsales(
     return top, top_k
 
 
-def _map_ids_postrecommendations(
-    top: pd.DataFrame, 
-    top_k: pd.DataFrame, 
-    dataset: str
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def _map_ids_postrecommendations(top: pd.DataFrame, top_k: pd.DataFrame, dataset: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Map IDs for Post Recommendations dataset."""
     print("DEBUG: Mapping integer indices in 'top' and 'top_k' to original string IDs for Postrecommendation.")
-    
+
     try:
         processed_dataset_file_map = TMP_DIR[dataset] + "/processed_dataset.pkl"
         with open(processed_dataset_file_map, "rb") as f_map:
             processed_dataset_for_map = pickle.load(f_map)
-        
+
         user_inv_map = processed_dataset_for_map.get("entity_maps", {}).get(USERID, {}).get("inv_map", {})
         item_inv_map = processed_dataset_for_map.get("entity_maps", {}).get(ITEMID, {}).get("inv_map", {})
 
@@ -674,15 +610,11 @@ def _map_ids_postrecommendations(
 
 
 def _standardize_dataframe_types(
-    train: pd.DataFrame,
-    test: pd.DataFrame,
-    top: pd.DataFrame,
-    top_k: pd.DataFrame,
-    dataset: str
+    train: pd.DataFrame, test: pd.DataFrame, top: pd.DataFrame, top_k: pd.DataFrame, dataset: str
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Standardize data types for all DataFrames."""
     print(f"\n--- Ensuring Consistent DataFrame Dtypes for {dataset} ---")
-    
+
     # Define target data types by dataset
     if dataset == MOVIELENS:
         id_cols_dtypes = {"userID": int, "itemID": int}
@@ -714,15 +646,10 @@ def _standardize_dataframe_types(
     return train, test, top, top_k
 
 
-def _convert_column_type(
-    df: pd.DataFrame, 
-    col_name: str, 
-    target_type: type, 
-    dataset: str
-) -> None:
+def _convert_column_type(df: pd.DataFrame, col_name: str, target_type: type, dataset: str) -> None:
     """Convert column to target type with error handling."""
     current_dtype = df[col_name].dtype
-    
+
     if target_type is str:
         if not (current_dtype == "object" or isinstance(current_dtype, pd.StringDtype) or current_dtype == "string"):
             print(f"Converting column '{col_name}' to string. Original dtype: {current_dtype}")
@@ -747,29 +674,25 @@ def _convert_column_type(
 def _prepare_ground_truth(test_labels: Dict[int, List[Tuple]]) -> pd.DataFrame:
     """Prepare ground truth DataFrame for metrics calculation."""
     print("Preparing ground truth DataFrame...")
-    
+
     true_data = []
     for user_idx, item_rating_tuples in test_labels.items():
         for item_idx, rating_val in item_rating_tuples:
             true_data.append({USERID: user_idx, ITEMID: item_idx, RATING: rating_val})
-    
+
     rating_true_df = pd.DataFrame(true_data)
     if not rating_true_df.empty:
         rating_true_df[USERID] = rating_true_df[USERID].astype(int)
         rating_true_df[ITEMID] = rating_true_df[ITEMID].astype(int)
         rating_true_df[RATING] = rating_true_df[RATING].astype(float)
-    
+
     return rating_true_df
 
 
-def _filter_training_items(
-    top: pd.DataFrame, 
-    top_k: pd.DataFrame, 
-    train: pd.DataFrame
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def _filter_training_items(top: pd.DataFrame, top_k: pd.DataFrame, train: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Filter predictions to remove items already in training set."""
     print("Filtering predictions to remove items already in the `train` DataFrame...")
-    
+
     if train.empty or (top.empty and top_k.empty):
         print("Train DataFrame is empty or prediction DataFrames are empty, skipping filtering.")
         return top.copy(), top_k.copy()
@@ -798,29 +721,38 @@ def _filter_training_items(
 
 
 def _calculate_all_metrics(
-    test: pd.DataFrame,
-    top_filtered: pd.DataFrame,
-    top_k_filtered: pd.DataFrame,
-    data: pd.DataFrame,
-    train: pd.DataFrame,
-    TOP_K: int
+    test: pd.DataFrame, top_filtered: pd.DataFrame, top_k_filtered: pd.DataFrame, data: pd.DataFrame, train: pd.DataFrame, TOP_K: int
 ) -> Dict[str, Optional[float]]:
     """Calculate all evaluation metrics."""
     print(f"\n--- Calculating Metrics @{TOP_K} using metrics.py ---")
-    
+
     if top_k_filtered.empty or test.empty:
         print("Cannot calculate metrics: Prediction or Ground Truth DataFrame is empty.")
         return {}
 
     # Calculate individual metrics with error handling
     metrics = {}
-    
+
     metric_functions = [
-        ("precision", lambda: precision_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)),
-        ("precision_at_k", lambda: precision_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)),
+        (
+            "precision",
+            lambda: precision_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1),
+        ),
+        (
+            "precision_at_k",
+            lambda: precision_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K),
+        ),
         ("recall", lambda: recall_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)),
-        ("recall_at_k", lambda: recall_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K)),
-        ("ndcg_at_k", lambda: ndcg_at_k(test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k", k=1)),
+        (
+            "recall_at_k",
+            lambda: recall_at_k(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K),
+        ),
+        (
+            "ndcg_at_k",
+            lambda: ndcg_at_k(
+                test, top_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k", k=1
+            ),
+        ),
         ("mae", lambda: mae(test, top_k_filtered)),
         ("rmse", lambda: rmse(test, top_k_filtered)),
         ("mrr", lambda: mrr(test, top_k_filtered, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")),
@@ -840,12 +772,13 @@ def _calculate_all_metrics(
 
     # Print results
     _print_metric_results(metrics)
-    
+
     return metrics
 
 
 def _print_metric_results(metrics: Dict[str, Optional[float]]) -> None:
     """Print formatted metric results."""
+
     def format_metric(metric):
         return f"{metric:.4f}" if isinstance(metric, (float, int)) else "N/A"
 
@@ -883,7 +816,7 @@ def test(
 ) -> None:
     """
     Main testing function that coordinates path prediction and evaluation.
-    
+
     Args:
         TOP_K: Number of top recommendations
         want_col: Required columns
@@ -931,9 +864,7 @@ def test(
             print(f"ERROR loading labels: {e}")
             return
 
-        metrics, rating_pred_df, human_recs = run_evaluation(
-            path_file, train_labels, test_labels, TOP_K, data_df, train_df, test_df, args
-        )
+        metrics, rating_pred_df, human_recs = run_evaluation(path_file, train_labels, test_labels, TOP_K, data_df, train_df, test_df, args)
 
         # Prepare hyperparameters for logging
         rl_hyperparams = {
@@ -989,7 +920,7 @@ def test_agent_rl(
 ) -> None:
     """
     Main entry point for RL agent testing.
-    
+
     Args:
         dataset: Dataset name
         TOP_K: Number of top recommendations

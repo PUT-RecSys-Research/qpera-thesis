@@ -33,7 +33,7 @@ def precision_at_k(
         rating_true: DataFrame with actual ratings containing [user, item, rating] columns
         rating_pred: DataFrame with predicted ratings containing [user, item, prediction] columns
         col_user: Name of user identifier column
-        col_item: Name of item identifier column  
+        col_item: Name of item identifier column
         col_rating: Name of actual ratings column
         col_prediction: Name of predicted ratings column
         k: Number of recommendations to consider in evaluation
@@ -46,9 +46,7 @@ def precision_at_k(
 
     for user in users:
         # Get actual positively rated items
-        true_items = set(
-            rating_true[(rating_true[col_user] == user) & (rating_true[col_rating] > 0)][col_item]
-        )
+        true_items = set(rating_true[(rating_true[col_user] == user) & (rating_true[col_rating] > 0)][col_item])
 
         # Get top k recommendations
         user_pred = rating_pred[rating_pred[col_user] == user].nlargest(k, col_prediction)
@@ -94,9 +92,7 @@ def recall_at_k(
 
     for user in users:
         # Get actual positively rated items
-        true_items = set(
-            rating_true[(rating_true[col_user] == user) & (rating_true[col_rating] > 0)][col_item]
-        )
+        true_items = set(rating_true[(rating_true[col_user] == user) & (rating_true[col_rating] > 0)][col_item])
 
         # Get top k recommendations
         user_pred = rating_pred[rating_pred[col_user] == user].nlargest(k, col_prediction)
@@ -125,10 +121,10 @@ def f1_score(
     """Calculate F1 score from precision and recall at k."""
     precision = precision_at_k(rating_true, rating_pred, col_user, col_item, col_rating, col_prediction, k)
     recall = recall_at_k(rating_true, rating_pred, col_user, col_item, col_rating, col_prediction, k)
-    
+
     if precision + recall == 0:
         return 0.0
-    
+
     return (2 * precision * recall) / (precision + recall)
 
 
@@ -157,12 +153,8 @@ def mrr(
         Mean Reciprocal Rank value
     """
     # Get top k predictions sorted by user and prediction score
-    top_k_pred = (
-        rating_pred.sort_values(by=[col_user, col_prediction], ascending=[True, False])
-        .groupby(col_user)
-        .head(k)
-    )
-    
+    top_k_pred = rating_pred.sort_values(by=[col_user, col_prediction], ascending=[True, False]).groupby(col_user).head(k)
+
     # Create mapping of users to their relevant items
     true_items = rating_true.groupby(col_user)[col_item].apply(set).to_dict()
 
@@ -216,9 +208,9 @@ def user_coverage(
 ) -> float:
     """
     Calculate user coverage metric.
-    
+
     Represents the percentage of users for whom meaningful recommendations can be generated.
-    A recommendation is considered meaningful if the predicted rating deviates from the 
+    A recommendation is considered meaningful if the predicted rating deviates from the
     actual rating by no more than the given threshold.
 
     Args:
@@ -236,7 +228,7 @@ def user_coverage(
     # Merge actual and predicted ratings
     user_errors = rating_true.merge(rating_pred, on=[col_user, col_item])
     user_errors["error"] = abs(user_errors[col_rating] - user_errors[col_prediction])
-    
+
     # Find meaningful recommendations within threshold
     meaningful_recommendations = user_errors[user_errors["error"] <= threshold]
     meaningful_users = len(meaningful_recommendations[col_user].unique())
@@ -256,9 +248,9 @@ def item_coverage(
 ) -> float:
     """
     Calculate item coverage metric.
-    
+
     Represents the percentage of items for which meaningful recommendations can be generated.
-    A recommendation is considered meaningful if the predicted rating deviates from the 
+    A recommendation is considered meaningful if the predicted rating deviates from the
     actual rating by no more than the given threshold.
 
     Args:
@@ -276,7 +268,7 @@ def item_coverage(
     # Merge actual and predicted ratings
     item_errors = rating_true.merge(rating_pred, on=[col_user, col_item])
     item_errors["error"] = abs(item_errors[col_rating] - item_errors[col_prediction])
-    
+
     # Find meaningful recommendations within threshold
     meaningful_recommendations = item_errors[item_errors["error"] <= threshold]
     meaningful_items = len(meaningful_recommendations[col_item].unique())
@@ -288,12 +280,12 @@ def item_coverage(
 def _single_list_similarity(predicted: list, feature_df: pd.DataFrame, u: int) -> float:
     """
     Compute intra-list similarity for a single list of recommendations.
-    
+
     Args:
         predicted: Ordered list of predictions (e.g., ['X', 'Y', 'Z'])
         feature_df: DataFrame with one-hot encoded or latent features, indexed by item ID
         u: User index for error reporting
-        
+
     Returns:
         Intra-list similarity for a single recommendation list
     """
@@ -318,14 +310,14 @@ def _single_list_similarity(predicted: list, feature_df: pd.DataFrame, u: int) -
 def intra_list_similarity(predicted: List[list], feature_df: pd.DataFrame) -> float:
     """
     Compute average intra-list similarity of all recommendations.
-    
+
     This metric measures diversity of recommended item lists. Lower values indicate
     more diverse recommendations.
-    
+
     Args:
         predicted: List of lists with ordered predictions (e.g., [['X', 'Y', 'Z'], ['A', 'B', 'C']])
         feature_df: DataFrame with one-hot encoded or latent features, indexed by item ID
-        
+
     Returns:
         Average intra-list similarity for all recommendations
     """
@@ -338,23 +330,20 @@ def intra_list_similarity(predicted: List[list], feature_df: pd.DataFrame) -> fl
 def personalization(predicted: List[list]) -> float:
     """
     Measure recommendation similarity across users.
-    
+
     A high score indicates good personalization (users' recommendation lists are different).
     A low score indicates poor personalization (users' recommendation lists are very similar).
-    
+
     Args:
         predicted: List of lists with ordered predictions (e.g., [['X', 'Y', 'Z'], ['A', 'B', 'C']])
-        
+
     Returns:
         Personalization score for all recommendations
     """
+
     def make_rec_matrix(predicted: List[list]) -> sp.csr_matrix:
         """Convert recommendation lists to sparse binary matrix."""
-        df = (
-            pd.DataFrame(data=predicted)
-            .reset_index()
-            .melt(id_vars="index", value_name="item")
-        )
+        df = pd.DataFrame(data=predicted).reset_index().melt(id_vars="index", value_name="item")
         df = df[["index", "item"]].pivot(index="index", columns="item", values="item")
         df = pd.notna(df) * 1
         return sp.csr_matrix(df.values)
@@ -369,7 +358,7 @@ def personalization(predicted: List[list]) -> float:
     # Calculate average similarity
     dim = similarity.shape[0]
     avg_similarity = (similarity.sum() - dim) / (dim * (dim - 1))
-    
+
     # Return personalization (1 - similarity)
     return 1 - avg_similarity
 
@@ -398,16 +387,11 @@ def intra_list_similarity_score(
         raise ValueError("Must provide feature_cols - list of item feature columns")
 
     # Merge prediction data with item features
-    rating_pred_with_features = pd.merge(
-        rating_pred, 
-        item_features[[col_item] + feature_cols], 
-        on=col_item, 
-        how="left"
-    )
+    rating_pred_with_features = pd.merge(rating_pred, item_features[[col_item] + feature_cols], on=col_item, how="left")
 
     # Convert features (e.g., text) to vectors (one-hot/dummy encoding)
     feature_df = rating_pred_with_features[[col_item] + feature_cols].copy()
-    
+
     for col in feature_cols:
         if feature_df[col].dtype == "object":
             # Handle pipe-separated values or regular categorical data
@@ -467,7 +451,7 @@ def intra_list_dissimilarity(
 ) -> float:
     """
     Calculate intra-list dissimilarity (1 - similarity).
-    
+
     Higher values indicate more diverse recommendations.
     """
     return 1 - intra_list_similarity_score(
@@ -489,7 +473,7 @@ def personalization_score(
 ) -> float:
     """
     Interface to personalization function.
-    
+
     Measures the degree of personalization in recommendations across users.
 
     Args:

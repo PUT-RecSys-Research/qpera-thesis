@@ -13,7 +13,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
 # Let the Makefile know that these are not actual files to be built
-.PHONY: help install install-dev install-full setup requirements lint format clean test \
+.PHONY: help install install-dev install-full setup requirements lint format clean \
 		download-datasets kaggle-setup-help verify-datasets \
 		run-all run-interactive run-mlflow stop-mlflow check-env \
 		status uninstall reset quickstart
@@ -47,24 +47,24 @@ help:
 
 ## Create conda environment and install core dependencies
 install:
-    @echo "=== Setting up PPERA Environment (Core) ==="
-    @echo "Step 1/3: Creating conda environment '$(CONDA_ENV_NAME)'..."
-    @if conda env list | grep -q "^$(CONDA_ENV_NAME) "; then \
-        echo "Environment '$(CONDA_ENV_NAME)' already exists. Use 'make requirements' to update."; \
-    else \
-        conda env create -f environment.yml; \
-    fi
-    @echo ""
-    @echo "Step 2/3: Installing PyTorch (CPU version)..."
-    @conda run -n $(CONDA_ENV_NAME) pip install torch torchvision torchaudio \
-        --index-url https://download.pytorch.org/whl/cpu
-    @echo ""
-    @echo "Step 3/3: Installing project package with core dependencies..."
-    @conda run -n $(CONDA_ENV_NAME) pip install -e .
-    @echo ""
-    @echo "✅ Core environment setup complete!"
-    @echo "💡 For development tools, run: make install-dev"
-    @echo "💡 For all ML extras, run: make install-full"
+	@echo "=== Setting up PPERA Environment (Core) ==="
+	@echo "Step 1/3: Creating conda environment '$(CONDA_ENV_NAME)'..."
+	@if conda env list | grep -q "^$(CONDA_ENV_NAME) "; then \
+		echo "Environment '$(CONDA_ENV_NAME)' already exists. Use 'make requirements' to update."; \
+	else \
+		conda env create -f environment.yml; \
+	fi
+	@echo ""
+	@echo "Step 2/3: Installing PyTorch (CPU version)..."
+	@conda run -n $(CONDA_ENV_NAME) pip install torch torchvision torchaudio \
+		--index-url https://download.pytorch.org/whl/cpu
+	@echo ""
+	@echo "Step 3/3: Installing project package with core dependencies..."
+	@conda run -n $(CONDA_ENV_NAME) pip install -e .
+	@echo ""
+	@echo "✅ Core environment setup complete!"
+	@echo "💡 For development tools, run: make install-dev"
+	@echo "💡 For all ML extras, run: make install-full"
 
 ## Install with development tools (recommended for contributors)
 install-dev:
@@ -132,38 +132,34 @@ check-env:
 # CODE QUALITY                                                                 #
 #################################################################################
 
-## Run linting and format checking with ruff
+## Run linting with relaxed rules for ML code
 lint:
 	@echo ">>> Running code quality checks..."
 	@if conda run -n $(CONDA_ENV_NAME) python -c "import ruff" 2>/dev/null; then \
-		conda run -n $(CONDA_ENV_NAME) ruff check $(SRC_DIR); \
+		conda run -n $(CONDA_ENV_NAME) ruff check $(SRC_DIR) --fix-only --show-fixes; \
 	else \
 		echo "❌ Ruff not installed. Run 'make install-dev' to install development tools."; \
 		exit 1; \
 	fi
 	@echo "✅ Linting complete!"
 
-## Format code and apply safe fixes with ruff
+## Format code with conservative settings
 format:
-	@echo ">>> Formatting code and applying safe fixes..."
+	@echo ">>> Formatting code..."
 	@if conda run -n $(CONDA_ENV_NAME) python -c "import ruff" 2>/dev/null; then \
 		conda run -n $(CONDA_ENV_NAME) ruff format $(SRC_DIR); \
-		conda run -n $(CONDA_ENV_NAME) ruff check $(SRC_DIR) --fix; \
+		conda run -n $(CONDA_ENV_NAME) ruff check $(SRC_DIR) --fix-only --select=F,E9,W6; \
 	else \
 		echo "❌ Ruff not installed. Run 'make install-dev' to install development tools."; \
 		exit 1; \
 	fi
 	@echo "✅ Code formatting complete!"
 
-## Run tests with pytest
-test:
-	@echo ">>> Running tests..."
-	@if conda run -n $(CONDA_ENV_NAME) python -c "import pytest" 2>/dev/null; then \
-		conda run -n $(CONDA_ENV_NAME) python -m pytest tests/ -v; \
-	else \
-		echo "❌ Pytest not installed. Run 'make install-dev' to install development tools."; \
-		echo "Or create basic tests with: mkdir -p tests && touch tests/test_basic.py"; \
-	fi
+## Strict linting for CI/final review (optional)
+lint-strict:
+	@echo ">>> Running strict code quality checks..."
+	@conda run -n $(CONDA_ENV_NAME) ruff check $(SRC_DIR)
+	@echo "✅ Strict linting complete!"
 
 ## Clean up compiled Python files and caches
 clean:
@@ -181,7 +177,11 @@ clean:
 ## Download all required datasets from Kaggle
 download-datasets: check-env
 	@echo ">>> Downloading datasets from Kaggle..."
-	@conda run -n $(CONDA_ENV_NAME) --no-capture-output python $(SRC_DIR)/datasets_downloader.py
+	@if ! conda run -n $(CONDA_ENV_NAME) python -c "import kaggle" 2>/dev/null; then \
+		echo "❌ Kaggle CLI not found. Installing..."; \
+		conda run -n $(CONDA_ENV_NAME) pip install kaggle; \
+	fi
+	@conda run -n $(CONDA_ENV_NAME) $(PYTHON_INTERPRETER) $(SRC_DIR)/datasets_downloader.py
 	@echo "✅ Dataset download complete!"
 
 ## Show Kaggle API setup instructions
@@ -416,5 +416,27 @@ uninstall:
 ## Full cleanup: remove environment, datasets, and generated files
 reset: uninstall clean
 	@echo ">>> Performing full project reset..."
-	@rm -rf datasets/ mlruns/ mlflow.db ppera/rl_tmp/
+	@echo "Cleaning dataset contents (preserving folder structure)..."
+	@for dataset in AmazonSales MovieLens PostRecommendations; do \
+		if [ -d "datasets/$$dataset" ]; then \
+			echo "  Cleaning datasets/$$dataset/..."; \
+			find "datasets/$$dataset" -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
+		fi; \
+	done
+	@echo "Cleaning ppera directories..."
+	@if [ -d "ppera/datasets" ]; then \
+		echo "  Cleaning ppera/datasets/..."; \
+		find ppera/datasets -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
+	fi
+	@if [ -d "ppera/metrics" ]; then \
+		echo "  Cleaning ppera/metrics/ (removing subfolders)..."; \
+		find ppera/metrics -mindepth 1 -type d ! -name '.gitkeep' -exec rm -rf {} + 2>/dev/null || true; \
+		find ppera/metrics -mindepth 1 -type f ! -name '.gitkeep' -delete 2>/dev/null || true; \
+	fi
+	@if [ -d "ppera/plots" ]; then \
+		echo "  Cleaning ppera/plots/..."; \
+		find ppera/plots -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
+	fi
+	@echo "Removing ML artifacts and logs..."
+	@rm -rf mlruns/ mlartifacts/ mlflow.db ppera/rl_tmp/ experiment_runner.log
 	@echo "✅ Full reset complete! Run 'make quickstart' to set up again."

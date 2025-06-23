@@ -6,7 +6,7 @@ import os
 import pickle
 import random
 import sys
-from typing import Dict, List, Tuple, Any, Union
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import scipy.sparse as sp
@@ -110,7 +110,7 @@ PATH_PATTERN = {
 def get_entities() -> List[str]:
     """
     Get list of all entity types in the knowledge graph.
-    
+
     Returns:
         List of entity type names
     """
@@ -120,13 +120,13 @@ def get_entities() -> List[str]:
 def get_relations(entity_head: str) -> List[str]:
     """
     Get list of all relation types for a given head entity.
-    
+
     Args:
         entity_head: Head entity type
-        
+
     Returns:
         List of relation types from the head entity
-        
+
     Raises:
         KeyError: If entity_head is not in KG_RELATION
     """
@@ -138,14 +138,14 @@ def get_relations(entity_head: str) -> List[str]:
 def get_entity_tail(entity_head: str, relation: str) -> str:
     """
     Get tail entity type for a given head entity and relation.
-    
+
     Args:
         entity_head: Head entity type
         relation: Relation type
-        
+
     Returns:
         Tail entity type
-        
+
     Raises:
         KeyError: If entity_head or relation not found
     """
@@ -169,24 +169,24 @@ def compute_tfidf_fast(vocab: List[Any], docs: List[List[int]]) -> sp.csr_matrix
     """
     if not docs:
         return sp.csr_matrix((0, len(vocab)))
-    
+
     # Compute term frequency in each document
     data, indices, indptr = [], [], [0]
-    
+
     for doc in docs:
         if not doc:  # Handle empty documents
             indptr.append(len(indices))
             continue
-            
+
         term_count = {}
         for term_idx in doc:
             if 0 <= term_idx < len(vocab):  # Validate term index
                 term_count[term_idx] = term_count.get(term_idx, 0) + 1
-        
+
         indices.extend(term_count.keys())
         data.extend(term_count.values())
         indptr.append(len(indices))
-    
+
     # Create term frequency matrix
     tf = sp.csr_matrix((data, indices, indptr), dtype=int, shape=(len(docs), len(vocab)))
 
@@ -199,10 +199,10 @@ def compute_tfidf_fast(vocab: List[Any], docs: List[List[int]]) -> sp.csr_matrix
 def get_logger(logname: str) -> logging.Logger:
     """
     Create and configure a logger with both console and file output.
-    
+
     Args:
         logname: Path to log file
-        
+
     Returns:
         Configured logger instance
     """
@@ -210,49 +210,49 @@ def get_logger(logname: str) -> logging.Logger:
     log_dir = os.path.dirname(logname)
     if log_dir and not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    
+
     logger = logging.getLogger(logname)
     logger.setLevel(logging.DEBUG)
-    
+
     # Clear existing handlers to avoid duplicates
     logger.handlers.clear()
-    
+
     formatter = logging.Formatter("[%(levelname)s]  %(message)s")
-    
+
     # Console handler
     ch = logging.StreamHandler(sys.stdout)
     ch.setFormatter(formatter)
     logger.addHandler(ch)
-    
+
     # File handler
     fh = logging.handlers.RotatingFileHandler(logname, mode="w")
     fh.setFormatter(formatter)
     logger.addHandler(fh)
-    
+
     return logger
 
 
 def set_random_seed(seed: int) -> None:
     """
     Set random seed for reproducibility across all libraries.
-    
+
     Args:
         seed: Random seed value
     """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    
+
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-    
+
     # Set deterministic algorithms for reproducibility
     try:
         torch.use_deterministic_algorithms(True)
     except AttributeError:
         # For older PyTorch versions
         torch.set_deterministic(True)
-    
+
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
@@ -260,21 +260,21 @@ def set_random_seed(seed: int) -> None:
 def save_dataset(dataset: str, dataset_obj: Any) -> None:
     """
     Save dataset object to pickle file.
-    
+
     Args:
         dataset: Dataset name
         dataset_obj: Dataset object to save
-        
+
     Raises:
         KeyError: If dataset name is not recognized
         IOError: If file cannot be written
     """
     if dataset not in TMP_DIR:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     dataset_file = os.path.join(TMP_DIR[dataset], "dataset.pkl")
     _ensure_directory_exists(os.path.dirname(dataset_file))
-    
+
     try:
         with open(dataset_file, "wb") as f:
             pickle.dump(dataset_obj, f)
@@ -285,22 +285,22 @@ def save_dataset(dataset: str, dataset_obj: Any) -> None:
 def load_dataset(dataset: str) -> Any:
     """
     Load dataset object from pickle file.
-    
+
     Args:
         dataset: Dataset name
-        
+
     Returns:
         Loaded dataset object
-        
+
     Raises:
         KeyError: If dataset name is not recognized
         FileNotFoundError: If dataset file doesn't exist
     """
     if dataset not in TMP_DIR:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     dataset_file = os.path.join(TMP_DIR[dataset], "dataset.pkl")
-    
+
     try:
         with open(dataset_file, "rb") as f:
             return pickle.load(f)
@@ -311,25 +311,25 @@ def load_dataset(dataset: str) -> Any:
 def save_labels(dataset: str, labels: Dict[int, List[Tuple]], mode: str = "train") -> None:
     """
     Save user labels to pickle file.
-    
+
     Args:
         dataset: Dataset name
         labels: Dictionary mapping user IDs to item-rating tuples
         mode: Either "train" or "test"
-        
+
     Raises:
         ValueError: If mode is not "train" or "test"
         KeyError: If dataset name is not recognized
     """
     if mode not in ["train", "test"]:
         raise ValueError("mode should be one of {'train', 'test'}")
-    
+
     if dataset not in LABELS:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     label_file = LABELS[dataset][0] if mode == "train" else LABELS[dataset][1]
     _ensure_directory_exists(os.path.dirname(label_file))
-    
+
     try:
         with open(label_file, "wb") as f:
             pickle.dump(labels, f)
@@ -340,14 +340,14 @@ def save_labels(dataset: str, labels: Dict[int, List[Tuple]], mode: str = "train
 def load_labels(dataset: str, mode: str = "train") -> Dict[int, List[Tuple]]:
     """
     Load user labels from pickle file.
-    
+
     Args:
         dataset: Dataset name
         mode: Either "train" or "test"
-        
+
     Returns:
         Dictionary mapping user IDs to item-rating tuples
-        
+
     Raises:
         ValueError: If mode is not "train" or "test"
         KeyError: If dataset name is not recognized
@@ -355,12 +355,12 @@ def load_labels(dataset: str, mode: str = "train") -> Dict[int, List[Tuple]]:
     """
     if mode not in ["train", "test"]:
         raise ValueError("mode should be one of {'train', 'test'}")
-    
+
     if dataset not in LABELS:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     label_file = LABELS[dataset][0] if mode == "train" else LABELS[dataset][1]
-    
+
     try:
         with open(label_file, "rb") as f:
             return pickle.load(f)
@@ -371,20 +371,20 @@ def load_labels(dataset: str, mode: str = "train") -> Dict[int, List[Tuple]]:
 def save_embed(dataset: str, embed: Dict[str, Any]) -> None:
     """
     Save embeddings to pickle file.
-    
+
     Args:
         dataset: Dataset name
         embed: Dictionary containing embeddings
-        
+
     Raises:
         KeyError: If dataset name is not recognized
     """
     if dataset not in TMP_DIR:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     embed_file = os.path.join(TMP_DIR[dataset], "transe_embed.pkl")
     _ensure_directory_exists(os.path.dirname(embed_file))
-    
+
     try:
         with open(embed_file, "wb") as f:
             pickle.dump(embed, f)
@@ -395,23 +395,23 @@ def save_embed(dataset: str, embed: Dict[str, Any]) -> None:
 def load_embed(dataset: str) -> Dict[str, Any]:
     """
     Load embeddings from pickle file.
-    
+
     Args:
         dataset: Dataset name
-        
+
     Returns:
         Dictionary containing embeddings
-        
+
     Raises:
         KeyError: If dataset name is not recognized
         FileNotFoundError: If embedding file doesn't exist
     """
     if dataset not in TMP_DIR:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     embed_file = os.path.join(TMP_DIR[dataset], "transe_embed.pkl")
     print(f"Loading embeddings from: {embed_file}")
-    
+
     try:
         with open(embed_file, "rb") as f:
             return pickle.load(f)
@@ -422,20 +422,20 @@ def load_embed(dataset: str) -> Dict[str, Any]:
 def save_kg(dataset: str, kg: Any) -> None:
     """
     Save knowledge graph to pickle file.
-    
+
     Args:
         dataset: Dataset name
         kg: Knowledge graph object
-        
+
     Raises:
         KeyError: If dataset name is not recognized
     """
     if dataset not in TMP_DIR:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     kg_file = os.path.join(TMP_DIR[dataset], "kg.pkl")
     _ensure_directory_exists(os.path.dirname(kg_file))
-    
+
     try:
         with open(kg_file, "wb") as f:
             pickle.dump(kg, f)
@@ -446,22 +446,22 @@ def save_kg(dataset: str, kg: Any) -> None:
 def load_kg(dataset: str) -> Any:
     """
     Load knowledge graph from pickle file.
-    
+
     Args:
         dataset: Dataset name
-        
+
     Returns:
         Knowledge graph object
-        
+
     Raises:
         KeyError: If dataset name is not recognized
         FileNotFoundError: If KG file doesn't exist
     """
     if dataset not in TMP_DIR:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     kg_file = os.path.join(TMP_DIR[dataset], "kg.pkl")
-    
+
     try:
         with open(kg_file, "rb") as f:
             return pickle.load(f)
@@ -472,7 +472,7 @@ def load_kg(dataset: str) -> Any:
 def _ensure_directory_exists(directory: str) -> None:
     """
     Ensure that a directory exists, creating it if necessary.
-    
+
     Args:
         directory: Directory path to check/create
     """
@@ -486,10 +486,10 @@ def _ensure_directory_exists(directory: str) -> None:
 def validate_dataset_name(dataset: str) -> bool:
     """
     Validate that a dataset name is recognized.
-    
+
     Args:
         dataset: Dataset name to validate
-        
+
     Returns:
         True if dataset name is valid, False otherwise
     """
@@ -499,7 +499,7 @@ def validate_dataset_name(dataset: str) -> bool:
 def get_supported_datasets() -> List[str]:
     """
     Get list of all supported dataset names.
-    
+
     Returns:
         List of supported dataset names
     """
@@ -509,22 +509,22 @@ def get_supported_datasets() -> List[str]:
 def get_file_paths(dataset: str) -> Dict[str, str]:
     """
     Get all file paths for a given dataset.
-    
+
     Args:
         dataset: Dataset name
-        
+
     Returns:
         Dictionary mapping file types to their paths
-        
+
     Raises:
         KeyError: If dataset name is not recognized
     """
     if dataset not in TMP_DIR:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     base_dir = TMP_DIR[dataset]
     train_label, test_label = LABELS[dataset]
-    
+
     return {
         "base_dir": base_dir,
         "dataset_file": os.path.join(base_dir, "dataset.pkl"),
@@ -539,40 +539,40 @@ def get_file_paths(dataset: str) -> Dict[str, str]:
 def cleanup_dataset_files(dataset: str, confirm: bool = False) -> None:
     """
     Clean up all generated files for a dataset.
-    
+
     Args:
         dataset: Dataset name
         confirm: If True, actually delete files; if False, just list them
-        
+
     Raises:
         KeyError: If dataset name is not recognized
     """
     if dataset not in TMP_DIR:
         raise KeyError(f"Unknown dataset: {dataset}")
-    
+
     file_paths = get_file_paths(dataset)
     files_to_remove = [
         file_paths["dataset_file"],
-        file_paths["processed_dataset_file"], 
+        file_paths["processed_dataset_file"],
         file_paths["kg_file"],
         file_paths["embed_file"],
         file_paths["train_labels"],
         file_paths["test_labels"],
     ]
-    
+
     existing_files = [f for f in files_to_remove if os.path.exists(f)]
-    
+
     if not existing_files:
         print(f"No files found to clean up for dataset: {dataset}")
         return
-    
+
     if not confirm:
         print(f"Files that would be removed for dataset '{dataset}':")
         for file_path in existing_files:
             print(f"  {file_path}")
         print("Use confirm=True to actually delete these files.")
         return
-    
+
     for file_path in existing_files:
         try:
             os.remove(file_path)

@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import pandas as pd
 
@@ -28,13 +28,13 @@ def rl_experiment_loop(
 ) -> None:
     """
     Execute complete RL-based recommendation system experiment pipeline.
-    
+
     This function orchestrates the full experimental workflow:
     1. Data preprocessing and knowledge graph construction
     2. TransE model training for entity/relation embeddings
     3. RL agent training for recommendation policy learning
     4. Testing and evaluation with metrics calculation
-    
+
     Args:
         TOP_K: Number of top recommendations to generate
         dataset: Dataset name (e.g., "movielens", "amazonsales")
@@ -50,21 +50,21 @@ def rl_experiment_loop(
         columns_to_hide: List of column names to hide for privacy
         fraction_to_hide: Fraction of data to hide for privacy
         records_to_hide: Specific record indices to hide for privacy
-        
+
     Returns:
         None
-        
+
     Raises:
         Exception: If any stage of the pipeline fails
     """
     print(f"\n===== Starting RL Experiment Pipeline for {dataset.upper()} =====")
     print(f"Configuration: TOP_K={TOP_K}, seed={seed}, rows={num_rows}, ratio={ratio}")
-    
+
     if privacy:
         print(f"Privacy settings: hide_type={hide_type}, fraction_to_hide={fraction_to_hide}")
     if personalization:
         print(f"Personalization settings: fraction_to_change={fraction_to_change}, change_rating={change_rating}")
-    
+
     # Stage 1: Data Preprocessing and Knowledge Graph Construction
     try:
         print("\n===== Stage 1: Data Preprocessing & Knowledge Graph Construction =====")
@@ -84,7 +84,7 @@ def rl_experiment_loop(
             records_to_hide=records_to_hide,
         )
         print(f"✓ Preprocessing completed. Train: {len(train_df)}, Test: {len(test_df)}, Total: {len(data_df)}")
-        
+
     except Exception as e:
         print(f"✗ Stage 1 failed: {e}")
         raise Exception(f"Preprocessing stage failed: {e}") from e
@@ -94,7 +94,7 @@ def rl_experiment_loop(
         print("\n===== Stage 2: TransE Knowledge Graph Embedding Training =====")
         _run_kge_training_stage(dataset=dataset, seed=seed)
         print("✓ TransE model training completed successfully")
-        
+
     except Exception as e:
         print(f"✗ Stage 2 failed: {e}")
         raise Exception(f"KGE training stage failed: {e}") from e
@@ -104,7 +104,7 @@ def rl_experiment_loop(
         print("\n===== Stage 3: RL Agent Policy Training =====")
         _run_rl_training_stage(dataset=dataset, seed=seed)
         print("✓ RL agent training completed successfully")
-        
+
     except Exception as e:
         print(f"✗ Stage 3 failed: {e}")
         raise Exception(f"RL training stage failed: {e}") from e
@@ -128,7 +128,7 @@ def rl_experiment_loop(
             fraction_to_change=fraction_to_change,
         )
         print("✓ Testing and evaluation completed successfully")
-        
+
     except Exception as e:
         print(f"✗ Stage 4 failed: {e}")
         raise Exception(f"Testing stage failed: {e}") from e
@@ -153,12 +153,12 @@ def _run_preprocessing_stage(
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Execute the preprocessing stage of the RL pipeline.
-    
+
     Returns:
         Tuple of (full_data, train_data, test_data) DataFrames
     """
     print("Running data preprocessing and knowledge graph construction...")
-    
+
     data_df, train_df, test_df = preprocess_rl(
         dataset=dataset,
         want_col=want_col,
@@ -174,39 +174,39 @@ def _run_preprocessing_stage(
         fraction_to_hide=fraction_to_hide,
         records_to_hide=records_to_hide,
     )
-    
+
     # Validate preprocessing results
     if data_df.empty or train_df.empty or test_df.empty:
         raise ValueError("Preprocessing returned empty DataFrames")
-    
+
     return data_df, train_df, test_df
 
 
 def _run_kge_training_stage(dataset: str, seed: int) -> None:
     """
     Execute the Knowledge Graph Embedding training stage.
-    
+
     Args:
         dataset: Dataset name
         seed: Random seed for reproducibility
     """
     print("Training TransE model for knowledge graph embeddings...")
     print("This stage learns vector representations for entities and relations.")
-    
+
     train_transe_model_rl(dataset=dataset, seed=seed)
 
 
 def _run_rl_training_stage(dataset: str, seed: int) -> None:
     """
     Execute the Reinforcement Learning agent training stage.
-    
+
     Args:
         dataset: Dataset name
         seed: Random seed for reproducibility
     """
     print("Training RL agent for recommendation policy learning...")
     print("This stage learns to navigate the knowledge graph for recommendations.")
-    
+
     train_agent_rl(dataset=dataset, seed=seed)
 
 
@@ -227,7 +227,7 @@ def _run_testing_stage(
 ) -> None:
     """
     Execute the testing and evaluation stage.
-    
+
     Args:
         dataset: Dataset name
         TOP_K: Number of top recommendations
@@ -245,7 +245,7 @@ def _run_testing_stage(
     """
     print("Running trained RL agent on test data...")
     print("This stage generates recommendations and calculates evaluation metrics.")
-    
+
     test_agent_rl(
         dataset=dataset,
         TOP_K=TOP_K,
@@ -270,11 +270,11 @@ def run_rl_experiment(
     num_rows: Optional[int] = None,
     ratio: float = 0.8,
     seed: int = 42,
-    **kwargs
+    **kwargs,
 ) -> None:
     """
     Convenience function to run RL experiment with default parameters.
-    
+
     Args:
         TOP_K: Number of top recommendations (default: 10)
         dataset: Dataset name (default: "movielens")
@@ -292,19 +292,11 @@ def run_rl_experiment(
             "postrecommendations": ["userID", "itemID", "rating"],
         }
         want_col = default_columns.get(dataset, ["userID", "itemID", "rating"])
-    
+
     print(f"Running RL experiment with default parameters for {dataset}")
     print(f"Using columns: {want_col}")
-    
-    rl_experiment_loop(
-        TOP_K=TOP_K,
-        dataset=dataset,
-        want_col=want_col,
-        num_rows=num_rows,
-        ratio=ratio,
-        seed=seed,
-        **kwargs
-    )
+
+    rl_experiment_loop(TOP_K=TOP_K, dataset=dataset, want_col=want_col, num_rows=num_rows, ratio=ratio, seed=seed, **kwargs)
 
 
 def validate_experiment_parameters(
@@ -317,7 +309,7 @@ def validate_experiment_parameters(
 ) -> None:
     """
     Validate experiment parameters before running the pipeline.
-    
+
     Args:
         TOP_K: Number of top recommendations
         dataset: Dataset name
@@ -325,25 +317,25 @@ def validate_experiment_parameters(
         ratio: Train/test split ratio
         fraction_to_change: Fraction to change for personalization
         fraction_to_hide: Fraction to hide for privacy
-        
+
     Raises:
         ValueError: If any parameter is invalid
     """
     if TOP_K <= 0:
         raise ValueError("TOP_K must be positive")
-    
+
     if not isinstance(dataset, str) or not dataset.strip():
         raise ValueError("dataset must be a non-empty string")
-    
+
     if not isinstance(want_col, list) or not want_col:
         raise ValueError("want_col must be a non-empty list")
-    
+
     if not 0 < ratio < 1:
         raise ValueError("ratio must be between 0 and 1")
-    
+
     if not 0 <= fraction_to_change <= 1:
         raise ValueError("fraction_to_change must be between 0 and 1")
-    
+
     if not 0 <= fraction_to_hide <= 1:
         raise ValueError("fraction_to_hide must be between 0 and 1")
 
@@ -351,6 +343,6 @@ def validate_experiment_parameters(
 # Convenience exports for easier imports
 __all__ = [
     "rl_experiment_loop",
-    "run_rl_experiment", 
+    "run_rl_experiment",
     "validate_experiment_parameters",
 ]

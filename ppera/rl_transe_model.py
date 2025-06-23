@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -13,15 +13,15 @@ from .rl_utils import KG_RELATION, get_entities, get_entity_tail
 class KnowledgeEmbedding(nn.Module):
     """
     TransE-based Knowledge Graph Embedding model.
-    
+
     Implements the TransE algorithm for learning entity and relation embeddings
     in a knowledge graph using negative sampling loss.
     """
-    
+
     def __init__(self, processed_dataset: Dict[str, Any], idx_to_relation_name_map: Dict[int, str], args):
         """
         Initialize Knowledge Graph Embedding model.
-        
+
         Args:
             processed_dataset: Dictionary containing entity maps and distributions
             idx_to_relation_name_map: Mapping from relation indices to names
@@ -43,7 +43,7 @@ class KnowledgeEmbedding(nn.Module):
 
         # Initialize entity embeddings
         self._create_entity_embeddings(entity_maps)
-        
+
         # Initialize relation embeddings and info
         self.relation_info = {}
         self._create_relation_embeddings(entity_maps, distributions)
@@ -52,15 +52,15 @@ class KnowledgeEmbedding(nn.Module):
         """Create embedding layers for all entities."""
         print("Creating entity embeddings...")
         self.entity_names = get_entities()
-        
+
         for entity_name in self.entity_names:
             map_data = entity_maps.get(entity_name, {})
             vocab_size = map_data.get("vocab_size", 0)
-            
+
             if vocab_size == 0:
                 print(f"Warning: Vocab size is 0 for entity '{entity_name}'. Skipping embedding creation.")
                 continue
-                
+
             embed = self._entity_embedding(vocab_size)
             layer_name = entity_name.lower()
             setattr(self, layer_name, embed)
@@ -69,17 +69,15 @@ class KnowledgeEmbedding(nn.Module):
     def _create_relation_embeddings(self, entity_maps: Dict[str, Any], distributions: Dict[str, np.ndarray]) -> None:
         """Create embedding layers and info for all relations."""
         print("Creating relation embeddings...")
-        
+
         for head_entity_type, relations_in_head in KG_RELATION.items():
             for relation_name_const in relations_in_head:
                 if relation_name_const in self.relation_info:
                     continue
 
                 # Get relation information
-                relation_info = self._get_relation_info(
-                    head_entity_type, relation_name_const, entity_maps, distributions
-                )
-                
+                relation_info = self._get_relation_info(head_entity_type, relation_name_const, entity_maps, distributions)
+
                 if relation_info is None:
                     continue
 
@@ -88,11 +86,7 @@ class KnowledgeEmbedding(nn.Module):
                 self._create_single_relation_embedding(relation_name_const, relation_info["tail_vocab_size"])
 
     def _get_relation_info(
-        self,
-        head_entity_type: str,
-        relation_name_const: str,
-        entity_maps: Dict[str, Any],
-        distributions: Dict[str, np.ndarray]
+        self, head_entity_type: str, relation_name_const: str, entity_maps: Dict[str, Any], distributions: Dict[str, np.ndarray]
     ) -> Optional[Dict[str, Any]]:
         """Get information for a single relation."""
         try:
@@ -108,7 +102,7 @@ class KnowledgeEmbedding(nn.Module):
         if tail_vocab_size == 0:
             print(f"Warning: Tail vocab size is 0 for relation '{relation_name_const}'. Skipping relation layer creation.")
             return None
-            
+
         if distrib_np is None:
             print(f"Warning: Distribution not found for relation '{relation_name_const}'. Skipping relation layer creation.")
             return None
@@ -124,10 +118,10 @@ class KnowledgeEmbedding(nn.Module):
         """Create embedding layers for a single relation."""
         embed = self._relation_embedding()
         bias = self._relation_bias(tail_vocab_size)
-        
+
         relation_layer_name = relation_name_const.lower()
         bias_layer_name = relation_layer_name + "_bias"
-        
+
         setattr(self, relation_layer_name, embed)
         setattr(self, bias_layer_name, bias)
         print(f"  Created embedding param '{relation_layer_name}' and bias layer '{bias_layer_name}' for relation '{relation_name_const}'")
@@ -164,10 +158,10 @@ class KnowledgeEmbedding(nn.Module):
     def forward(self, batch_triples: torch.Tensor) -> torch.Tensor:
         """
         Forward pass computing TransE loss.
-        
+
         Args:
             batch_triples: Tensor of shape [batch_size, 3] containing (head, relation, tail) indices
-            
+
         Returns:
             Computed loss tensor
         """
@@ -177,10 +171,10 @@ class KnowledgeEmbedding(nn.Module):
     def compute_loss(self, batch_triples: torch.Tensor) -> torch.Tensor:
         """
         Compute knowledge graph negative sampling loss for a batch of triples.
-        
+
         Args:
             batch_triples: Tensor of shape [batch_size, 3] containing (head, relation, tail) indices
-            
+
         Returns:
             Combined loss across all relation types in the batch
         """
@@ -194,10 +188,8 @@ class KnowledgeEmbedding(nn.Module):
         # Process each unique relation type in the batch
         unique_rel_idxs = torch.unique(r_idxs)
         for rel_idx_tensor in unique_rel_idxs:
-            rel_loss, rel_embeds = self._compute_relation_loss(
-                rel_idx_tensor, h_idxs, r_idxs, t_idxs
-            )
-            
+            rel_loss, rel_embeds = self._compute_relation_loss(rel_idx_tensor, h_idxs, r_idxs, t_idxs)
+
             if rel_loss is not None:
                 loss += rel_loss
                 regularizations.extend(rel_embeds)
@@ -213,22 +205,18 @@ class KnowledgeEmbedding(nn.Module):
         return loss
 
     def _compute_relation_loss(
-        self,
-        rel_idx_tensor: torch.Tensor,
-        h_idxs: torch.Tensor,
-        r_idxs: torch.Tensor,
-        t_idxs: torch.Tensor
+        self, rel_idx_tensor: torch.Tensor, h_idxs: torch.Tensor, r_idxs: torch.Tensor, t_idxs: torch.Tensor
     ) -> Tuple[Optional[torch.Tensor], List[torch.Tensor]]:
         """Compute loss for a specific relation type."""
         rel_idx_int = rel_idx_tensor.item()
-        
+
         # Validate relation index
         if rel_idx_int not in self.idx_to_relation_name_map:
             print(f"Warning: Relation index {rel_idx_int} not in model's idx_to_relation_name_map. Skipping.")
             return None, []
 
         relation_name = self.idx_to_relation_name_map[rel_idx_int]
-        
+
         if relation_name not in self.relation_info:
             print(f"Warning: Relation '{relation_name}' not found in model's relation_info. Skipping loss calc.")
             return None, []
@@ -259,7 +247,7 @@ class KnowledgeEmbedding(nn.Module):
         for h_type_const, rels_in_head in KG_RELATION.items():
             if relation_name in rels_in_head:
                 return h_type_const.lower()
-        
+
         print(f"Warning: Could not determine head entity type for relation '{relation_name}'. Skipping loss calculation.")
         return None
 
@@ -274,23 +262,18 @@ class KnowledgeEmbedding(nn.Module):
         return loss
 
     def neg_loss(
-        self,
-        entity_head_name: str,
-        relation_name: str,
-        entity_tail_name: str,
-        entity_head_idxs: torch.Tensor,
-        entity_tail_idxs: torch.Tensor
+        self, entity_head_name: str, relation_name: str, entity_tail_name: str, entity_head_idxs: torch.Tensor, entity_tail_idxs: torch.Tensor
     ) -> Tuple[Optional[torch.Tensor], List[torch.Tensor]]:
         """
         Calculate negative sampling loss for a specific relation type.
-        
+
         Args:
             entity_head_name: Name of head entity type
             relation_name: Name of relation
             entity_tail_name: Name of tail entity type
             entity_head_idxs: Head entity indices
             entity_tail_idxs: Tail entity indices
-            
+
         Returns:
             Tuple of (loss, embeddings_for_regularization)
         """
@@ -298,9 +281,7 @@ class KnowledgeEmbedding(nn.Module):
             return None, []
 
         # Get model components
-        components = self._get_model_components(
-            entity_head_name, relation_name, entity_tail_name
-        )
+        components = self._get_model_components(entity_head_name, relation_name, entity_tail_name)
         if components is None:
             return None, []
 
@@ -309,13 +290,10 @@ class KnowledgeEmbedding(nn.Module):
         try:
             # Compute positive and negative losses
             pos_loss, entity_head_vec, entity_tail_vec, example_vec, relation_bias = self._compute_positive_loss(
-                entity_head_embedding, entity_tail_embedding, relation_vec, 
-                relation_bias_embedding, entity_head_idxs, entity_tail_idxs
+                entity_head_embedding, entity_tail_embedding, relation_vec, relation_bias_embedding, entity_head_idxs, entity_tail_idxs
             )
-            
-            neg_loss = self._compute_negative_loss(
-                entity_tail_embedding, entity_tail_distrib, example_vec, relation_bias
-            )
+
+            neg_loss = self._compute_negative_loss(entity_tail_embedding, entity_tail_distrib, example_vec, relation_bias)
 
             # Combine losses
             loss_per_example = pos_loss + neg_loss
@@ -324,19 +302,13 @@ class KnowledgeEmbedding(nn.Module):
             return loss, [entity_head_vec, entity_tail_vec, relation_vec]
 
         except IndexError as e:
-            self._log_index_error(e, relation_name, entity_head_idxs, entity_tail_idxs, 
-                                entity_head_embedding, entity_tail_embedding, relation_bias_embedding)
+            self._log_index_error(e, relation_name, entity_head_idxs, entity_tail_idxs, entity_head_embedding, entity_tail_embedding, relation_bias_embedding)
             return None, []
         except Exception as e:
             print(f"Unexpected error during loss calculation for relation '{relation_name}': {e}")
             return None, []
 
-    def _get_model_components(
-        self,
-        entity_head_name: str,
-        relation_name: str,
-        entity_tail_name: str
-    ) -> Optional[Tuple]:
+    def _get_model_components(self, entity_head_name: str, relation_name: str, entity_tail_name: str) -> Optional[Tuple]:
         """Get all model components needed for loss calculation."""
         relation_layer_name = relation_name.lower()
         bias_layer_name = relation_layer_name + "_bias"
@@ -347,10 +319,9 @@ class KnowledgeEmbedding(nn.Module):
             relation_vec = getattr(self, relation_layer_name)
             relation_bias_embedding = getattr(self, bias_layer_name)
             entity_tail_distrib = self.relation_info[relation_name]["distribution"]
-            
-            return (entity_head_embedding, entity_tail_embedding, relation_vec, 
-                   relation_bias_embedding, entity_tail_distrib)
-            
+
+            return (entity_head_embedding, entity_tail_embedding, relation_vec, relation_bias_embedding, entity_tail_distrib)
+
         except AttributeError as e:
             print(f"Error accessing layers/params for relation '{relation_name}' ({entity_head_name} -> {entity_tail_name}): {e}")
             print(f"Ensure layers '{entity_head_name}', '{entity_tail_name}', '{relation_layer_name}', '{bias_layer_name}' created correctly in __init__")
@@ -366,7 +337,7 @@ class KnowledgeEmbedding(nn.Module):
         relation_vec: nn.Parameter,
         relation_bias_embedding: nn.Embedding,
         entity_head_idxs: torch.Tensor,
-        entity_tail_idxs: torch.Tensor
+        entity_tail_idxs: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Compute positive sample loss."""
         entity_head_vec = entity_head_embedding(entity_head_idxs)
@@ -376,23 +347,19 @@ class KnowledgeEmbedding(nn.Module):
         entity_tail_vec = entity_tail_embedding(entity_tail_idxs)
         pos_vec = entity_tail_vec.unsqueeze(1)
         relation_bias = relation_bias_embedding(entity_tail_idxs).squeeze(1)
-        
+
         pos_logits = torch.bmm(pos_vec, example_vec).squeeze(-1) + relation_bias
         pos_loss = -F.logsigmoid(pos_logits)
 
         return pos_loss, entity_head_vec, entity_tail_vec, example_vec, relation_bias
 
     def _compute_negative_loss(
-        self,
-        entity_tail_embedding: nn.Embedding,
-        entity_tail_distrib: torch.Tensor,
-        example_vec: torch.Tensor,
-        relation_bias: torch.Tensor
+        self, entity_tail_embedding: nn.Embedding, entity_tail_distrib: torch.Tensor, example_vec: torch.Tensor, relation_bias: torch.Tensor
     ) -> torch.Tensor:
         """Compute negative sample loss."""
         batch_size = example_vec.size(0)
         num_neg = self.num_neg_samples
-        
+
         # Sample negative tails
         neg_sample_idx = torch.multinomial(entity_tail_distrib, batch_size * num_neg, replacement=True)
         neg_vec = entity_tail_embedding(neg_sample_idx)
@@ -404,7 +371,7 @@ class KnowledgeEmbedding(nn.Module):
 
         # Calculate negative loss
         neg_loss = -F.logsigmoid(-neg_logits).sum(dim=1)
-        
+
         return neg_loss
 
     def _log_index_error(
@@ -415,19 +382,16 @@ class KnowledgeEmbedding(nn.Module):
         entity_tail_idxs: torch.Tensor,
         entity_head_embedding: nn.Embedding,
         entity_tail_embedding: nn.Embedding,
-        relation_bias_embedding: nn.Embedding
+        relation_bias_embedding: nn.Embedding,
     ) -> None:
         """Log detailed information about index errors."""
         print(f"Error during loss calculation for relation '{relation_name}' (likely index out of bounds): {error}")
         print(
-            f"  Head Indices (max): {entity_head_idxs.max() if len(entity_head_idxs) > 0 else 'N/A'}, "
-            f"Head Vocab Size: {entity_head_embedding.num_embeddings}"
+            f"  Head Indices (max): {entity_head_idxs.max() if len(entity_head_idxs) > 0 else 'N/A'}, Head Vocab Size: {entity_head_embedding.num_embeddings}"
         )
         print(
-            f"  Tail Indices (max): {entity_tail_idxs.max() if len(entity_tail_idxs) > 0 else 'N/A'}, "
-            f"Tail Vocab Size: {entity_tail_embedding.num_embeddings}"
+            f"  Tail Indices (max): {entity_tail_idxs.max() if len(entity_tail_idxs) > 0 else 'N/A'}, Tail Vocab Size: {entity_tail_embedding.num_embeddings}"
         )
         print(
-            f"  Bias Indices (max): {entity_tail_idxs.max() if len(entity_tail_idxs) > 0 else 'N/A'}, "
-            f"Bias Vocab Size: {relation_bias_embedding.num_embeddings}"
+            f"  Bias Indices (max): {entity_tail_idxs.max() if len(entity_tail_idxs) > 0 else 'N/A'}, Bias Vocab Size: {relation_bias_embedding.num_embeddings}"
         )

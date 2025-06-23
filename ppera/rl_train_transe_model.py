@@ -4,7 +4,7 @@ import argparse
 import os
 import pickle
 import sys
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -41,7 +41,7 @@ class KGTrainerDataLoader:
     def __init__(self, processed_dataset: Dict[str, Any], batch_size: int):
         """
         Initialize the dataloader.
-        
+
         Args:
             processed_dataset: Dictionary containing relations and other data
             batch_size: Size of each training batch
@@ -58,17 +58,17 @@ class KGTrainerDataLoader:
         # Build triples dataset
         self.triples = self._build_triples()
         self.num_triples = len(self.triples)
-        
+
         if self.num_triples == 0:
             raise ValueError("No training triples found in the processed dataset!")
-            
+
         print(f"KGTrainerDataLoader initialized with {self.num_triples} positive triples.")
         self.reset()
 
     def _build_triples(self) -> List[Tuple[int, int, int]]:
         """Build list of training triples from relations data."""
         triples = []
-        
+
         for rel_name, head_tail_list in self.relations_dict.items():
             if rel_name in self.rel_to_idx:
                 rel_idx = self.rel_to_idx[rel_name]
@@ -76,7 +76,7 @@ class KGTrainerDataLoader:
                     triples.append((head_idx, rel_idx, tail_idx))
             else:
                 print(f"Warning: Relation '{rel_name}' found in data but not in mapped relations. Skipping.")
-        
+
         return triples
 
     def reset(self) -> None:
@@ -92,7 +92,7 @@ class KGTrainerDataLoader:
     def get_batch(self) -> Optional[np.ndarray]:
         """
         Get the next batch of triples.
-        
+
         Returns:
             Batch of triples as numpy array or None if no more batches
         """
@@ -123,21 +123,17 @@ class KGTrainerDataLoader:
 def train(args: argparse.Namespace) -> None:
     """
     Main training function for TransE model.
-    
+
     Args:
         args: Configuration arguments
     """
     # Load processed dataset
     processed_dataset = _load_processed_dataset(args.dataset)
-    
+
     # Initialize dataloader and model
     dataloader = KGTrainerDataLoader(processed_dataset, args.batch_size)
-    model = KnowledgeEmbedding(
-        processed_dataset, 
-        dataloader.idx_to_rel_name, 
-        args
-    ).to(args.device)
-    
+    model = KnowledgeEmbedding(processed_dataset, dataloader.idx_to_rel_name, args).to(args.device)
+
     # Log model information
     logger.info("Model Class: " + model.__class__.__name__)
     logger.info("Parameters:" + str([i[0] for i in model.named_parameters()]))
@@ -145,19 +141,13 @@ def train(args: argparse.Namespace) -> None:
     # Initialize optimizer and training metrics
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
     total_triples_to_train = args.epochs * dataloader.num_triples
-    
-    training_state = {
-        'steps': 0,
-        'smooth_loss': 0.0
-    }
+
+    training_state = {"steps": 0, "smooth_loss": 0.0}
 
     # Training loop
     for epoch in range(1, args.epochs + 1):
         logger.info(f"--- Starting Epoch {epoch}/{args.epochs} ---")
-        _train_epoch(
-            model, optimizer, dataloader, args, 
-            epoch, total_triples_to_train, training_state
-        )
+        _train_epoch(model, optimizer, dataloader, args, epoch, total_triples_to_train, training_state)
         _save_model_checkpoint(model, epoch, args)
 
 
@@ -165,7 +155,7 @@ def _load_processed_dataset(dataset: str) -> Dict[str, Any]:
     """Load processed dataset from file."""
     processed_dataset_file = TMP_DIR[dataset] + "/processed_dataset.pkl"
     print(f"Loading processed dataset from {processed_dataset_file}")
-    
+
     try:
         with open(processed_dataset_file, "rb") as f:
             processed_dataset = pickle.load(f)
@@ -181,7 +171,7 @@ def _load_processed_dataset(dataset: str) -> Dict[str, Any]:
         logger.error("Error: Negative sampling distributions not found in processed_dataset.pkl.")
         logger.error("Please ensure preprocess.py calculates and saves these distributions.")
         sys.exit(1)
-    
+
     return processed_dataset
 
 
@@ -192,18 +182,16 @@ def _train_epoch(
     args: argparse.Namespace,
     epoch: int,
     total_triples_to_train: int,
-    training_state: Dict[str, float]
+    training_state: Dict[str, float],
 ) -> None:
     """Train for one epoch."""
     dataloader.reset()
     batch_num = 0
-    
+
     while dataloader.has_next():
         # Update learning rate with decay
-        _update_learning_rate(
-            optimizer, dataloader, epoch, total_triples_to_train, args
-        )
-        
+        _update_learning_rate(optimizer, dataloader, epoch, total_triples_to_train, args)
+
         # Get batch and train
         batch_triples = dataloader.get_batch()
         if batch_triples is None:
@@ -211,27 +199,19 @@ def _train_epoch(
 
         # Perform training step
         loss = _training_step(model, optimizer, batch_triples, args)
-        
+
         # Update training metrics
-        training_state['smooth_loss'] += loss
-        training_state['steps'] += 1
+        training_state["smooth_loss"] += loss
+        training_state["steps"] += 1
         batch_num += 1
-        
+
         # Log progress
-        if training_state['steps'] % args.steps_per_checkpoint == 0:
-            _log_training_progress(
-                epoch, batch_num, len(dataloader), 
-                dataloader, total_triples_to_train,
-                training_state, args
-            )
+        if training_state["steps"] % args.steps_per_checkpoint == 0:
+            _log_training_progress(epoch, batch_num, len(dataloader), dataloader, total_triples_to_train, training_state, args)
 
 
 def _update_learning_rate(
-    optimizer: torch.optim.Optimizer,
-    dataloader: KGTrainerDataLoader,
-    epoch: int,
-    total_triples_to_train: int,
-    args: argparse.Namespace
+    optimizer: torch.optim.Optimizer, dataloader: KGTrainerDataLoader, epoch: int, total_triples_to_train: int, args: argparse.Namespace
 ) -> None:
     """Update learning rate with linear decay."""
     triples_processed = (epoch - 1) * dataloader.num_triples + dataloader.get_num_triples_processed()
@@ -242,12 +222,7 @@ def _update_learning_rate(
         pg["lr"] = lr
 
 
-def _training_step(
-    model: KnowledgeEmbedding,
-    optimizer: torch.optim.Optimizer,
-    batch_triples: np.ndarray,
-    args: argparse.Namespace
-) -> float:
+def _training_step(model: KnowledgeEmbedding, optimizer: torch.optim.Optimizer, batch_triples: np.ndarray, args: argparse.Namespace) -> float:
     """Perform single training step."""
     batch_tensor = torch.from_numpy(batch_triples).to(args.device)
 
@@ -256,7 +231,7 @@ def _training_step(
     train_loss.backward()
     torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
     optimizer.step()
-    
+
     return train_loss.item()
 
 
@@ -267,15 +242,15 @@ def _log_training_progress(
     dataloader: KGTrainerDataLoader,
     total_triples_to_train: int,
     training_state: Dict[str, float],
-    args: argparse.Namespace
+    args: argparse.Namespace,
 ) -> None:
     """Log training progress and reset smooth loss."""
     triples_processed = (epoch - 1) * dataloader.num_triples + dataloader.get_num_triples_processed()
-    avg_smooth_loss = training_state['smooth_loss'] / args.steps_per_checkpoint
-    
+    avg_smooth_loss = training_state["smooth_loss"] / args.steps_per_checkpoint
+
     # Get current learning rate
     current_lr = args.lr * max(1e-4, 1.0 - triples_processed / float(total_triples_to_train + 1))
-    
+
     logger.info(
         "Epoch: {:02d} | Batch: {:d}/{:d} | Triples: ~{:d}/{:d} | Lr: {:.5f} | Smooth loss: {:.5f}".format(
             epoch,
@@ -287,7 +262,7 @@ def _log_training_progress(
             avg_smooth_loss,
         )
     )
-    training_state['smooth_loss'] = 0.0
+    training_state["smooth_loss"] = 0.0
 
 
 def _save_model_checkpoint(model: KnowledgeEmbedding, epoch: int, args: argparse.Namespace) -> None:
@@ -300,13 +275,13 @@ def _save_model_checkpoint(model: KnowledgeEmbedding, epoch: int, args: argparse
 def extract_embeddings(args: argparse.Namespace) -> None:
     """
     Extract embeddings from trained model and save them.
-    
+
     Args:
         args: Configuration arguments
     """
     model_file = "{}/transe_model_sd_epoch_{}.ckpt".format(args.log_dir, args.epochs)
     logger.info(f"Loading embeddings from final model: {model_file}")
-    
+
     # Load model state dict
     state_dict = _load_model_state_dict(model_file)
     if state_dict is None:
@@ -319,7 +294,7 @@ def extract_embeddings(args: argparse.Namespace) -> None:
 
     # Extract entity embeddings
     _extract_entity_embeddings(state_dict, embeds, missing_keys)
-    
+
     # Extract relation embeddings
     _extract_relation_embeddings(state_dict, embeds, missing_keys)
 
@@ -346,11 +321,7 @@ def _load_model_state_dict(model_file: str) -> Optional[Dict]:
         return None
 
 
-def _extract_entity_embeddings(
-    state_dict: Dict, 
-    embeds: Dict, 
-    missing_keys: List[str]
-) -> None:
+def _extract_entity_embeddings(state_dict: Dict, embeds: Dict, missing_keys: List[str]) -> None:
     """Extract entity embeddings from state dict."""
     entity_layer_names = {
         USERID: "user_id.weight",
@@ -369,11 +340,7 @@ def _extract_entity_embeddings(
             missing_keys.append(layer_name)
 
 
-def _extract_relation_embeddings(
-    state_dict: Dict, 
-    embeds: Dict, 
-    missing_keys: List[str]
-) -> None:
+def _extract_relation_embeddings(state_dict: Dict, embeds: Dict, missing_keys: List[str]) -> None:
     """Extract relation embeddings from state dict."""
     relation_param_names = {
         WATCHED: ("watched", "watched_bias.weight"),
@@ -385,10 +352,8 @@ def _extract_relation_embeddings(
     }
 
     for rel_const, (vec_name, bias_name) in relation_param_names.items():
-        rel_vec, rel_bias = _extract_single_relation(
-            state_dict, rel_const, vec_name, bias_name, missing_keys
-        )
-        
+        rel_vec, rel_bias = _extract_single_relation(state_dict, rel_const, vec_name, bias_name, missing_keys)
+
         if rel_vec is not None and rel_bias is not None:
             embeds[rel_const] = (rel_vec, rel_bias)
             logger.info(f"  Extracted {rel_const} vector & bias, bias shape: {rel_bias.shape}")
@@ -397,16 +362,12 @@ def _extract_relation_embeddings(
 
 
 def _extract_single_relation(
-    state_dict: Dict,
-    rel_const: str,
-    vec_name: str,
-    bias_name: str,
-    missing_keys: List[str]
+    state_dict: Dict, rel_const: str, vec_name: str, bias_name: str, missing_keys: List[str]
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
     """Extract vector and bias for a single relation."""
     rel_vec = None
     rel_bias = None
-    
+
     if vec_name in state_dict:
         rel_vec = state_dict[vec_name].cpu().data.numpy()[0]
     else:
@@ -418,14 +379,14 @@ def _extract_single_relation(
     else:
         logger.warning(f"  Parameter '{bias_name}' for relation '{rel_const}' bias not found in state_dict.")
         missing_keys.append(bias_name)
-    
+
     return rel_vec, rel_bias
 
 
 def train_transe_model_rl(dataset: str, seed: int) -> None:
     """
     Main entry point for training TransE model.
-    
+
     Args:
         dataset: Dataset name
         seed: Random seed for reproducibility

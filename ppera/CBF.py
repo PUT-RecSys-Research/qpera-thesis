@@ -7,8 +7,7 @@ from recommenders.evaluation.python_evaluation import (
 )
 from recommenders.models.tfidf.tfidf_utils import TfidfRecommender
 
-from . import data_manipulation as dm
-from . import datasets_loader, log_mlflow
+from . import data_manipulation as dm, datasets_loader, log_mlflow
 from .metrics import (
     intra_list_dissimilarity,
     intra_list_similarity_score,
@@ -39,7 +38,7 @@ def cbf_experiment_loop(
 ):
     """
     Execute a complete Content-Based Filtering experiment with optional personalization and privacy modifications.
-    
+
     Args:
         TOP_K (int): Number of top recommendations to generate
         dataset (str): Dataset identifier to load
@@ -55,11 +54,11 @@ def cbf_experiment_loop(
         columns_to_hide (list): Columns to hide for privacy
         fraction_to_hide (float): Fraction of data to hide for privacy
         records_to_hide (list): Specific records to hide for privacy
-    
+
     Returns:
         None: Logs results to MLflow and prints metrics
     """
-    
+
     # Configuration parameters for experiment tracking
     params = {
         "dataset": dataset,
@@ -68,7 +67,7 @@ def cbf_experiment_loop(
         "ratio": ratio,
         "seed": seed,
     }
-    
+
     # Column mapping for consistent data handling
     header = {
         "col_user": "userID",
@@ -89,34 +88,17 @@ def cbf_experiment_loop(
     recommender = TfidfRecommender(id_col="itemID", tokenization_method="bert")
 
     # Split data into training and testing sets
-    train, test = python_stratified_split(
-        data, 
-        ratio=ratio, 
-        col_user=header["col_user"], 
-        col_item=header["col_item"], 
-        seed=seed
-    )
+    train, test = python_stratified_split(data, ratio=ratio, col_user=header["col_user"], col_item=header["col_item"], seed=seed)
 
     # Apply privacy modifications if requested
     if privacy:
         train = dm.hide_information_in_dataframe(
-            data=train, 
-            hide_type=hide_type, 
-            columns_to_hide=columns_to_hide, 
-            fraction_to_hide=fraction_to_hide, 
-            records_to_hide=records_to_hide, 
-            seed=seed
+            data=train, hide_type=hide_type, columns_to_hide=columns_to_hide, fraction_to_hide=fraction_to_hide, records_to_hide=records_to_hide, seed=seed
         )
 
     # Apply personalization modifications if requested
     if personalization:
-        train = dm.change_items_in_dataframe(
-            all=data, 
-            data=train, 
-            fraction_to_change=fraction_to_change, 
-            change_rating=change_rating, 
-            seed=seed
-        )
+        train = dm.change_items_in_dataframe(all=data, data=train, fraction_to_change=fraction_to_change, change_rating=change_rating, seed=seed)
 
     # Prepare data for TF-IDF model training
     df_clean = train.drop(columns=["userID", "rating", "timestamp"])
@@ -159,61 +141,37 @@ def cbf_experiment_loop(
 
     # Accuracy metrics
     eval_precision_at_k = safe_metric_calculation(
-        precision_at_k, test, top_k, 
-        col_user="userID", col_item="itemID", col_rating="rating", 
-        col_prediction="prediction", k=TOP_K
+        precision_at_k, test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K
     )
     eval_recall_at_k = safe_metric_calculation(
-        recall_at_k, test, top_k,
-        col_user="userID", col_item="itemID", col_rating="rating", 
-        col_prediction="prediction", k=TOP_K
+        recall_at_k, test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=TOP_K
     )
     eval_ndcg = safe_metric_calculation(
-        ndcg_at_k, test, top,
-        col_user="userID", col_item="itemID", col_rating="rating", 
-        col_prediction="prediction", relevancy_method="top_k", k=1
+        ndcg_at_k, test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", relevancy_method="top_k", k=1
     )
     eval_precision = safe_metric_calculation(
-        precision_at_k, test, top_k,
-        col_user="userID", col_item="itemID", col_rating="rating", 
-        col_prediction="prediction", k=1
+        precision_at_k, test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1
     )
-    eval_recall = safe_metric_calculation(
-        recall_at_k, test, top_k,
-        col_user="userID", col_item="itemID", col_rating="rating", 
-        col_prediction="prediction", k=1
-    )
-    
+    eval_recall = safe_metric_calculation(recall_at_k, test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction", k=1)
+
     # Error metrics
     eval_mae = safe_metric_calculation(mae, test, top_k)
     eval_rmse = safe_metric_calculation(rmse, test, top_k)
-    
+
     # Ranking metrics
-    eval_mrr = safe_metric_calculation(
-        mrr, test, top_k,
-        col_user="userID", col_item="itemID", col_rating="rating", 
-        col_prediction="prediction"
-    )
-    
+    eval_mrr = safe_metric_calculation(mrr, test, top_k, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction")
+
     # Coverage metrics
     eval_user_coverage = safe_metric_calculation(
-        user_coverage, test, top,
-        col_user="userID", col_item="itemID", col_rating="rating", 
-        col_prediction="prediction"
+        user_coverage, test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction"
     )
     eval_item_coverage = safe_metric_calculation(
-        item_coverage, test, top,
-        col_user="userID", col_item="itemID", col_rating="rating", 
-        col_prediction="prediction"
+        item_coverage, test, top, col_user="userID", col_item="itemID", col_rating="rating", col_prediction="prediction"
     )
-    
+
     # Diversity and personalization metrics
-    eval_intra_list_similarity = safe_metric_calculation(
-        intra_list_similarity_score, data, top_k, feature_cols=["genres"]
-    )
-    eval_intra_list_dissimilarity = safe_metric_calculation(
-        intra_list_dissimilarity, data, top_k, feature_cols=["genres"]
-    )
+    eval_intra_list_similarity = safe_metric_calculation(intra_list_similarity_score, data, top_k, feature_cols=["genres"])
+    eval_intra_list_dissimilarity = safe_metric_calculation(intra_list_dissimilarity, data, top_k, feature_cols=["genres"])
     eval_personalization = safe_metric_calculation(personalization_score, train, top)
 
     def format_metric(metric):

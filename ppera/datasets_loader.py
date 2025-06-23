@@ -16,7 +16,7 @@ class BaseDatasetLoader(ABC):
     def __init__(self, raw_data_path: str, processed_data_path: str, merge_file_name: str = "merge_file.csv"):
         """
         Initialize the dataset loader.
-        
+
         Args:
             raw_data_path: Directory containing raw CSV files
             processed_data_path: Directory for processed files
@@ -25,15 +25,14 @@ class BaseDatasetLoader(ABC):
         self.raw_data_path = raw_data_path
         self.processed_data_path = processed_data_path
         self.merge_file = os.path.join(self.processed_data_path, merge_file_name)
-        
+
         # Ensure processed directory exists
         os.makedirs(self.processed_data_path, exist_ok=True)
-        
+
         # Validate that required files exist locally
         if not self._check_local_files_exist():
             raise FileNotFoundError(
-                f"Required dataset files not found in {self.raw_data_path}. "
-                f"Please run 'make check-datasets' to download them automatically."
+                f"Required dataset files not found in {self.raw_data_path}. Please run 'make check-datasets' to download them automatically."
             )
 
     @abstractmethod
@@ -89,12 +88,12 @@ class BaseDatasetLoader(ABC):
             print(f"Creating merged file from {self.raw_data_path}")
             dataset_df = self.merge_datasets()
             dataset_df.to_csv(self.merge_file, index=False)
-            
+
             # Apply row limiting after merging if needed
             if num_rows is not None and len(dataset_df) > num_rows:
                 print(f"Limiting merged dataset to first {num_rows} rows")
                 dataset_df = dataset_df.head(num_rows)
-            
+
             return dataset_df
 
     def _load_with_row_limit(self, file_path: str, num_rows: Optional[int]) -> pd.DataFrame:
@@ -166,7 +165,7 @@ class AmazonSalesDataset(BaseDatasetLoader):
             "product_name": "title",
             "predicted_rating": "rating",
         }
-        
+
         super().__init__(raw_data_path, processed_data_path)
 
     def _check_local_files_exist(self) -> bool:
@@ -177,23 +176,17 @@ class AmazonSalesDataset(BaseDatasetLoader):
         """Process Amazon Sales dataset with rating and timestamp generation."""
         # Generate ratings and timestamps
         rating_timestamp_gen.rating_timestamp_gen(self.dataset_file, self.dataset_file)
-        
+
         # Load and process data
         df = pd.read_csv(self.dataset_file)
         df = self.normalize_column_names(df, self.column_mapping)
-        
+
         # Remove duplicates and clean ratings
         df = df.drop_duplicates(subset=["userID", "itemID"], keep="first")
         df["rating"] = pd.to_numeric(df["rating"], errors="coerce")
 
         # Combine category and product description for genres
-        df["genres"] = (
-            df[["genres", "about_product"]]
-            .astype(str)
-            .agg(" | ".join, axis=1)
-            .str.strip(" |")
-            .str.replace("|", " ", regex=False)
-        )
+        df["genres"] = df[["genres", "about_product"]].astype(str).agg(" | ".join, axis=1).str.strip(" |").str.replace("|", " ", regex=False)
 
         # Convert timestamp to Unix format
         df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -201,12 +194,20 @@ class AmazonSalesDataset(BaseDatasetLoader):
 
         # Remove unnecessary columns
         columns_to_drop = [
-            "discounted_price", "actual_price", "discount_percentage",
-            "rating_count", "about_product", "user_name", "review_id",
-            "review_title", "review_content", "img_link", "product_link"
+            "discounted_price",
+            "actual_price",
+            "discount_percentage",
+            "rating_count",
+            "about_product",
+            "user_name",
+            "review_id",
+            "review_title",
+            "review_content",
+            "img_link",
+            "product_link",
         ]
         df = df.drop(columns=columns_to_drop)
-        
+
         return df
 
 
@@ -219,47 +220,39 @@ class MovieLensDataset(BaseDatasetLoader):
         self.movies_file = os.path.join(raw_data_path, "movie.csv")
         self.tag_file = os.path.join(raw_data_path, "tag.csv")
         self.column_mapping = {"userId": "userID", "movieId": "itemID"}
-        
+
         super().__init__(raw_data_path, processed_data_path)
 
     def _check_local_files_exist(self) -> bool:
         """Check if all required MovieLens files exist."""
-        return (
-            os.path.exists(self.ratings_file) and 
-            os.path.exists(self.movies_file) and 
-            os.path.exists(self.tag_file)
-        )
+        return os.path.exists(self.ratings_file) and os.path.exists(self.movies_file) and os.path.exists(self.tag_file)
 
     def merge_datasets(self) -> pd.DataFrame:
         """Merge MovieLens ratings, movies, and tags data."""
         # Verify files exist
-        for file_path, name in [
-            (self.ratings_file, "ratings"),
-            (self.movies_file, "movies"), 
-            (self.tag_file, "tags")
-        ]:
+        for file_path, name in [(self.ratings_file, "ratings"), (self.movies_file, "movies"), (self.tag_file, "tags")]:
             if not os.path.exists(file_path):
                 raise FileNotFoundError(f"MovieLens {name} file not found at {file_path}")
-        
+
         print("Loading MovieLens files:")
         print(f"  - Ratings: {self.ratings_file}")
         print(f"  - Movies: {self.movies_file}")
         print(f"  - Tags: {self.tag_file}")
-        
+
         # Load data files
         ratings_df = pd.read_csv(self.ratings_file)
         movies_df = pd.read_csv(self.movies_file)
         tags_df = pd.read_csv(self.tag_file)
-        
+
         print(f"Loaded shapes - Ratings: {ratings_df.shape}, Movies: {movies_df.shape}, Tags: {tags_df.shape}")
-        
+
         # Rename tag timestamp to avoid conflicts
         tags_df = tags_df.rename(columns={"timestamp": "tag_timestamp"})
-        
+
         # Merge datasets
         merged_df = pd.merge(ratings_df, movies_df, on="movieId", how="left")
         final_df = pd.merge(merged_df, tags_df, on=["movieId", "userId"], how="left")
-        
+
         # Normalize column names
         final_df = self.normalize_column_names(final_df, self.column_mapping)
 
@@ -292,16 +285,12 @@ class PostRecommendationsDataset(BaseDatasetLoader):
             "time_stamp": "timestamp",
             "category": "genres",
         }
-        
+
         super().__init__(raw_data_path, processed_data_path)
 
     def _check_local_files_exist(self) -> bool:
         """Check if all required Post Recommendations files exist."""
-        return (
-            os.path.exists(self.userData_file) and 
-            os.path.exists(self.viewData_file) and 
-            os.path.exists(self.postData_file)
-        )
+        return os.path.exists(self.userData_file) and os.path.exists(self.viewData_file) and os.path.exists(self.postData_file)
 
     def merge_datasets(self) -> pd.DataFrame:
         """Merge Post Recommendations data and generate ratings."""
@@ -313,7 +302,7 @@ class PostRecommendationsDataset(BaseDatasetLoader):
         # Merge datasets
         merged_df = pd.merge(user_df, view_df, on="user_id", how="left")
         final_df = pd.merge(merged_df, post_df, on="post_id", how="left")
-        
+
         # Normalize column names
         final_df = self.normalize_column_names(final_df, self.column_mapping)
 
@@ -327,9 +316,7 @@ class PostRecommendationsDataset(BaseDatasetLoader):
         final_df = final_df.drop_duplicates(subset=["userID", "itemID"], keep="first")
 
         # Generate ratings based on user interaction frequency
-        final_df = frequency_based_rating_gen.frequency_based_rating_gen(
-            final_df, user_col="userID", category_col="genres"
-        )
+        final_df = frequency_based_rating_gen.frequency_based_rating_gen(final_df, user_col="userID", category_col="genres")
 
         return final_df
 

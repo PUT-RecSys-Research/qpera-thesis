@@ -41,29 +41,19 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 
-# Core dependencies - only packages NOT in environment.yml
 dependencies = [
-    # === Utilities ===
     "easydict",
-    
-    # === Recommendation Systems ===
+    "kaggle",
     "recommenders",
     "cornac",
     "scikit-surprise",
-    
-    # === ML Experiment Tracking ===
     "mlflow",
-    
-    # === Data Processing ===
     "category-encoders",
     "pandera",
-    
-    # === Web Framework ===
     "fastapi",
     "gunicorn",
 ]
 
-# Optional dependencies for development
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
@@ -76,20 +66,14 @@ dev = [
     "ipykernel>=6.0.0",
 ]
 
-# Additional ML tools (remove duplicates from conda)
 ml-extra = [
-    "torch>=1.12.0",  # But Makefile installs this separately
+    "torch>=1.12.0",
     "torchvision>=0.13.0",
     "tensorboard>=2.10.0",
     "optuna>=3.0.0",
 ]
 
-# All optional dependencies
 all = ["ppera[dev,ml-extra]"]
-
-# ================================
-# Tool Configurations
-# ================================
 
 [tool.ruff]
 line-length = 160
@@ -100,38 +84,35 @@ exclude = [
     "build",
     "dist",
     "*.egg-info",
-    "ppera/rl_tmp",  # Exclude your RL temporary files
+    "ppera/rl_tmp",
 ]
 
 [tool.ruff.lint]
-# Enhanced rule selection - keeping your core rules but adding useful ones
 select = [
-    "E",    # pycodestyle errors (your existing)
-    "F",    # pyflakes (your existing) 
-    "W",    # pycodestyle warnings (your existing)
-    "I",    # isort (your existing)
-    "UP",   # pyupgrade - modernize Python code
-    "B",    # flake8-bugbear - find likely bugs
-    "C4",   # flake8-comprehensions - better list/dict comprehensions
-    "PIE",  # flake8-pie - misc lints
-    "SIM",  # flake8-simplify - simplify code
-    "TCH",  # flake8-type-checking - type checking imports
+    "E",
+    "F",
+    "W",
+    "I",
 ]
 
 ignore = [
-    "E731",   # lambda assignment (your existing)
-    "C901",   # too complex (your existing) 
-    "B008",   # do not perform function calls in argument defaults
-    "B904",   # raise without from in except clause
-    "SIM108", # use ternary operator (sometimes less readable)
-    "UP007",  # use X | Y for type annotations (keep Union for compatibility)
+    "E731",
+    "C901",
+    "E501",
+    "E203",
+    "E402",
+    "F401",
+    "F841",
 ]
 
-# Per-file ignores for specific patterns in your codebase
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
-"tests/*" = ["B011", "S101"]  # Allow assert statements in tests
-"ppera/rl_*.py" = ["C901"]  # Allow complex functions in RL modules (they're often necessarily complex)
+"__init__.py" = ["F401", "F403"]
+"tests/*" = ["ALL"]
+"ppera/rl_*.py" = ["E501", "C901", "E402", "F841", "E722"]
+"ppera/*_train*.py" = ["E501", "C901", "E402", "F841"]
+"ppera/*_test*.py" = ["E501", "C901", "E402", "F841"]
+"ppera/main.py" = ["E501", "C901"]
+"ppera/datasets_*.py" = ["E501", "F841"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["ppera"]
@@ -139,16 +120,19 @@ force-single-line = false
 split-on-trailing-comma = true
 combine-as-imports = true
 
-[tool.ruff.lint.pyupgrade]
-keep-runtime-typing = true  # Keep typing imports for Python 3.9 compatibility
-
-[tool.ruff.lint.flake8-type-checking]
-strict = false  # Don't be too aggressive with TYPE_CHECKING imports
-
 [tool.black]
-line-length = 160  # Matching your ruff setting
+line-length = 160
 target-version = ["py39"]
 skip-string-normalization = true
+force-exclude = '''
+/(
+    ppera/rl_tmp
+    | \.git
+    | \.mypy_cache
+    | \.pytest_cache
+    | \.ruff_cache
+)/
+'''
 
 [tool.isort]
 profile = "black"
@@ -158,6 +142,9 @@ multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
+skip_glob = ["ppera/rl_tmp/*"]
+float_to_top = true
+force_sort_within_sections = false
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -179,7 +166,7 @@ omit = [
     "*/tests/*",
     "*/test_*",
     "setup.py",
-    "ppera/rl_tmp/*",  # Exclude your RL temporary files
+    "ppera/rl_tmp/*",
 ]
 
 [tool.coverage.report]

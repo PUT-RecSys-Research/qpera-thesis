@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import argparse
 import os
 from collections import namedtuple
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -23,15 +23,15 @@ SavedAction = namedtuple("SavedAction", ["log_prob", "value"])
 class ActorCritic(nn.Module):
     """
     Actor-Critic neural network for reinforcement learning.
-    
+
     Combines policy (actor) and value function (critic) estimation
     in a single network with shared feature layers.
     """
-    
+
     def __init__(self, state_dim: int, act_dim: int, gamma: float = 0.99, hidden_sizes: List[int] = [512, 256]):
         """
         Initialize Actor-Critic network.
-        
+
         Args:
             state_dim: Dimension of state space
             act_dim: Dimension of action space
@@ -57,15 +57,15 @@ class ActorCritic(nn.Module):
     def forward(self, inputs: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass through the network.
-        
+
         Args:
             inputs: Tuple of (state, action_mask) tensors
-            
+
         Returns:
             Tuple of (action_probabilities, state_values)
         """
         state, act_mask = inputs
-        
+
         # Shared feature extraction
         x = self.l1(state)
         x = F.dropout(F.elu(x), p=0.5)
@@ -79,18 +79,18 @@ class ActorCritic(nn.Module):
 
         # Critic head (value function)
         state_values = self.critic(x)
-        
+
         return act_probs, state_values
 
     def select_action(self, batch_state: np.ndarray, batch_act_mask: np.ndarray, device: torch.device) -> List[int]:
         """
         Select actions for a batch of states using current policy.
-        
+
         Args:
             batch_state: Batch of state vectors
             batch_act_mask: Batch of action masks
             device: PyTorch device for computation
-            
+
         Returns:
             List of selected action indices
         """
@@ -100,11 +100,11 @@ class ActorCritic(nn.Module):
 
         # Get action probabilities and state values
         probs, value = self((state, act_mask))
-        
+
         # Sample actions from categorical distribution
         m = Categorical(probs)
         acts = m.sample()
-        
+
         # Ensure selected actions are valid
         valid_idx = act_mask.gather(1, acts.view(-1, 1)).view(-1).bool()
         acts[~valid_idx] = 0  # Default to action 0 for invalid selections
@@ -112,18 +112,18 @@ class ActorCritic(nn.Module):
         # Store for training
         self.saved_actions.append(SavedAction(m.log_prob(acts), value))
         self.entropy.append(m.entropy())
-        
+
         return acts.cpu().numpy().tolist()
 
     def update(self, optimizer: torch.optim.Optimizer, device: torch.device, ent_weight: float) -> Tuple[float, float, float, float]:
         """
         Update the network using collected experiences.
-        
+
         Args:
             optimizer: PyTorch optimizer
             device: PyTorch device for computation
             ent_weight: Weight for entropy regularization
-            
+
         Returns:
             Tuple of (total_loss, actor_loss, critic_loss, entropy_loss)
         """
@@ -134,18 +134,18 @@ class ActorCritic(nn.Module):
 
         # Calculate discounted rewards
         batch_rewards = self._calculate_discounted_rewards(device)
-        
+
         # Calculate losses
         actor_loss, critic_loss, entropy_loss = self._calculate_losses(batch_rewards)
-        
+
         # Combine losses
         total_loss = actor_loss + critic_loss + ent_weight * entropy_loss
-        
+
         # Backpropagation
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
-        
+
         # Clear buffers
         self._clear_buffers()
 
@@ -156,11 +156,11 @@ class ActorCritic(nn.Module):
         batch_rewards = np.vstack(self.rewards).T
         batch_rewards = torch.FloatTensor(batch_rewards).to(device)
         num_steps = batch_rewards.shape[1]
-        
+
         # Apply discount factor
         for i in range(1, num_steps):
             batch_rewards[:, num_steps - i - 1] += self.gamma * batch_rewards[:, num_steps - i]
-        
+
         return batch_rewards
 
     def _calculate_losses(self, batch_rewards: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -169,25 +169,25 @@ class ActorCritic(nn.Module):
         actor_loss = 0
         critic_loss = 0
         entropy_loss = 0
-        
+
         for i in range(num_steps):
             log_prob, value = self.saved_actions[i]
             advantage = batch_rewards[:, i] - value.squeeze(1)
-            
+
             # Actor loss (policy gradient)
             actor_loss += -log_prob * advantage.detach()
-            
+
             # Critic loss (value function)
             critic_loss += advantage.pow(2)
-            
+
             # Entropy loss (exploration)
             entropy_loss += -self.entropy[i]
-        
+
         # Average over batch
         actor_loss = actor_loss.mean()
         critic_loss = critic_loss.mean()
         entropy_loss = entropy_loss.mean()
-        
+
         return actor_loss, critic_loss, entropy_loss
 
     def _clear_buffers(self) -> None:
@@ -201,11 +201,11 @@ class ACDataLoader:
     """
     Data loader for Actor-Critic training that provides batches of user IDs.
     """
-    
+
     def __init__(self, uids: List[int], batch_size: int):
         """
         Initialize data loader.
-        
+
         Args:
             uids: List of user IDs
             batch_size: Size of each batch
@@ -228,28 +228,28 @@ class ACDataLoader:
     def get_batch(self) -> Optional[List[int]]:
         """
         Get the next batch of user IDs.
-        
+
         Returns:
             List of user IDs or None if no more batches
         """
         if not self._has_next:
             return None
-            
+
         end_idx = min(self._start_idx + self.batch_size, self.num_users)
-        batch_idx = self._rand_perm[self._start_idx:end_idx]
+        batch_idx = self._rand_perm[self._start_idx : end_idx]
         batch_uids = self.uids[batch_idx]
-        
+
         # Update state for next batch
         self._has_next = end_idx < self.num_users
         self._start_idx = end_idx
-        
+
         return batch_uids.tolist()
 
 
 def train(args: argparse.Namespace) -> None:
     """
     Main training function for the Actor-Critic agent.
-    
+
     Args:
         args: Configuration arguments
     """
@@ -260,18 +260,13 @@ def train(args: argparse.Namespace) -> None:
         max_path_len=args.max_path_len,
         state_history=args.state_history,
     )
-    
+
     uids = list(env.kg(USERID).keys())
     dataloader = ACDataLoader(uids, args.batch_size)
-    
+
     # Initialize model and optimizer
-    model = ActorCritic(
-        env.state_dim, 
-        env.act_dim, 
-        gamma=args.gamma, 
-        hidden_sizes=args.hidden
-    ).to(args.device)
-    
+    model = ActorCritic(env.state_dim, env.act_dim, gamma=args.gamma, hidden_sizes=args.hidden).to(args.device)
+
     logger.info("Parameters:" + str([i[0] for i in model.named_parameters()]))
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
@@ -279,21 +274,21 @@ def train(args: argparse.Namespace) -> None:
     training_metrics = _initialize_training_metrics()
     step = 0
     model.train()
-    
+
     # Training loop
     for epoch in range(1, args.epochs + 1):
         logger.info(f"Starting epoch {epoch}/{args.epochs}")
-        
+
         dataloader.reset()
         while dataloader.has_next():
             batch_uids = dataloader.get_batch()
-            
+
             # Run episode for current batch
             _run_episode(env, model, batch_uids, args)
-            
+
             # Update learning rate
             _update_learning_rate(optimizer, step, args, len(uids))
-            
+
             # Update model
             _update_model_and_metrics(model, optimizer, training_metrics, args, step)
             step += 1
@@ -308,20 +303,14 @@ def train(args: argparse.Namespace) -> None:
 
 def _initialize_training_metrics() -> dict:
     """Initialize containers for tracking training metrics."""
-    return {
-        'total_losses': [],
-        'total_plosses': [],
-        'total_vlosses': [],
-        'total_entropy': [],
-        'total_rewards': []
-    }
+    return {"total_losses": [], "total_plosses": [], "total_vlosses": [], "total_entropy": [], "total_rewards": []}
 
 
 def _run_episode(env: BatchKGEnvironment, model: ActorCritic, batch_uids: List[int], args: argparse.Namespace) -> None:
     """Run a single episode for the current batch."""
     batch_state = env.reset(batch_uids)
     done = False
-    
+
     while not done:
         batch_act_mask = env.batch_action_mask(dropout=args.act_dropout)
         batch_act_idx = model.select_action(batch_state, batch_act_mask, args.device)
@@ -333,44 +322,38 @@ def _update_learning_rate(optimizer: torch.optim.Optimizer, step: int, args: arg
     """Update learning rate with linear decay."""
     total_steps = args.epochs * num_users / args.batch_size
     lr = args.lr * max(1e-4, 1.0 - float(step) / total_steps)
-    
+
     for pg in optimizer.param_groups:
         pg["lr"] = lr
 
 
-def _update_model_and_metrics(
-    model: ActorCritic, 
-    optimizer: torch.optim.Optimizer, 
-    metrics: dict, 
-    args: argparse.Namespace,
-    step: int
-) -> None:
+def _update_model_and_metrics(model: ActorCritic, optimizer: torch.optim.Optimizer, metrics: dict, args: argparse.Namespace, step: int) -> None:
     """Update model parameters and collect training metrics."""
     # Store total reward before update
-    metrics['total_rewards'].append(np.sum(model.rewards))
-    
+    metrics["total_rewards"].append(np.sum(model.rewards))
+
     # Update model
     loss, ploss, vloss, eloss = model.update(optimizer, args.device, args.ent_weight)
-    
+
     # Store losses
-    metrics['total_losses'].append(loss)
-    metrics['total_plosses'].append(ploss)
-    metrics['total_vlosses'].append(vloss)
-    metrics['total_entropy'].append(eloss)
+    metrics["total_losses"].append(loss)
+    metrics["total_plosses"].append(ploss)
+    metrics["total_vlosses"].append(vloss)
+    metrics["total_entropy"].append(eloss)
 
 
 def _report_training_progress(metrics: dict, epoch: int, step: int, batch_size: int) -> None:
     """Report training progress and reset metrics."""
-    avg_reward = np.mean(metrics['total_rewards']) / batch_size
-    avg_loss = np.mean(metrics['total_losses'])
-    avg_ploss = np.mean(metrics['total_plosses'])
-    avg_vloss = np.mean(metrics['total_vlosses'])
-    avg_entropy = np.mean(metrics['total_entropy'])
-    
+    avg_reward = np.mean(metrics["total_rewards"]) / batch_size
+    avg_loss = np.mean(metrics["total_losses"])
+    avg_ploss = np.mean(metrics["total_plosses"])
+    avg_vloss = np.mean(metrics["total_vlosses"])
+    avg_entropy = np.mean(metrics["total_entropy"])
+
     # Reset metrics
     for key in metrics:
         metrics[key].clear()
-    
+
     logger.info(
         f"epoch/step={epoch:d}/{step:d}"
         f" | loss={avg_loss:.5f}"
@@ -391,7 +374,7 @@ def _save_model_checkpoint(model: ActorCritic, epoch: int, args: argparse.Namesp
 def train_agent_rl(dataset: str, seed: int) -> None:
     """
     Main entry point for training the RL agent.
-    
+
     Args:
         dataset: Dataset name
         seed: Random seed for reproducibility
