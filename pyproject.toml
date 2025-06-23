@@ -41,16 +41,9 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 
-# Core dependencies - keeping your exact list for compatibility
+# Core dependencies - only packages NOT in environment.yml
 dependencies = [
-    # === Data Science Stack ===
-    "pandas",
-    "scipy", 
-    "scikit-learn",
-    "matplotlib",
-    
     # === Utilities ===
-    "tqdm",
     "easydict",
     
     # === Recommendation Systems ===
@@ -83,15 +76,12 @@ dev = [
     "ipykernel>=6.0.0",
 ]
 
-# Additional ML tools (not breaking existing setup)
+# Additional ML tools (remove duplicates from conda)
 ml-extra = [
-    "torch>=1.12.0",
+    "torch>=1.12.0",  # But Makefile installs this separately
     "torchvision>=0.13.0",
-    "numpy>=1.21.0",
-    "seaborn>=0.11.0",
     "tensorboard>=2.10.0",
     "optuna>=3.0.0",
-    "joblib>=1.3.0",
 ]
 
 # All optional dependencies
@@ -146,7 +136,6 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["ppera"]
 force-single-line = false
-line-length = 160
 split-on-trailing-comma = true
 combine-as-imports = true
 
