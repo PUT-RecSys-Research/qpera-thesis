@@ -7,7 +7,7 @@ import shutil
 
 
 class KaggleDatasetDownloader:
-    """Handles automatic dataset downloads from Kaggle."""
+    """Handles automatic dataset downloads from Kaggle with authentication and validation."""
     
     DATASET_CONFIG = {
         "amazonsales": {
@@ -31,12 +31,12 @@ class KaggleDatasetDownloader:
     }
     
     def __init__(self):
-        """Initialize the downloader and check Kaggle CLI availability."""
+        """Initialize the downloader and verify Kaggle CLI setup."""
         self._check_kaggle_cli()
         self._check_kaggle_auth()
     
     def _check_kaggle_cli(self) -> None:
-        """Check if Kaggle CLI is installed."""
+        """Verify Kaggle CLI is installed and accessible."""
         try:
             result = subprocess.run(
                 ["kaggle", "--version"], 
@@ -53,7 +53,7 @@ class KaggleDatasetDownloader:
             )
     
     def _check_kaggle_auth(self) -> None:
-        """Check if Kaggle authentication is configured."""
+        """Verify Kaggle authentication is properly configured."""
         kaggle_config_path = Path.home() / ".kaggle" / "kaggle.json"
         
         if not kaggle_config_path.exists():
@@ -67,7 +67,7 @@ class KaggleDatasetDownloader:
                 "5. Run: chmod 600 ~/.kaggle/kaggle.json"
             )
         
-        # Test authentication
+        # Test authentication with minimal API call
         try:
             subprocess.run(
                 ["kaggle", "datasets", "list", "--max-size", "1"],
@@ -85,21 +85,21 @@ class KaggleDatasetDownloader:
             print("Kaggle API timeout (but credentials seem valid)")
     
     def _create_dataset_dir(self, dataset_name: str) -> Path:
-        """Create dataset directory if it doesn't exist."""
+        """Create dataset directory structure if it doesn't exist."""
         config = self.DATASET_CONFIG[dataset_name]
         dataset_dir = Path(config["local_dir"])
         dataset_dir.mkdir(parents=True, exist_ok=True)
         return dataset_dir
     
     def _is_dataset_downloaded(self, dataset_name: str) -> bool:
-        """Check if dataset is already downloaded and valid."""
+        """Check if dataset is already downloaded and contains all expected files."""
         config = self.DATASET_CONFIG[dataset_name]
         dataset_dir = Path(config["local_dir"])
         
         if not dataset_dir.exists():
             return False
         
-        # Check if all expected files exist
+        # Verify all expected files exist and are non-empty
         for expected_file in config["expected_files"]:
             file_path = dataset_dir / expected_file
             if not file_path.exists() or file_path.stat().st_size == 0:
@@ -110,14 +110,14 @@ class KaggleDatasetDownloader:
         return True
     
     def _download_from_kaggle(self, dataset_name: str, force: bool = False) -> None:
-        """Download dataset from Kaggle."""
+        """Download and extract dataset from Kaggle."""
         config = self.DATASET_CONFIG[dataset_name]
         dataset_dir = self._create_dataset_dir(dataset_name)
         
         print(f"Downloading {config['kaggle_dataset']} to {dataset_dir}")
         
         try:
-            # Download dataset
+            # Build download command
             cmd = [
                 "kaggle", "datasets", "download",
                 config["kaggle_dataset"],
@@ -128,6 +128,7 @@ class KaggleDatasetDownloader:
             if force:
                 cmd.append("--force")
             
+            # Execute download with timeout
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -151,11 +152,11 @@ class KaggleDatasetDownloader:
             )
     
     def _post_process_dataset(self, dataset_name: str) -> None:
-        """Post-process downloaded dataset (rename files, cleanup, etc.)."""
+        """Apply dataset-specific post-processing (file cleanup, renaming, etc.)."""
         config = self.DATASET_CONFIG[dataset_name]
         dataset_dir = Path(config["local_dir"])
         
-        # Dataset-specific post-processing
+        # Route to dataset-specific processing
         if dataset_name == "movielens":
             self._process_movielens(dataset_dir)
         elif dataset_name == "amazonsales":
@@ -164,10 +165,10 @@ class KaggleDatasetDownloader:
             self._process_postrecommendations(dataset_dir)
     
     def _process_movielens(self, dataset_dir: Path) -> None:
-        """Process MovieLens dataset files."""
-        # The files are already correctly named, just verify they exist
+        """Clean up MovieLens dataset by removing unnecessary files."""
         expected_files = ["rating.csv", "movie.csv", "tag.csv"]
         
+        # Verify expected files exist
         for file_name in expected_files:
             file_path = dataset_dir / file_name
             if file_path.exists():
@@ -175,7 +176,7 @@ class KaggleDatasetDownloader:
             else:
                 print(f"Missing {file_name}")
         
-        # Remove unnecessary files that might come with the download
+        # Remove unnecessary files that come with the download
         unnecessary_files = [
             "genome_scores.csv", "genome_tags.csv", 
             "README.txt", "ml-20m", "link.csv"
@@ -191,29 +192,27 @@ class KaggleDatasetDownloader:
                 print(f"Removed {file_name}")
     
     def _process_amazonsales(self, dataset_dir: Path) -> None:
-        """Process Amazon Sales dataset files."""
-        # The main file should be amazon.csv
-        # Verify amazon.csv exists
+        """Clean up Amazon Sales dataset files."""
+        # Verify main file exists
         amazon_file = dataset_dir / "amazon.csv"
         if amazon_file.exists():
             print("Found amazon.csv")
         else:
             print("Missing amazon.csv")
         
-        # Remove any unnecessary files (but keep .gitkeep)
+        # Remove unnecessary files (preserve .gitkeep for version control)
         all_files = list(dataset_dir.glob("*"))
         for file_path in all_files:
-            if (file_path.name != "amazon.csv" and 
-                file_path.name != ".gitkeep" and 
+            if (file_path.name not in ["amazon.csv", ".gitkeep"] and 
                 file_path.is_file()):
                 file_path.unlink()
                 print(f"Removed unnecessary file: {file_path.name}")
     
     def _process_postrecommendations(self, dataset_dir: Path) -> None:
-        """Process Post Recommendations dataset files."""
-        # Verify the expected files exist
+        """Clean up Post Recommendations dataset files."""
         expected_files = ["post_data.csv", "user_data.csv", "view_data.csv"]
         
+        # Verify expected files exist
         for file_name in expected_files:
             file_path = dataset_dir / file_name
             if file_path.exists():
@@ -221,16 +220,16 @@ class KaggleDatasetDownloader:
             else:
                 print(f"Missing {file_name}")
         
-        # Remove any unnecessary files
-        all_files = list(dataset_dir.glob("*.csv"))
-        for file_path in all_files:
+        # Remove unexpected CSV files
+        all_csv_files = list(dataset_dir.glob("*.csv"))
+        for file_path in all_csv_files:
             if file_path.name not in expected_files:
                 file_path.unlink()
                 print(f"Removed unexpected file: {file_path.name}")
     
     def download_dataset(self, dataset_name: str, force: bool = False) -> bool:
         """
-        Download a specific dataset.
+        Download and validate a specific dataset.
         
         Args:
             dataset_name: Name of dataset ('amazonsales', 'movielens', 'postrecommendations')
@@ -247,7 +246,7 @@ class KaggleDatasetDownloader:
         
         print(f"\nProcessing dataset: {dataset_name}")
         
-        # Check if already downloaded
+        # Skip download if already exists and valid
         if not force and self._is_dataset_downloaded(dataset_name):
             return True
         
@@ -255,10 +254,10 @@ class KaggleDatasetDownloader:
             # Download from Kaggle
             self._download_from_kaggle(dataset_name, force)
             
-            # Post-process
+            # Apply post-processing
             self._post_process_dataset(dataset_name)
             
-            # Verify download
+            # Verify successful download
             if self._is_dataset_downloaded(dataset_name):
                 print(f"Successfully downloaded and verified: {dataset_name}")
                 return True
@@ -272,10 +271,10 @@ class KaggleDatasetDownloader:
     
     def download_all_datasets(self, force: bool = False) -> Dict[str, bool]:
         """
-        Download all datasets.
+        Download all configured datasets with progress tracking.
         
         Returns:
-            Dictionary with dataset names and success status
+            Dictionary mapping dataset names to success status
         """
         print("Starting bulk dataset download...")
         results = {}
@@ -283,7 +282,7 @@ class KaggleDatasetDownloader:
         for dataset_name in self.DATASET_CONFIG.keys():
             results[dataset_name] = self.download_dataset(dataset_name, force)
         
-        # Summary
+        # Print summary report
         successful = sum(results.values())
         total = len(results)
         
@@ -295,7 +294,7 @@ class KaggleDatasetDownloader:
         return results
     
     def get_setup_instructions(self) -> str:
-        """Get setup instructions for Kaggle authentication."""
+        """Get detailed setup instructions for Kaggle authentication."""
         return """
 Kaggle Setup Instructions:
 
@@ -317,7 +316,7 @@ Kaggle Setup Instructions:
 
 
 def main():
-    """CLI interface for dataset downloader."""
+    """Command-line interface for the dataset downloader."""
     import argparse
     
     parser = argparse.ArgumentParser(description="Download datasets from Kaggle")
