@@ -171,8 +171,33 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# mlflow
+# MLflow
 /mlruns/
 /mlartifacts/
 
+# =============================================================================
+# Machine Learning & RL Specific (Added from ppera/.gitignore)
+# =============================================================================
+
+# Model files & checkpoints
+*.ckpt
+*.pth
+*.pt
+*.pkl
+*.pickle
+
+# RL temporary files
+ppera/rl_tmp/
+rl_tmp/
+
+# Training logs
+train_log.txt
+
+# Generated plots and images
+*.png
+*.jpg
+*.pdf
+
+# Dataset files
 *.csv
+*.db

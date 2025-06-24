@@ -1,99 +1,162 @@
 # frequency_based_rating_gen.py
-from typing import Optional  # Import Optional for type hinting
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 
 
-# Added seed parameter
 def frequency_based_rating_gen(
     df: pd.DataFrame,
     user_col: str = "userID",
     category_col: str = "genres",
-    seed: Optional[int] = 42,  # Add seed parameter (optional)
+    seed: Optional[int] = 42,
 ) -> pd.DataFrame:
     """
-    Calculates frequency-based ratings for user-category interactions within a DataFrame.
+    Generate frequency-based ratings for user-category interactions.
 
     Ratings are normalized per user based on their interaction frequency across categories
-    and scaled to a 1-5 integer range.
+    and scaled to a 1-5 integer range. Users with higher interaction frequency in a category
+    receive higher ratings for that category.
 
     Args:
-        df (pd.DataFrame): Input DataFrame containing user-item interactions.
-                           Must include columns specified by user_col and category_col.
-        user_col (str): The name of the user identifier column. Defaults to 'userID'.
-        category_col (str): The name of the category/genre column. Defaults to 'genres'.
-        seed (Optional[int]): An optional random seed for numpy to ensure reproducibility
-                              if any random operations were involved (currently none, but good practice).
-                              Defaults to None (no seed set explicitly here).
+        df: Input DataFrame containing user-item interactions.
+            Must include columns specified by user_col and category_col.
+        user_col: Name of the user identifier column
+        category_col: Name of the category/genre column
+        seed: Random seed for reproducibility (currently unused but reserved for future use)
 
     Returns:
-        pd.DataFrame: The input DataFrame with an added 'rating' column.
-    """
-    # Set the numpy random seed if provided
-    if seed is not None:
-        print(f"Setting numpy random seed to: {seed}")
-        np.random.seed(seed)
-    # Note: The current rating logic below is deterministic and doesn't use np.random directly.
-    # However, setting the seed ensures consistency if future changes introduce randomness
-    # or if other parts of a larger pipeline rely on the numpy random state.
+        DataFrame with an added 'rating' column containing generated ratings (1-5 scale)
 
-    print("Calculating category counts per user...")
-    # Calculate interaction counts per user-category using specified column names
+    Raises:
+        KeyError: If required columns are missing from the DataFrame
+        ValueError: If DataFrame is empty or contains invalid data
+    """
+    if df.empty:
+        raise ValueError("Input DataFrame cannot be empty")
+
+    if user_col not in df.columns or category_col not in df.columns:
+        raise KeyError(f"Required columns '{user_col}' and/or '{category_col}' not found in DataFrame")
+
+    # Set random seed for reproducibility
+    if seed is not None:
+        np.random.seed(seed)
+
+    print("Generating frequency-based ratings...")
+
+    # Calculate interaction counts per user-category combination
     user_category_counts = df.groupby([user_col, category_col]).size().reset_index(name="category_count")
 
-    print("Calculating user min/max category counts for normalization...")
-    # Calculate min/max counts per user for normalization
-    user_stats = user_category_counts.groupby(user_col)["category_count"].agg(["min", "max"]).reset_index()
-    user_stats.rename(columns={"min": "user_min_count", "max": "user_max_count"}, inplace=True)
+    # Calculate normalization statistics per user
+    user_stats = (
+        user_category_counts.groupby(user_col)["category_count"]
+        .agg(["min", "max"])
+        .reset_index()
+        .rename(columns={"min": "user_min_count", "max": "user_max_count"})
+    )
 
-    # Merge counts and stats back
+    # Merge counts with user statistics
     user_category_counts = pd.merge(user_category_counts, user_stats, on=user_col)
 
-    print("Calculating normalized ratings (1-5 scale)...")
-    # Calculate normalized score (0 to 1) and then scale to 1-5
-    epsilon = 1e-6  # Add epsilon to avoid division by zero if min == max for a user
-    user_range = user_category_counts["user_max_count"] - user_category_counts["user_min_count"]
+    # Generate normalized ratings
+    ratings_df = _calculate_normalized_ratings(user_category_counts)
 
-    # Calculate normalized score (0 if range is 0, otherwise normalized value)
-    user_category_counts["normalized_score"] = np.where(
-        user_range < epsilon,
-        0,  # Assign 0 if min == max (will result in rating 1 or 3 depending on logic below)
-        (user_category_counts["category_count"] - user_category_counts["user_min_count"]) / (user_range + epsilon),
-    )
-
-    # Scale to 1-5
-    # If min == max (user interacted same amount in all their categories, or only one category), assign a middle rating (e.g., 3)
-    user_category_counts["rating"] = np.where(
-        user_range < epsilon,
-        3,  # Assign a default middle rating if user range is zero
-        1 + 4 * user_category_counts["normalized_score"],  # Scale 0-1 -> 1-5
-    )
-
-    # Round to nearest integer rating and ensure it's within [1, 5]
-    user_category_counts["rating"] = user_category_counts["rating"].round().astype(int)
-    user_category_counts["rating"] = user_category_counts["rating"].clip(1, 5)  # Ensure ratings stay within 1-5 bounds
-
-    # Select relevant columns for merging back to original df
-    ratings_map = user_category_counts[[user_col, category_col, "rating"]]
-
-    print("Merging ratings back into the dataframe...")
-    # Merge ratings back into the original dataframe passed as input
+    # Merge ratings back into original DataFrame
+    ratings_map = ratings_df[[user_col, category_col, "rating"]]
     df_with_ratings = pd.merge(df, ratings_map, on=[user_col, category_col], how="left")
 
-    # --- Verification ---
-    print("\nSample of data with generated ratings:")
-    display_cols = [user_col, "itemID", category_col, "rating"] if "itemID" in df_with_ratings.columns else [user_col, category_col, "rating"]
-    print(df_with_ratings[display_cols].head(10))
-
-    print("\nGenerated Rating Distribution:")
-    print(df_with_ratings["rating"].value_counts().sort_index())
-
-    missing_ratings = df_with_ratings["rating"].isnull().sum()
-    if missing_ratings > 0:
-        print(f"\nWarning: Found {missing_ratings} rows with missing ratings!")
-    else:
-        print("\nSuccessfully generated ratings for all interaction rows.")
-    # --- End Verification ---
+    # Validate results
+    _validate_generated_ratings(df_with_ratings, user_col, category_col)
 
     return df_with_ratings
+
+
+def _calculate_normalized_ratings(user_category_counts: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate normalized ratings (1-5 scale) based on user interaction frequencies.
+
+    Args:
+        user_category_counts: DataFrame with user-category counts and min/max statistics
+
+    Returns:
+        DataFrame with added normalized ratings
+    """
+    epsilon = 1e-6  # Small value to prevent division by zero
+    user_range = user_category_counts["user_max_count"] - user_category_counts["user_min_count"]
+
+    # Calculate normalized score (0-1 range)
+    user_category_counts["normalized_score"] = np.where(
+        user_range < epsilon,
+        0.5,  # Default middle score if user has uniform interaction pattern
+        (user_category_counts["category_count"] - user_category_counts["user_min_count"]) / user_range,
+    )
+
+    # Scale normalized score to 1-5 rating range
+    user_category_counts["rating"] = np.where(
+        user_range < epsilon,
+        3,  # Default middle rating for uniform interaction patterns
+        1 + 4 * user_category_counts["normalized_score"],  # Linear scaling to 1-5 range
+    )
+
+    # Ensure ratings are integers within valid range
+    user_category_counts["rating"] = user_category_counts["rating"].round().astype(int).clip(1, 5)
+
+    return user_category_counts
+
+
+def _validate_generated_ratings(df_with_ratings: pd.DataFrame, user_col: str, category_col: str) -> None:
+    """
+    Validate the generated ratings and display summary statistics.
+
+    Args:
+        df_with_ratings: DataFrame with generated ratings
+        user_col: Name of user column
+        category_col: Name of category column
+    """
+    # Display sample of generated data
+    display_cols = [user_col, category_col, "rating"]
+    if "itemID" in df_with_ratings.columns:
+        display_cols.insert(-1, "itemID")
+
+    print("\nSample of generated ratings:")
+    print(df_with_ratings[display_cols].head(10))
+
+    # Show rating distribution
+    print("\nRating distribution:")
+    rating_counts = df_with_ratings["rating"].value_counts().sort_index()
+    for rating, count in rating_counts.items():
+        percentage = (count / len(df_with_ratings)) * 100
+        print(f"  Rating {rating}: {count:,} ({percentage:.1f}%)")
+
+    # Check for missing ratings
+    missing_ratings = df_with_ratings["rating"].isnull().sum()
+    if missing_ratings > 0:
+        print(f"\nWarning: {missing_ratings:,} rows have missing ratings!")
+    else:
+        print(f"\nSuccessfully generated ratings for all {len(df_with_ratings):,} interactions")
+
+    # Display rating statistics per user sample
+    print("\nRating statistics summary:")
+    rating_stats = df_with_ratings["rating"].describe()
+    print(f"  Mean: {rating_stats['mean']:.2f}")
+    print(f"  Std:  {rating_stats['std']:.2f}")
+    print(f"  Range: {rating_stats['min']:.0f}-{rating_stats['max']:.0f}")
+
+
+def generate_ratings_for_dataset(df: pd.DataFrame, user_col: str = "userID", category_col: str = "genres", seed: Optional[int] = 42) -> pd.DataFrame:
+    """
+    Convenience wrapper function for frequency-based rating generation.
+
+    This function provides a more descriptive name and can be used as an alternative
+    entry point to the main rating generation functionality.
+
+    Args:
+        df: Input DataFrame
+        user_col: User identifier column name
+        category_col: Category/genre column name
+        seed: Random seed for reproducibility
+
+    Returns:
+        DataFrame with generated frequency-based ratings
+    """
+    return frequency_based_rating_gen(df, user_col, category_col, seed)
