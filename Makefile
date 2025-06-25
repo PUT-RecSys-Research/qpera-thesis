@@ -47,24 +47,24 @@ help:
 
 ## Create conda environment and install core dependencies
 install:
-	@echo "=== Setting up PPERA Environment (Core) ==="
-	@echo "Step 1/3: Creating conda environment '$(CONDA_ENV_NAME)'..."
-	@if conda env list | grep -q "^$(CONDA_ENV_NAME) "; then \
-		echo "Environment '$(CONDA_ENV_NAME)' already exists. Use 'make requirements' to update."; \
-	else \
-		conda env create -f environment.yml; \
-	fi
-	@echo ""
-	@echo "Step 2/3: Installing PyTorch (CPU version)..."
-	@conda run -n $(CONDA_ENV_NAME) pip install torch torchvision torchaudio \
+    @echo "=== Setting up QPERA Environment (Core) ==="
+    @echo "Step 1/3: Creating conda environment '$(CONDA_ENV_NAME)'..."
+    @if conda env list | grep -q "^$(CONDA_ENV_NAME) "; then \
+        echo "Environment '$(CONDA_ENV_NAME)' already exists. Use 'make requirements' to update."; \
+    else \
+        conda env create -f environment.yml; \
+    fi
+    @echo ""
+    @echo "Step 2/3: Installing PyTorch (CPU version)..."
+    @conda run -n $(CONDA_ENV_NAME) pip install torch torchvision torchaudio \
 		--index-url https://download.pytorch.org/whl/cpu
-	@echo ""
-	@echo "Step 3/3: Installing project package with core dependencies..."
-	@conda run -n $(CONDA_ENV_NAME) pip install -e .
-	@echo ""
-	@echo "✅ Core environment setup complete!"
-	@echo "💡 For development tools, run: make install-dev"
-	@echo "💡 For all ML extras, run: make install-full"
+    @echo ""
+    @echo "Step 3/3: Installing project package with core dependencies..."
+    @conda run -n $(CONDA_ENV_NAME) pip install -e .
+    @echo ""
+    @echo "✅ Core environment setup complete!"
+    @echo "💡 For development tools, run: make install-dev"
+    @echo "💡 For all ML extras, run: make install-full"
 
 ## Install with development tools (recommended for contributors)
 install-dev:
