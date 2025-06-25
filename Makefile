@@ -199,6 +199,24 @@ kaggle-setup-help:
 	@echo ""
 	@echo "Then run: make download-datasets"
 
+## Kaggle API automatic configuration
+kaggle-autoconfig:
+	@echo ">>> Kaggle API Autoconfig <<<"
+	@echo ""
+	@echo "1. Looking for kaggle.json in ~/Downloads..."
+	@if [ -f ~/Downloads/kaggle.json ]; then \
+		echo "2. Creating ~/.kaggle directory..."; \
+		mkdir -p ~/.kaggle; \
+		echo "3. Moving kaggle.json to ~/.kaggle/..."; \
+		mv ~/Downloads/kaggle.json ~/.kaggle/; \
+		echo "4. Setting permissions to 600..."; \
+		chmod 600 ~/.kaggle/kaggle.json; \
+		echo ""; \
+		echo "✅ Kaggle API has been successfully configured!"; \
+	else \
+		echo "❌ kaggle.json not found in ~/Downloads. Please download it from Kaggle first."; \
+	fi
+
 ## Verify all datasets are downloaded and complete
 verify-datasets:
 	@echo ">>> Verifying dataset downloads..."

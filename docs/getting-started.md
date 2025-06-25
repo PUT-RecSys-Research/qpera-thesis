@@ -1,78 +1,113 @@
-# Getting Started
+# Getting Started with QPERA
 
-This guide will help you set up and run your first experiment with the PPERA framework.
+This guide will help you set up the QPERA framework, download the necessary datasets, and run your first experiments.
 
 ## Prerequisites
 
-- **Python 3.8+** (3.9 recommended)
+- **Python 3.9+**
 - **Conda** or **Miniconda**
 - **Git**
 - **Kaggle account** (for dataset downloads)
 
-## Installation
+## 🚀 Quick Start (Recommended)
+
+This is the fastest way to get started. The `quickstart` command automates the entire setup, download, and execution process.
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/PUT-RecSys-Research/qpera-thesis.git
+    cd qpera-thesis
+    ```
+
+2.  **Configure Kaggle API:**
+    This project requires the Kaggle API for downloading datasets.
+    - Download your `kaggle.json` API token from your Kaggle account page.
+    - For automated setup instructions, run:
+    ```bash
+    kaggle-autoconfig
+    ```
+
+3.  **Run the Quick Start command:**
+    This command will install the environment, download all datasets, and run the full experiment suite.
+    ```bash
+    make quickstart
+    ```
+    After completion, you can view the results in the MLflow UI.
+
+## 🛠️ Step-by-Step Installation
+
+For more control over the setup process, follow these steps.
 
 ### 1. Clone the Repository
-
 ```bash
-git clone https://github.com/your-username/personalization-privacy-and-explainability-of-recommendation-algorithms.git
-cd personalization-privacy-and-explainability-of-recommendation-algorithms
+git clone https://github.com/PUT-RecSys-Research/qpera-thesis.git
+cd qpera-thesis
 ```
 
-### 2. Environment Setup
+### 2. Configure Kaggle API
 
+- Download your Kaggle API key (`kaggle.json`) and place it in `~/.kaggle/`. For detailed instructions, run:
+
+    ```bash
+    make kaggle-setup-help
+    ```
+- Ensure your `kaggle.json` file is placed correctly.
+### 3. Environment and Dependencies
 ```bash
-# Create and activate conda environment
+# Create the conda environment from the environment.yml file
 make install
+
+# Activate the new environment
 conda activate ppera-env
 
-# Install dependencies and setup project
+# Install the project package in editable mode
 make setup
 ```
 
-### 3. Verify Installation
-
+### 4. Verify Installation
 ```bash
-# Test that everything is working
-python -c "import ppera; print('✅ PPERA installed successfully')"
+# Run this command to ensure the package is installed correctly
+make check-env
 ```
 
-## First Run
-
-### 1. Download Sample Dataset
-
-Start with MovieLens (smallest dataset):
-
+### 5. Download Datasets
 ```bash
-# Follow instructions in docs/datasets.md to download MovieLens
-# Place files in data/raw/movielens/
+# Download all datasets required for the experiments
+make download-datasets
+```
+For more details, see the [Datasets Guide](datasets.md).
+
+## 🔬 Running Experiments
+
+Once the setup is complete, you can run experiments.
+
+### Run the Full Suite
+To execute all defined experiments across all datasets (Note: this will take a significant amount of time):
+```bash
+make run-all
 ```
 
-### 2. Run Your First Experiment
+## 📊 Viewing Results
 
-```bash
-# Run a quick collaborative filtering experiment
-make run-cf-movielens
+The framework uses MLflow to track experiments.
 
-# Or run all algorithms on MovieLens (takes longer)
-make run-all-movielens
-```
+1.  **Start the MLflow UI:**
+    ```bash
+    make run-mlflow
+    ```
+2.  **Open your browser:**
+    Navigate to `http://127.0.0.1:8080` to view experiment runs, parameters, and metrics.
 
-### 3. View Results
+## 🗺️ What's Next?
 
-```bash
-# Start MLflow UI to see results
-make run-mlflow
-# Open http://localhost:5000 in your browser
-```
+- **[Datasets Guide](datasets.md)**: Learn more about the datasets used in this project.
+- **[Experiments Guide](experiments.md)**: See how to configure and customize experiment runs.
+- **[Architecture Overview](architecture.md)**: Understand the project's code structure.
 
-## What's Next?
+## ❓ Support & Questions
 
-- **[Datasets Guide](datasets.md)** - Download and setup all datasets
-- **[Experiments Guide](experiments.md)** - Run specific experiments and configure parameters
-- **[Architecture Overview](architecture.md)** - Understand the codebase structure
+If you encounter any issues or have questions about the research, please feel free to:
 
-## Troubleshooting
-
-**Environment issues?** See [Troubleshooting Guide](troubleshooting.md)
-
-**Questions?** Check our [Contributing Guidelines](contributing.md) for how to get help.
+- **Open an Issue**: For bugs or unexpected behavior, please [open a new issue](https://github.com/PUT-RecSys-Research/qpera-thesis/issues).
+- **Start a Discussion**: For general questions or ideas, [start a discussion](https://github.com/PUT-RecSys-Research/qpera-thesis/discussions).
+- **Contact the Authors**: You can also reach out to the authors listed in the main [README.md](../README.md).

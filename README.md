@@ -9,7 +9,7 @@
 [![Documentation](https://img.shields.io/badge/documentation-view-blue.svg)](https://put-recsys-research.github.io/qpera-thesis/)
 [![MLflow Tracking](https://img.shields.io/badge/MLflow-Tracking-blue.svg)](https://mlflow.org/)
 
-**A Master's Thesis Project for evaluating recommendation algorithms on Quality, Personalization, Explainability, and Robustness.**
+**A Master's Thesis Project for evaluating recommendation algorithms on Quality of Personalization, Explainability, and Robustness.**
 </div>
 
 ## 👥 Authors & Supervision
@@ -59,9 +59,13 @@ git clone https://github.com/PUT-RecSys-Research/qpera-thesis.git
 cd qpera-thesis
 ```
 
-**2. Configure Kaggle API (required for dataset downloads)**
-
-Download your Kaggle API key (`kaggle.json`) and place it in `~/.kaggle/`. For detailed instructions, run `make kaggle-setup-help`.
+**2. Configure Kaggle API:**
+  This project requires the Kaggle API for downloading datasets.
+  - Download your `kaggle.json` API token from your Kaggle account page.
+  - For automated setup instructions, run:
+  ```bash
+  kaggle-autoconfig
+  ```
 
 **3. Run the main pipeline**
 ```bash
