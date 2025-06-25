@@ -5,44 +5,70 @@ This document explains the codebase structure and key components of the PPERA fr
 ## Project Structure
 
 ```
-personalization-privacy-and-explainability-of-recommendation-algorithms/
-├── ppera/                          # Main package
-│   ├── __init__.py
-│   ├── main.py                     # Entry point for experiments
-│   ├── datasets_loader.py          # Dataset loading and preprocessing
-│   │
-│   ├── CF.py                       # Collaborative Filtering implementation
-│   ├── CBF.py                      # Content-Based Filtering implementation
-│   ├── RL.py                       # Reinforcement Learning orchestrator
-│   │
-│   ├── metrics.py                  # Custom evaluation metrics
-│   ├── log_mlflow.py               # MLflow experiment tracking
-│   ├── data_manipulation.py        # Privacy/personalization data transforms
-│   ├── frequency_based_rating_gen.py # Rating generation for sparse datasets
-│   │
-│   ├── rl_preprocess.py            # RL-specific preprocessing
-│   ├── rl_train_agent.py           # RL policy training
-│   ├── rl_test_agent.py            # RL evaluation and testing
-│   ├── rl_train_transe_model.py    # Knowledge graph embedding training
-│   ├── rl_transe_model.py          # TransE model implementation
-│   ├── rl_kg_env.py                # Knowledge graph environment
-│   ├── rl_prediction.py            # RL prediction utilities
-│   ├── rl_utils.py                 # RL constants and utilities
-│   │
-│   └── rl_tmp/                     # Temporary RL model storage
-│       ├── Movielens/
-│       ├── AmazonSales/
-│       └── PostRecommendations/
+.
+├── .gitignore          # Git ignore patterns for ML/data files
+├── LICENSE             # MIT License file
+├── Makefile            # Convenience commands for setup, testing, and execution
+├── README.md           # You are here! Main project documentation
+├── environment.yml     # Conda environment specification for reproducibility
+├── mkdocs.yml          # Configuration for the MkDocs documentation site
+├── pyproject.toml      # Python project configuration and dependencies (PEP 621)
 │
-├── datasets/                       # Raw dataset storage
-│   ├── MovieLens/
+├── datasets/           # ⚠️ Raw and processed datasets (ignored by Git)
 │   ├── AmazonSales/
-│   └── PostRecommendations/
+│   ├── MovieLens/
+│   └── PostRecommendation/
 │
-├── notebooks/                      # Jupyter notebooks for analysis
-├── scripts/                        # Utility scripts
-├── docs/                          # Documentation
-└── tests/                         # Unit tests (if implemented)
+├── docs/               # 📚 Project documentation source files (for MkDocs)
+│   ├── api.md
+│   ├── architecture.md
+│   ├── citation.md
+│   ├── contributing.md
+│   ├── datasets.md
+│   ├── experiments.md
+│   └── results.md
+│
+├── ppera/              # 🐍 Main source code package
+│   ├── __init__.py                     # Makes `ppera` a Python package
+│   ├── main.py                         # Main CLI entry point and experiment orchestrator
+│   │
+│   ├── # --- Data Handling ---
+│   ├── datasets_downloader.py          # Utilities for downloading datasets
+│   ├── datasets_loader.py              # Unified data loading and preprocessing
+│   ├── data_manipulation.py            # Data transformation, augmentation, and privacy
+│   │
+│   ├── # --- Core Algorithms ---
+│   ├── CBF.py                          # Content-Based Filtering implementation
+│   ├── CF.py                           # Collaborative Filtering implementation
+│   ├── RL.py                           # Reinforcement Learning orchestrator
+│   │
+│   ├── # --- Reinforcement Learning Components ---
+│   ├── rl_preprocess.py                # Data preprocessing for the RL environment
+│   ├── rl_knowledge_graph.py           # Knowledge graph construction
+│   ├── rl_kg_env.py                    # RL environment combining state, action, and KG
+│   ├── rl_transe_model.py              # TransE model implementation for KG embeddings
+│   ├── rl_train_transe_model.py        # Script to train the TransE model
+│   ├── rl_train_agent.py               # RL agent training logic
+│   ├── rl_test_agent.py                # RL agent testing and evaluation logic
+│   ├── rl_prediction.py                # Generates recommendations using the trained RL agent
+│   ├── rl_decoder.py                   # Decodes agent output into recommendations
+│   ├── rl_utils.py                     # Utility functions for the RL components
+│   │
+│   ├── # --- Utilities & Tooling ---
+│   ├── metrics.py                      # Evaluation metrics (e.g., NDCG, HR)
+│   ├── log_mlflow.py                   # MLflow integration for experiment tracking
+│   ├── frequency_based_rating_gen.py   # Synthetic rating generation
+│   └── rating_timestamp_gen.py         # Utilities for generating synthetic timestamps
+│
+├── reports/            # 📊 Generated analysis, figures, and results
+│   ├── clean_loop/                     # Baseline (unmodified) experiment results
+│   ├── explainability/                 # Analysis of explanation methods
+│   ├── personalization/                # Analysis of personalization quality
+│   ├── privacy/                        # Analysis of privacy preservation
+│   ├── conversion.ipynb              # Notebook for data format conversions
+│   └── generate_figures.ipynb        # Notebook to generate final plots for reports
+│
+└── references/         # 📄 Academic papers, literature, and external resources
 ```
 
 ## Core Components
