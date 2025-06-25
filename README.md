@@ -75,14 +75,11 @@ For detailed setup instructions, including API key configuration, please see the
 
 ---
 
-## 📚 Documentation
+## 📖 Full Documentation
 
-*   [**Getting Started**](docs/getting-started.md): Installation and first run.
-*   [**Running Experiments**](docs/experiments.md): Guide to configuring and running experiments.
-*   [**Architecture**](docs/architecture.md): Overview of the project structure and code organization.
-*   [**Results & Analysis**](docs/results.md): Summary of key findings and performance metrics.
-*   [**API Reference**](docs/api.md): Detailed documentation for the source code.
-*   [**Contributing**](docs/contributing.md): How to contribute to the project.
+**For a comprehensive guide to the project, including setup, architecture, and results, please visit our full documentation site:**
+
+### **[https://put-recsys-research.github.io/qpera-thesis/](https://put-recsys-research.github.io/qpera-thesis/)**
 
 ---
 

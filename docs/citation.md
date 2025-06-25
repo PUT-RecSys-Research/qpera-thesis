@@ -1,292 +1,106 @@
 # How to Cite This Work
 
-This page provides standardized citation formats for the PPERA framework and related research outputs.
+This page provides standardized formats for citing the QPERA project, its associated Master's Thesis, and the foundational libraries it builds upon.
 
-## Master's Thesis Citation
+---
+
+## 1. Primary Citation
+
+If you use this project, its findings, or its code in your research, please cite the Master's Thesis.
 
 ### BibTeX Format
 
 ```bibtex
-@mastersthesis{podsadna_chwilkowski2025ppera,
-  title={Quality of Personalization, Explainability and Robustness of Recommendation Algorithms},
-  author={Podsadna, Julia and Chwi{\l}kowski, Bartosz},
-  year={2025},
-  school={Poznan University of Technology},
-  address={Poznan, Poland},
-  supervisor={Morzy, Miko{\l}aj},
-  type={Master's Thesis},
-  note={Faculty of Computing and Telecommunications},
-  url={https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms},
-  keywords={recommendation systems, personalization, privacy, explainability, robustness, collaborative filtering, content-based filtering, reinforcement learning, EU AI Act}
+@mastersthesis{podsadna_chwilkowski2025qpera,
+  title     = {Quality of Personalization, Explainability and Robustness of Recommendation Algorithms},
+  author    = {Podsadna, Julia and Chwi{\l}kowski, Bartosz},
+  year      = {2025},
+  school    = {Poznan University of Technology},
+  address   = {Poznan, Poland},
+  supervisor= {Morzy, Miko{\l}aj},
+  type      = {Master's Thesis},
+  note      = {Faculty of Computing and Telecommunications},
+  url       = {https://github.com/PUT-RecSys-Research/qpera-thesis}
 }
 ```
 
-### APA Format (7th Edition)
-
-Podsadna, J., & Chwiłkowski, B. (2025). *Quality of personalization, explainability and robustness of recommendation algorithms* [Master's thesis, Poznan University of Technology]. GitHub. https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms
-
-### IEEE Format
-
-J. Podsadna and B. Chwiłkowski, "Quality of personalization, explainability and robustness of recommendation algorithms," Master's thesis, Faculty of Computing and Telecommunications, Poznan University of Technology, Poznan, Poland, 2025. [Online]. Available: https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms
-
-### MLA Format (9th Edition)
-
-Podsadna, Julia, and Bartosz Chwiłkowski. "Quality of Personalization, Explainability and Robustness of Recommendation Algorithms." Master's thesis, Poznan University of Technology, 2025. *GitHub*, github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms.
-
 ---
 
-## Software Citation
+## 2. Software Citation
 
-If you use the PPERA framework, code, or datasets in your research:
+To cite the software implementation directly, you can use the following format.
 
 ### BibTeX Format
 
 ```bibtex
-@software{podsadna_chwilkowski_ppera2025,
-  title={PPERA: Personalization, Privacy, and Explainability of Recommendation Algorithms Framework},
-  author={Podsadna, Julia and Chwi{\l}kowski, Bartosz},
-  year={2025},
-  url={https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms},
-  version={1.0.0},
-  license={MIT},
-  note={Open-source framework for comprehensive recommendation algorithm evaluation},
-  doi={10.5281/zenodo.XXXXXXX} % Add actual DOI when available
+@software{qpera_software_2025,
+  author    = {Podsadna, Julia and Chwi{\l}kowski, Bartosz},
+  title     = {QPERA: A Project for Evaluating Quality, Personalization, Explainability, and Robustness of Recommendation Algorithms},
+  year      = {2025},
+  publisher = {GitHub},
+  version   = {1.0.0},
+  url       = {https://github.com/PUT-RecSys-Research/qpera-thesis},
+  license   = {MIT}
+  // TODO: When a Zenodo release is created, add the DOI here.
+  // doi    = {10.5281/zenodo.XXXXXXX}
 }
-```
-
-### Software Citation (GitHub)
-
-```
-Podsadna, J., & Chwiłkowski, B. (2025). PPERA: Personalization, Privacy, and Explainability of Recommendation Algorithms Framework (Version 1.0.0) [Computer software]. https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms
 ```
 
 ---
 
-## Component-Specific Citations
+## 3. Citing Foundational Works
 
-### Collaborative Filtering Implementation
+This project builds directly upon pioneering open-source libraries. We strongly encourage you to **also cite their original papers and software** to give proper credit to the foundational work.
 
-If you specifically use the CF component built on Microsoft Recommenders:
+### Microsoft Recommenders
+
+Used for the collaborative filtering and content-based filtering implementations.
 
 ```bibtex
-@inproceedings{podsadna_chwilkowski_cf2025,
-  title={Collaborative Filtering Evaluation in the PPERA Framework},
-  author={Podsadna, Julia and Chwi{\l}kowski, Bartosz},
-  booktitle={Proceedings of the PPERA Framework},
-  year={2025},
-  note={Built on Microsoft Recommenders with Cornac BPR implementation},
-  url={https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms/blob/main/ppera/CF.py}
+@inproceedings{recommenders2019,
+  author    = {Graham, Scott and Min, Jun Ki and Wu, Tao and Soni, Anish},
+  title     = {Microsoft Recommenders: Tools to Accelerate Developing Recommender Systems},
+  year      = {2019},
+  booktitle = {Proceedings of the 13th ACM Conference on Recommender Systems (RecSys '19)},
+  pages     = {542--543},
+  publisher = {Association for Computing Machinery},
+  doi       = {10.1145/3298689.3346967}
 }
 ```
 
-### Content-Based Filtering Implementation
+### PGPR (Reinforcement Learning)
+
+The basis for our reinforcement learning and explainability implementation.
 
 ```bibtex
-@inproceedings{podsadna_chwilkowski_cbf2025,
-  title={Content-Based Filtering with BERT Tokenization in PPERA},
-  author={Podsadna, Julia and Chwi{\l}kowski, Bartosz},
-  booktitle={Proceedings of the PPERA Framework},
-  year={2025},
-  note={TF-IDF based implementation with BERT tokenization},
-  url={https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms/blob/main/ppera/CBF.py}
+@inproceedings{xian2019pgpr,
+  author    = {Xian, Yikun and Fu, Zuohui and Muthukrishnan, S. and de Melo, Gerard and Zhang, Yongfeng},
+  title     = {Reinforcement Knowledge Graph Reasoning for Explainable Recommendation},
+  year      = {2019},
+  booktitle = {Proceedings of the 42nd International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR '19)},
+  pages     = {285--294},
+  publisher = {Association for Computing Machinery},
+  doi       = {10.1145/3331184.3331203}
 }
 ```
 
-### Reinforcement Learning Implementation
+### Recmetrics
+
+Used for calculating the `personalization` and `intra_list_similarity` metrics.
 
 ```bibtex
-@inproceedings{podsadna_chwilkowski_rl2025,
-  title={Knowledge Graph-Based Reinforcement Learning for Recommendations in PPERA},
-  author={Podsadna, Julia and Chwi{\l}kowski, Bartosz},
-  booktitle={Proceedings of the PPERA Framework},
-  year={2025},
-  note={TransE embeddings with Actor-Critic policy networks, built on PGPR},
-  url={https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms/blob/main/ppera/RL.py}
+@software{recmetrics2020,
+  author    = {Longo, Claire},
+  title     = {Recmetrics: A library of metrics for evaluating recommender systems},
+  year      = {2020},
+  version   = {0.1.3},
+  publisher = {GitHub},
+  url       = {https://github.com/statisticianinstilettos/recmetrics}
 }
 ```
 
 ---
 
-## Research Contributions Citations
+## 4. License
 
-### Privacy-Personalization Trade-offs
-
-```bibtex
-@article{podsadna_chwilkowski2025privacy_personalization,
-  title={Privacy-Personalization Trade-offs in Recommendation Systems: A Comprehensive Evaluation},
-  author={Podsadna, Julia and Chwi{\l}kowski, Bartosz and Morzy, Miko{\l}aj},
-  journal={Submitted to RecSys 2025},
-  year={2025},
-  note={Empirical analysis across CF, CBF, and RL algorithms}
-}
-```
-
-### Cross-Dimensional Algorithm Evaluation
-
-```bibtex
-@article{podsadna_chwilkowski2025cross_dimensional,
-  title={Cross-Dimensional Evaluation of Recommendation Algorithms: Personalization, Privacy, Explainability, and Robustness},
-  author={Podsadna, Julia and Chwi{\l}kowski, Bartosz and Morzy, Miko{\l}aj},
-  journal={In preparation for SIGIR 2025},
-  year={2025},
-  note={Unified evaluation framework with 15+ metrics}
-}
-```
-
----
-
-## Dataset Citations
-
-### Processed Datasets
-
-If you use our processed datasets or data loaders:
-
-```bibtex
-@dataset{podsadna_chwilkowski_datasets2025,
-  title={PPERA Processed Datasets: MovieLens, Amazon Sales, and Post Recommendations},
-  author={Podsadna, Julia and Chwi{\l}kowski, Bartosz},
-  year={2025},
-  publisher={GitHub},
-  url={https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms/tree/main/ppera/datasets_loader.py},
-  note={Preprocessed datasets with unified schema for recommendation algorithm evaluation}
-}
-```
-
----
-
-## Acknowledgment Examples
-
-### In Academic Papers
-
-> "We acknowledge the PPERA framework developed by Podsadna and Chwiłkowski (2025) for providing a unified evaluation platform for recommendation algorithms across personalization, privacy, explainability, and robustness dimensions."
-
-### In Technical Reports
-
-> "This work builds upon the open-source PPERA framework (Podsadna & Chwiłkowski, 2025), which provides comprehensive tools for evaluating recommendation algorithms with privacy and personalization considerations."
-
-### In Software Documentation
-
-> "Our implementation is inspired by the PPERA framework's approach to privacy-aware recommendation evaluation (Podsadna & Chwiłkowski, 2025)."
-
----
-
-## License and Usage
-
-### MIT License
-
-This work is released under the MIT License. When using or adapting the code:
-
-1. **Include the original license** in derivative works
-2. **Provide attribution** to the original authors
-3. **Cite appropriately** based on your usage context
-
-### Commercial Use
-
-For commercial applications:
-
-- ✅ **Permitted**: Use, modification, distribution
-- ✅ **Required**: License inclusion, attribution
-- ❌ **Not provided**: Warranty, liability coverage
-
----
-
-## DOI and Persistent Identifiers
-
-### Zenodo DOI
-*To be assigned upon publication*
-
-### ORCID Identifiers
-- **Julia Podsadna**: [ORCID ID if available]
-- **Bartosz Chwiłkowski**: [ORCID ID if available]
-- **Mikołaj Morzy**: [ORCID ID if available]
-
----
-
-## Version-Specific Citations
-
-### Version 1.0.0 (Current)
-- **Release Date**: 2025
-- **Key Features**: Full CF, CBF, RL implementation with privacy/personalization evaluation
-- **Commit Hash**: [Latest commit when published]
-
-### Development Versions
-For citing specific development versions, include the commit hash:
-
-```
-Podsadna, J., & Chwiłkowski, B. (2025). PPERA Framework (commit abc123f). GitHub. https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms/commit/abc123f
-```
-
----
-
-## Related Work Citations
-
-### Core Dependencies
-
-When using PPERA, also consider citing the foundational libraries:
-
-#### Microsoft Recommenders
-```bibtex
-@misc{microsoft_recommenders2022,
-  title={Microsoft Recommenders: Tools to accelerate developing recommender systems},
-  author={Microsoft},
-  year={2022},
-  url={https://github.com/recommenders-team/recommenders},
-  note={Used for collaborative filtering implementations in PPERA}
-}
-```
-
-#### PGPR (Policy Gradient for Path Reasoning)
-```bibtex
-@inproceedings{xian2019reinforcement,
-  title={Reinforcement knowledge graph reasoning for explainable recommendation},
-  author={Xian, Yikun and Fu, Zuohui and Muthukrishnan, S and Gerard, Maarten de Rijke and Zhang, Yongfeng},
-  booktitle={Proceedings of the 42nd International ACM SIGIR Conference on Research and Development in Information Retrieval},
-  pages={285--294},
-  year={2019},
-  note={Foundation for RL implementation in PPERA}
-}
-```
-
-#### MLflow
-```bibtex
-@misc{mlflow2018,
-  title={MLflow: A Machine Learning Lifecycle Platform},
-  author={Zaharia, Matei and Chen, Andrew and Davidson, Aaron and Ghodsi, Ali and Hong, Sue Ann and Konwinski, Andy and Murching, Siddharth and Nykodym, Tomas and Ogilvie, Paul and Parkhe, Mani and others},
-  year={2018},
-  url={https://mlflow.org/},
-  note={Used for experiment tracking in PPERA}
-}
-```
-
----
-
-## Contact Information
-
-For citation questions or research collaboration:
-
-- **Julia Podsadna**: [GitHub](https://github.com/GambiBambi)
-- **Bartosz Chwiłkowski**: [GitHub](https://github.com/kooogi)
-- **Supervisor**: Prof. Mikołaj Morzy ([GitHub](https://github.com/megaduks))
-
-**Institution**: Faculty of Computing and Telecommunications, Poznan University of Technology, Poland
-
----
-
-## Example Usage in References
-
-### LaTeX Bibliography Entry
-
-```latex
-\bibitem{podsadna_chwilkowski2025}
-J. Podsadna and B. Chwiłkowski, ``Quality of personalization, explainability and robustness of recommendation algorithms,'' Master's thesis, Poznan University of Technology, 2025.
-```
-
-### Markdown Reference
-
-```markdown
-[PPERA Framework](https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms) - Podsadna, J., & Chwiłkowski, B. (2025). Quality of Personalization, Explainability and Robustness of Recommendation Algorithms. Master's Thesis, Poznan University of Technology.
-```
-
----
-
-*Last updated: 2025 | For the most current citation information, please check the repository's main README.*
+This project is licensed under the **MIT License**. You are free to use, modify, and distribute the code, but you must include the original copyright notice and license file in any derivative works. Please see the [LICENSE](../LICENSE) file for full details.

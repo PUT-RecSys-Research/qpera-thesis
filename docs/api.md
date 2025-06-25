@@ -1,44 +1,45 @@
 # API Reference
 
-This document provides detailed API documentation for the PPERA framework components.
+This document provides detailed API documentation for the QPERA project components. It is generated based on the source code to ensure accuracy.
 
-## Core Modules
+---
 
-### Main Entry Point
+## 1. Main Entry Point
 
-#### [`ppera.main`](../ppera/main.py)
+### [`qpera.main`](../qpera/main.py)
 
-The central orchestration module for running experiments.
+This is the central orchestration module for running all experiments. It parses command-line arguments to select and execute predefined experiment configurations.
 
-**Key Functions:**
-
+**Key Function:**
 ```python
 def main()
 ```
-Main CLI entry point that parses arguments and runs experiments.
+The main CLI entry point that parses arguments (`--algo`, `--dataset`, `--privacy`, etc.) to select and run experiment configurations from the `EXPERIMENT_CONFIGS` list.
 
-**Experiment Configurations:**
-- **Base Parameters**: `TOP_K=10`, `want_col`, `ratio=0.75`, `seed=42`
-- **Privacy Configurations**: Fractions `[0.1, 0.25, 0.5, 0.8]` with `hide_type="values_in_column"`
-- **Personalization Configurations**: Fractions `[0.1, 0.25, 0.5]` with optional rating changes
+**Experiment Configuration:**
+The core of this module is the `EXPERIMENT_CONFIGS` list, which defines the matrix of experiments to be run. Each entry is a dictionary specifying the algorithm, module, function, and dataset.
 
-**Default Experiment Matrix:**
 ```python
+# Located in qpera/main.py
 EXPERIMENT_CONFIGS = [
     {"algo": "CBF", "module": CBF, "func": "cbf_experiment_loop", "dataset": "movielens"},
     {"algo": "CF", "module": CF, "func": "cf_experiment_loop", "dataset": "movielens"},
     {"algo": "RL", "module": RL, "func": "rl_experiment_loop", "dataset": "movielens", "rows": 14000},
-    # ... and more combinations
+    # ... and more combinations for amazonsales and postrecommendations
 ]
 ```
 
 ---
 
-## Algorithm Implementations
+## 2. Algorithm Implementations
+
+This section details the core recommendation algorithm experiment loops.
 
 ### Collaborative Filtering
 
-#### [`ppera.CF`](../ppera/CF.py)
+#### [`qpera.CF`](../qpera/CF.py)
+
+Implements the collaborative filtering experiment loop using the Cornac library.
 
 **Main Function:**
 ```python
@@ -46,34 +47,18 @@ def cf_experiment_loop(
     TOP_K: int,
     dataset: str,
     want_col: list,
-    num_rows: int = None,
-    ratio: float = 0.75,
-    seed: int = 42,
-    personalization: bool = False,
-    fraction_to_change: float = 0,
-    change_rating: bool = False,
-    privacy: bool = False,
-    hide_type: str = "values_in_column",
-    columns_to_hide: list = None,
-    fraction_to_hide: float = 0,
-    records_to_hide: list = None,
+    # ... and other parameters for privacy/personalization
 ) -> None
 ```
-
-**Core Implementation:**
-- **Model**: Cornac BPR (Bayesian Personalized Ranking)
-- **Hyperparameters**: `k=100` factors, `max_iter=100` epochs, `learning_rate=0.01`
-- **Train/Test Split**: Uses `train_test_split()` with specified ratio
-
-**Metrics Computed:**
-- `precision`, `precision_at_k`, `recall`, `recall_at_k`
-- `mae`, `rmse`, `mrr`, `ndcg_at_k`
-- `user_coverage`, `item_coverage`
-- `personalization`, `intra_list_similarity`, `intra_list_dissimilarity`
+- **Core Model**: `cornac.models.BPR` (Bayesian Personalized Ranking).
+- **Hyperparameters**: `k=100` (factors), `max_iter=100`, `learning_rate=0.01`.
+- **Metrics Computed**: Includes precision, recall, F1, MRR, MAE, RMSE, NDCG, coverage, and personalization scores.
 
 ### Content-Based Filtering
 
-#### [`ppera.CBF`](../ppera/CBF.py)
+#### [`qpera.CBF`](../qpera/CBF.py)
+
+Implements the content-based filtering experiment loop.
 
 **Main Function:**
 ```python
@@ -81,175 +66,91 @@ def cbf_experiment_loop(
     TOP_K: int,
     dataset: str,
     want_col: list,
-    num_rows: int = None,
-    ratio: float = 0.75,
-    seed: int = 42,
-    personalization: bool = False,
-    fraction_to_change: float = 0,
-    change_rating: bool = False,
-    privacy: bool = False,
-    hide_type: str = "values_in_column",
-    columns_to_hide: list = None,
-    fraction_to_hide: float = 0,
-    records_to_hide: list = None,
+    # ... (same parameters as cf_experiment_loop)
 ) -> None
 ```
-
-**Core Implementation:**
-- **Model**: TfidfRecommender with BERT tokenization
-- **Features**: Primarily uses `genres` column for similarity
-- **Recommendation**: Top-K based on TF-IDF cosine similarity
-
-**Data Processing:**
-```python
-# TF-IDF vectorization
-recommender = TfidfRecommender(id_col="itemID", tokenization_method="bert")
-```
+- **Core Model**: A custom `TfidfRecommender` that uses TF-IDF vectorization on item features.
+- **Features**: Primarily uses the `genres` column for similarity calculation.
 
 ### Reinforcement Learning
 
-#### [`ppera.RL`](../ppera/rl_test_agent.py)
+The RL implementation is distributed across several modules, orchestrated by `RL.py`.
 
-**Core Classes:**
+#### [`qpera.RL`](../qpera/RL.py)
 
-##### `ActorCritic` Model
+This module contains the main experiment loop for the Reinforcement Learning approach.
+
+**Main Function:**
 ```python
-class ActorCritic(nn.Module):
-    def __init__(self, state_dim: int, act_dim: int, gamma: float = 0.99, hidden_sizes: list = [512, 256])
-    
-    def forward(self, inputs: torch.Tensor) -> tuple
-    def select_action(self, batch_state: torch.Tensor, batch_act_mask: torch.Tensor, device: torch.device) -> tuple
-    def update(self, optimizer: torch.optim.Optimizer, device: torch.device, ent_weight: float) -> None
+def rl_experiment_loop(
+    TOP_K: int,
+    dataset: str,
+    want_col: list,
+    # ... (same parameters as cf_experiment_loop)
+) -> None
 ```
-
-**Key Functions:**
-
-```python
-def batch_beam_search(env, model, uids, device, topk=[25, 5, 1]) -> tuple
-```
-Performs beam search for path recommendation with configurable top-k at each hop.
-
-```python
-def predict_paths(policy_file: str, path_file: str, args) -> None
-```
-Loads trained policy and generates recommendation paths.
-
-```python
-def run_evaluation(path_file: str, train_labels, test_labels, TOP_K: int, data, train, test, args) -> None
-```
-Evaluates RL recommendations using path-based predictions.
-
-**Knowledge Graph Components:**
-- **Entities**: `USERID`, `ITEMID`, `TITLE`, `GENRES`, `RATING`
-- **Relations**: `WATCHED`, `RATED`, `DESCRIBED_AS`, `BELONG_TO`, `RATING_VALUE_FOR_ITEM`
-- **Embedding**: TransE model for knowledge graph embeddings
+- **Orchestration**: This function coordinates the entire RL pipeline: data preprocessing, knowledge graph creation, TransE model training, agent training, and evaluation.
 
 ---
 
-## Data Processing
+## 3. Data Processing
 
 ### Dataset Loading
 
-#### [`ppera.datasets_loader`](../ppera/datasets_loader.py)
+#### [`qpera.datasets_loader`](../qpera/datasets_loader.py)
+
+Handles loading and basic preprocessing of datasets.
 
 **Core Function:**
 ```python
 def loader(dataset: str, want_col: list, num_rows: int = None, seed: int = 42) -> pd.DataFrame
 ```
+- **Supported Datasets**: `"movielens"`, `"amazonsales"`, `"postrecommendations"`.
+- **Functionality**: Loads data from CSV, samples if `num_rows` is specified, and selects columns based on `want_col`.
 
-**Supported Datasets:**
-- **MovieLens**: `"movielens"` - Movie ratings with genres
-- **Amazon Sales**: `"amazonsales"` - Product interactions
-- **Post Recommendations**: `"postrecommendations"` - Social media posts
+### Data Manipulation
 
-### Knowledge Graph Preprocessing
+#### [`qpera.data_manipulation`](../qpera/data_manipulation.py)
 
-#### [`ppera.rl_preprocess`](../ppera/rl_preprocess.py)
+Contains functions to apply privacy and personalization transformations to the data.
 
-**Key Function:**
+**Core Functions:**
 ```python
-def create_processed_dataset(df: pd.DataFrame) -> dict
+def hide_data_in_dataframe(data, hide_type, columns_to_hide, fraction_to_hide, records_to_hide, seed)
 ```
-
-**Output Structure:**
-```python
-{
-    "entity_maps": {
-        "user_id": {"map": dict, "vocab_size": int},
-        "item_id": {"map": dict, "vocab_size": int},
-        # ... other entities
-    },
-    "relations": {
-        "watched": [(user_idx, item_idx), ...],
-        "belongs_to": [(item_idx, genre_idx), ...],
-        # ... other relations
-    }
-}
-```
-
-### Knowledge Graph Embeddings
-
-#### [`ppera.rl_transe_model`](../ppera/rl_transe_model.py)
+Simulates privacy scenarios by hiding or altering data.
 
 ```python
-class KnowledgeEmbedding(nn.Module):
-    def __init__(self, processed_dataset: dict, idx_to_relation_name_map: dict, args)
+def change_items_in_dataframe(all, data, fraction_to_change, change_rating, seed)
 ```
-
-**Features:**
-- **TransE Model**: Knowledge graph embedding using translation-based approach
-- **Dynamic Layer Creation**: Automatically creates embedding layers for each entity type
-- **Relation-Specific Distributions**: Handles different relation types with appropriate distributions
+Simulates personalization scenarios by modifying user interaction data.
 
 ---
 
-## Evaluation Metrics
+## 4. Evaluation & Tracking
 
-### Core Metrics
+### Metrics
 
-#### [`ppera.metrics`](../ppera/metrics.py)
+#### [`qpera.metrics`](../qpera/metrics.py)
 
-**Accuracy Metrics:**
-```python
-def precision_at_k(rating_true, rating_pred, k: int = 1) -> float
-def recall_at_k(rating_true, rating_pred, k: int = 1) -> float
-def f1(rating_true, rating_pred, k: int = 1) -> float
-def mrr(rating_true, rating_pred, k: int = 1) -> float
-```
+A collection of custom and third-party evaluation metrics.
 
-**Coverage Metrics:**
-```python
-def user_coverage(rating_true, rating_pred, threshold: float = 10.0) -> float
-def item_coverage(rating_true, rating_pred, threshold: float = 10.0) -> float
-```
+**Accuracy & Ranking Metrics:**
+- `precision_at_k`, `recall_at_k`, `f1`, `mrr`, `ndcg_at_k`
 
-**Diversity Metrics:**
-```python
-def personalization_score(rating_true, rating_pred) -> float
-def intra_list_similarity_score(item_features, rating_pred, feature_cols: list = None) -> float
-def intra_list_dissimilarity(item_features, rating_pred, feature_cols: list = None) -> float
-```
+**Coverage & Diversity Metrics:**
+- `user_coverage`, `item_coverage`
+- `personalization` (based on Jaccard similarity)
+- `intra_list_similarity`
 
-**Advanced Personalization:**
-```python
-def personalization(predicted: List[list]) -> float
-```
-Computes 1 - average_jaccard_similarity across all user pairs' recommendation lists.
+**Error Metrics:**
+- `mae`, `rmse` (from Microsoft Recommenders)
 
-### External Metrics
+### MLflow Integration
 
-**From Microsoft Recommenders:**
-- `mae()` - Mean Absolute Error
-- `rmse()` - Root Mean Square Error  
-- `ndcg_at_k()` - Normalized Discounted Cumulative Gain
+#### [`qpera.log_mlflow`](../qpera/log_mlflow.py)
 
----
-
-## MLflow Integration
-
-### Experiment Tracking
-
-#### [`ppera.log_mlflow`](../ppera/log_mlflow.py)
+Handles all logging of experiments to the MLflow Tracking server.
 
 **Main Function:**
 ```python
@@ -257,233 +158,60 @@ def log_mlflow(
     dataset: str,
     top_k: pd.DataFrame,
     metrics: dict,
-    num_rows: int,
-    seed: int,
-    model: object,
-    model_type: str,
-    params: dict,
-    data: pd.DataFrame,
-    train: pd.DataFrame,
-    tf: object = None,
-    vectors_tokenized: object = None,
-    privacy: bool = None,
-    fraction_to_hide: float = None,
-    personalization: bool = None,
-    fraction_to_change: float = None,
+    # ... many other parameters for logging context
 ) -> None
 ```
-
-**Experiment Organization:**
-- **CF Experiments**: `"MLflow Collaborative Filtering"`
-- **CBF Experiments**: `"MLflow Content Based Filtering"`  
-- **RL Experiments**: `"MLflow Reinforcement Learning"`
-
-**Logged Artifacts:**
-- Dataset CSV files
-- Model signatures (when possible)
-- Input examples
-- Hyperparameters
-- All computed metrics
+- **Experiment Naming**: Organizes runs into experiments like `"MLflow Collaborative Filtering"`.
+- **Logged Artifacts**: Logs parameters, all computed metrics, model files, and dataset samples to ensure full reproducibility.
+- **Representative Sampling**: Uses a `_create_representative_sample` function to log a stratified sample of the data for inspection.
 
 ---
 
-## Utility Functions
+## 5. Reinforcement Learning Components
 
-### Data Manipulation
+This section details the modules specific to the RL-based recommendation approach.
 
-#### [`ppera.data_modifier`](../ppera/data_modifier.py)
+### Knowledge Graph Utilities
 
-**Privacy Functions:**
-```python
-def hide_data_in_dataframe(data, hide_type, columns_to_hide, fraction_to_hide, records_to_hide, seed)
-```
+#### [`qpera.rl_utils`](../qpera/rl_utils.py)
 
-**Personalization Functions:**
-```python
-def change_items_in_dataframe(all, data, fraction_to_change, change_rating, seed)
-```
+Provides constants and helper functions for the RL pipeline.
 
-### RL-Specific Utilities
+**Key Constants:**
+- `DATASET_DIR`, `TMP_DIR`: Define file paths for datasets and temporary RL artifacts.
+- `KG_RELATION`: A dictionary defining the structure and valid connections between entities in the knowledge graph.
+- `PATH_PATTERN`: Defines valid multi-hop paths for generating recommendations and explanations.
+- Entity and relation name constants (`USERID`, `WATCHED`, etc.).
 
-#### [`ppera.rl_utils`](../ppera/rl_utils.py)
-
-**Constants:**
-```python
-# Dataset paths
-DATASET_DIR = {
-    "movielens": "./datasets/movielens",
-    "amazonsales": "./datasets/amazonsales", 
-    "postrecommendations": "./datasets/PostRecommendations",
-}
-
-# Temporary directories for RL models
-TMP_DIR = {
-    "movielens": "ppera/rl_tmp/Movielens",
-    "amazonsales": "ppera/rl_tmp/AmazonSales",
-    "postrecommendations": "ppera/rl_tmp/PostRecommendations",
-}
-```
-
-**File I/O Functions:**
-```python
-def save_embed(dataset: str, embed: dict) -> None
-def load_embed(dataset: str) -> dict
-def save_kg(dataset: str, kg: dict) -> None  
-def load_kg(dataset: str) -> dict
-def save_labels(dataset: str, labels: dict, mode: str = "train") -> None
-def load_labels(dataset: str, mode: str = "train") -> dict
-```
-
-**Knowledge Graph Relations:**
-```python
-KG_RELATION = {
-    USERID: {WATCHED: ITEMID, RATED: TITLE},
-    ITEMID: {WATCHED: USERID, DESCRIBED_AS: TITLE, BELONG_TO: GENRES, RATING_VALUE_FOR_ITEM: RATING},
-    TITLE: {DESCRIBED_AS: ITEMID, RATED: USERID},
-    GENRES: {BELONG_TO: ITEMID},
-    RATING: {RATING_VALUE_FOR_ITEM: ITEMID},
-}
-```
-
----
-
-## Environment & State Management
+**Key Functions:**
+- `save_embed`, `load_embed`: Save/load trained embeddings.
+- `save_kg`, `load_kg`: Save/load the constructed knowledge graph.
+- `save_labels`, `load_labels`: Save/load user-item interaction labels for training/testing.
+- `cleanup_dataset_files`: Removes temporary files generated during the RL pipeline.
 
 ### RL Environment
 
-#### [`ppera.rl_kg_env`](../ppera/rl_kg_env.py)
+#### [`qpera.rl_kg_env`](../qpera/rl_kg_env.py)
 
-```python
-class KGState(object):
-    def __init__(self, embed_size: int, history_len: int = 1)
-    
-    def __call__(self, user_embed, node_embed, last_node_embed, last_relation_embed, 
-                 older_node_embed, older_relation_embed) -> np.ndarray
-```
+Defines the reinforcement learning environment built on the knowledge graph.
 
-**State Representations:**
-- **History Length 0**: `[user_embed, node_embed]`
-- **History Length 1**: `[user_embed, node_embed, last_node_embed, last_relation_embed]`
-- **History Length 2**: `[user_embed, node_embed, last_node_embed, last_relation_embed, older_node_embed, older_relation_embed]`
+**Core Classes:**
+- **`KGState`**: A class to construct the state representation for the agent, combining user embeddings with path history.
+- **`BatchKGEnvironment`**: Manages the agent's interaction with the knowledge graph, including state transitions and rewards, for a batch of users.
 
-```python
-class BatchKGEnvironment:
-    def __init__(self, dataset: str, max_acts: int, max_path_len: int = 3, state_history: int = 1)
-```
+### RL Agent & Evaluation
 
----
+#### [`qpera.rl_test_agent`](../qpera/rl_test_agent.py)
 
-## Error Handling & Robustness
+Contains the core PPO agent and evaluation logic.
 
-### Metric Calculation Safety
+**Core Classes & Functions:**
+- **`ActorCritic(nn.Module)`**: The policy and value network for the PPO agent.
+- **`batch_beam_search(...)`**: Performs beam search to generate recommendation paths in the knowledge graph.
+- **`run_evaluation(...)`**: Evaluates the generated paths against test data and computes metrics.
 
-All algorithm implementations include comprehensive error handling:
-
-```python
-def format_metric(metric):
-    return f"{metric:.4f}" if isinstance(metric, (float, int)) else "N/A"
-
-# Example usage in CF.py
-try:
-    eval_precision = precision_at_k(test, top_k, col_user="userID", col_item="itemID", 
-                                  col_rating="rating", col_prediction="prediction", k=1)
-except Exception as e:
-    eval_precision = None
-    print(f"Error calculating precision: {e}")
-```
-
-### Path Validation (RL)
-
-```python
-# In batch_beam_search
-if current_node_type not in KG_RELATION or relation not in KG_RELATION[current_node_type]:
-    print(f"Warning: Invalid relation '{relation}' for node type '{current_node_type}'. Skipping path extension.")
-    continue
-```
-
----
-
-## Configuration & Hyperparameters
-
-### Default Values
-
-**CF (Collaborative Filtering):**
-- `NUM_FACTORS = 100`
-- `NUM_EPOCHS = 100`  
-- `learning_rate = 0.01`
-- `lambda_reg = 0.001`
-
-**CBF (Content-Based):**
-- `tokenization_method = "bert"`
-- Primary feature: `genres`
-
-**RL (Reinforcement Learning):**
-- `gamma = 0.99`
-- `hidden_sizes = [512, 256]`
-- `max_path_len = 3`
-- `state_history = 1`
-- `topk = [25, 5, 1]` for beam search
-
-### Column Mappings
-
-```python
-header = {
-    "col_user": "userID",
-    "col_item": "itemID", 
-    "col_rating": "rating",
-    "col_timestamp": "timestamp",
-    "col_title": "title",
-    "col_genres": "genres",
-    "col_year": "year", 
-    "col_prediction": "prediction",
-}
-```
-
----
-
-## Usage Examples
-
-### Running Single Algorithm
-
-```python
-from ppera.CF import cf_experiment_loop
-
-cf_experiment_loop(
-    TOP_K=10,
-    dataset="movielens",
-    want_col=["userID", "itemID", "rating", "timestamp", "title", "genres"],
-    num_rows=1000,
-    ratio=0.75,
-    seed=42,
-    privacy=True,
-    fraction_to_hide=0.3,
-    columns_to_hide=["rating"]
-)
-```
-
-### Custom Metric Calculation
-
-```python
-from ppera.metrics import precision_at_k, personalization_score
-
-# Calculate precision@10
-precision = precision_at_k(test_data, predictions, k=10)
-
-# Calculate personalization score
-pers_score = personalization_score(test_data, predictions)
-```
-
-### Knowledge Graph Operations
-
-```python
-from ppera.rl_utils import load_embed, save_embed
-from ppera.rl_preprocess import create_processed_dataset
-
-# Load pre-trained embeddings
-embeddings = load_embed("movielens")
-
-# Process dataset for knowledge graph
-processed_data = create_processed_dataset(df)
-```
-
-This API documentation covers all the major components and functions in your PPERA framework, providing developers with the information needed to understand, extend, and use the system effectively.
+<!-- 
+  TODO: This section can be expanded by the authors with details about other RL modules, such as:
+  - `qpera.rl_train_agent`: The main training loop for the PPO agent.
+  - `qpera.rl_train_knowledge_graph`: The training loop for the TransE knowledge graph embeddings.
+-->

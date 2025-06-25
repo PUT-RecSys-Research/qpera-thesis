@@ -2,19 +2,17 @@ site_name: QPERA Documentation
 site_description: Quality of Personalization, Explainability and Robustness of Recommendation Algorithms
 site_author: Julia Podsadna, Bartosz Chwiłkowski
 site_url: https://put-recsys-research.github.io/qpera-thesis/
+copyright: Copyright &copy; 2024-2025 Julia Podsadna, Bartosz Chwiłkowski
 
-# Repository
+# --- Repository ---
 repo_name: qpera-thesis
 repo_url: https://github.com/PUT-RecSys-Research/qpera-thesis
 
-# Copyright
-copyright: Copyright &copy; 2024-2025 Julia Podsadna, Bartosz Chwiłkowski
-
-# Source directory
+# --- Build Directories ---
 docs_dir: docs
 site_dir: site
 
-# Configuration
+# --- Theme Configuration ---
 theme:
   name: material
   language: en
@@ -47,24 +45,27 @@ theme:
     - content.code.copy
     - content.code.annotate
 
-# Page tree
+# --- Navigation Structure ---
+# This section defines the top-level navigation tabs and the page tree.
+# It has been reorganized for a more logical flow suitable for a research project.
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - User Guide:
-    - Datasets: datasets.md
-    - Running Experiments: experiments.md
-    - Results & Analysis: results.md
-  - Developer Guide:
-    - Architecture: architecture.md
-    - API Reference: api/
-    - Contributing: contributing.md
-  - About:
-    - Citation: citation.md
-    - Troubleshooting: troubleshooting.md
-    - Acknowledgments: acknowledgments.md
+  - Guide:
+      - Getting Started: getting-started.md
+      - Datasets: datasets.md
+      - Running Experiments: experiments.md
+      - Troubleshooting: troubleshooting.md
+  - Research:
+      - Architecture: architecture.md
+      - Results & Analysis: results.md
+  - Reference:
+      - API Reference: api.md
+      - Citation: citation.md
+      - Acknowledgments: acknowledgments.md
+  - Contributing: contributing.md
 
-# Extensions
+# --- Markdown Extensions ---
+# These extensions add features like admonitions, code highlighting, and diagrams.
 markdown_extensions:
   - abbr
   - admonition
@@ -100,7 +101,7 @@ markdown_extensions:
       custom_checkbox: true
   - pymdownx.tilde
 
-# Plugins
+# --- Plugins ---
 plugins:
   - search
   - mkdocstrings:
@@ -112,7 +113,7 @@ plugins:
             show_source: true
             show_bases: true
 
-# Extra
+# --- Extra Configuration ---
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -124,7 +125,7 @@ extra:
 extra_css:
   - stylesheets/extra.css
 
-# Additional JavaScript
+# Additional JavaScript for MathJax support
 extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
