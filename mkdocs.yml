@@ -1,11 +1,11 @@
-site_name: PPERA Documentation
+site_name: QPERA Documentation
 site_description: Quality of Personalization, Explainability and Robustness of Recommendation Algorithms
 site_author: Julia Podsadna, Bartosz Chwiłkowski
-site_url: https://Master-s-thesis-PPERA.github.io/personalization-privacy-and-explainability-of-recommendation-algorithms
+site_url: https://put-recsys-research.github.io/qpera-thesis/
 
 # Repository
-repo_name: personalization-privacy-and-explainability-of-recommendation-algorithms
-repo_url: https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms
+repo_name: qpera-thesis
+repo_url: https://github.com/PUT-RecSys-Research/qpera-thesis
 
 # Copyright
 copyright: Copyright &copy; 2024-2025 Julia Podsadna, Bartosz Chwiłkowski
@@ -106,7 +106,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [ppera]
+          paths: [qpera]
           options:
             docstring_style: google
             show_source: true
@@ -116,7 +116,7 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms
+      link: https://github.com/PUT-RecSys-Research/qpera-thesis
     - icon: fontawesome/solid/paper-plane
       link: mailto:julia.podsadna@student.put.poznan.pl
 

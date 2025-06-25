@@ -27,9 +27,9 @@ DATASET_DIR = {
 
 # Model result directories
 TMP_DIR = {
-    MOVIELENS: "ppera/rl_tmp/MovieLens",
-    AMAZONSALES: "ppera/rl_tmp/AmazonSales",
-    POSTRECOMMENDATIONS: "ppera/rl_tmp/PostRecommendations",
+    MOVIELENS: "qpera/rl_tmp/MovieLens",
+    AMAZONSALES: "qpera/rl_tmp/AmazonSales",
+    POSTRECOMMENDATIONS: "qpera/rl_tmp/PostRecommendations",
 }
 
 # Label files

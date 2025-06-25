@@ -298,7 +298,7 @@ def _setup_metrics_directory(
     privacy: Optional[bool], personalization: Optional[bool], fraction_to_hide: Optional[float], fraction_to_change: Optional[float]
 ) -> str:
     """Setup directory structure for saving metrics based on experiment type."""
-    metrics_base_dir = "ppera/metrics"
+    metrics_base_dir = "qpera/metrics"
 
     if privacy is True:
         subdir = "privacy"

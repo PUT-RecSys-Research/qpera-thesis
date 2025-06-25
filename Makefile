@@ -2,8 +2,8 @@
 # GLOBALS                                                                       #
 #################################################################################
 
-CONDA_ENV_NAME = ppera-env
-SRC_DIR = ppera
+CONDA_ENV_NAME = qpera-env
+SRC_DIR = qpera
 PYTHON_INTERPRETER = python
 MLFLOW_HOST = 127.0.0.1
 MLFLOW_PORT = 8080
@@ -14,9 +14,9 @@ SHELL := /bin/bash
 
 # Let the Makefile know that these are not actual files to be built
 .PHONY: help install install-dev install-full setup requirements lint format clean \
-		download-datasets kaggle-setup-help verify-datasets \
-		run-all run-interactive run-mlflow stop-mlflow check-env \
-		status uninstall reset quickstart
+        download-datasets kaggle-setup-help verify-datasets \
+        run-all run-interactive run-mlflow stop-mlflow check-env \
+        status uninstall reset quickstart
 
 #################################################################################
 # HELP                                                                          #
@@ -28,12 +28,12 @@ define PRINT_HELP_PYSCRIPT
 import re, sys
 lines = '\n'.join([line for line in sys.stdin])
 matches = re.findall(r'\n## (.*)\n[\s\S]+?\n([a-zA-Z_-]+):', lines)
-print('PPERA - Personalization, Privacy and Explainability of Recommendation Algorithms')
+print('QPERA - Quality of Personalization, Explainability and Robustness of Recommendation Algorithms')
 print('=' * 80)
 print('\nAvailable commands:\n')
 for target, description in matches:
-	print(f'{target:25} {description}')
-print('\nFor more information, visit: https://github.com/your-repo/ppera')
+    print(f'{target:25} {description}')
+print('\nFor more information, visit: https://github.com/PUT-RecSys-Research/qpera-thesis')
 endef
 export PRINT_HELP_PYSCRIPT
 
@@ -278,91 +278,91 @@ stop-mlflow:
 
 ## Run complete pipeline: download data, start MLflow, execute experiments
 run-all: check-env verify-datasets
-	@echo "=== Running Complete PPERA Pipeline ==="
-	@echo ""
-	@echo ">>> Starting MLflow server..."
-	@if ! conda run -n $(CONDA_ENV_NAME) python -c "import mlflow" 2>/dev/null; then \
-		echo "Installing MLflow..."; \
-		conda run -n $(CONDA_ENV_NAME) pip install mlflow; \
-	fi
-	@if lsof -Pi :$(MLFLOW_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
-		echo "ℹ️ MLflow server already running on port $(MLFLOW_PORT)"; \
-		EXTERNAL_MLFLOW=true; \
-	else \
-		conda run -n $(CONDA_ENV_NAME) mlflow server \
-			--host $(MLFLOW_HOST) \
-			--port $(MLFLOW_PORT) \
-			--backend-store-uri sqlite:///mlflow.db \
-			--default-artifact-root ./mlruns & \
-		echo ">>> Waiting for MLflow server to start..."; \
-		timeout=30; \
-		while [ $$timeout -gt 0 ] && ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) >/dev/null 2>&1; do \
-			sleep 1; \
-			timeout=$$((timeout - 1)); \
-		done; \
-		if [ $$timeout -eq 0 ]; then \
-			echo "❌ MLflow server failed to start"; \
-			exit 1; \
-		fi; \
-		MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1); \
-		trap "echo '>>> Shutting down MLflow server...'; kill $$MLFLOW_PID 2>/dev/null || true" EXIT; \
-		echo "✅ MLflow server started (PID: $$MLFLOW_PID)"; \
-	fi; \
-	echo "🌐 MLflow UI: http://$(MLFLOW_HOST):$(MLFLOW_PORT)"; \
-	echo ""; \
-	echo ">>> Running main experiments..."; \
-	conda run -n $(CONDA_ENV_NAME) --no-capture-output $(PYTHON_INTERPRETER) -u -m $(SRC_DIR).main; \
-	echo ""; \
-	echo "✅ Pipeline execution complete!"
+    @echo "=== Running Complete QPERA Pipeline ==="
+    @echo ""
+    @echo ">>> Starting MLflow server..."
+    @if ! conda run -n $(CONDA_ENV_NAME) python -c "import mlflow" 2>/dev/null; then \
+        echo "Installing MLflow..."; \
+        conda run -n $(CONDA_ENV_NAME) pip install mlflow; \
+    fi
+    @if lsof -Pi :$(MLFLOW_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+        echo "ℹ️ MLflow server already running on port $(MLFLOW_PORT)"; \
+        EXTERNAL_MLFLOW=true; \
+    else \
+        conda run -n $(CONDA_ENV_NAME) mlflow server \
+            --host $(MLFLOW_HOST) \
+            --port $(MLFLOW_PORT) \
+            --backend-store-uri sqlite:///mlflow.db \
+            --default-artifact-root ./mlruns & \
+        echo ">>> Waiting for MLflow server to start..."; \
+        timeout=30; \
+        while [ $$timeout -gt 0 ] && ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) >/dev/null 2>&1; do \
+            sleep 1; \
+            timeout=$$((timeout - 1)); \
+        done; \
+        if [ $$timeout -eq 0 ]; then \
+            echo "❌ MLflow server failed to start"; \
+            exit 1; \
+        fi; \
+        MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1); \
+        trap "echo '>>> Shutting down MLflow server...'; kill $$MLFLOW_PID 2>/dev/null || true" EXIT; \
+        echo "✅ MLflow server started (PID: $$MLFLOW_PID)"; \
+    fi; \
+    echo "🌐 MLflow UI: http://$(MLFLOW_HOST):$(MLFLOW_PORT)"; \
+    echo ""; \
+    echo ">>> Running main experiments..."; \
+    conda run -n $(CONDA_ENV_NAME) --no-capture-output $(PYTHON_INTERPRETER) -u -m $(SRC_DIR).main; \
+    echo ""; \
+    echo "✅ Pipeline execution complete!"
 
 ## Run pipeline interactively (MLflow stays open for inspection)
 run-interactive: check-env verify-datasets
-	@echo "=== Running PPERA Pipeline (Interactive Mode) ==="
-	@echo ""
-	@echo ">>> Starting MLflow server..."
-	@if ! conda run -n $(CONDA_ENV_NAME) python -c "import mlflow" 2>/dev/null; then \
-		echo "Installing MLflow..."; \
-		conda run -n $(CONDA_ENV_NAME) pip install mlflow; \
-	fi
-	@conda run -n $(CONDA_ENV_NAME) mlflow server \
-		--host $(MLFLOW_HOST) \
-		--port $(MLFLOW_PORT) \
-		--backend-store-uri sqlite:///mlflow.db \
-		--default-artifact-root ./mlruns & \
-	echo ">>> Waiting for MLflow server to start..." && \
-	timeout=30; \
-	while [ $$timeout -gt 0 ] && ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) >/dev/null 2>&1; do \
-		sleep 1; \
-		timeout=$$((timeout - 1)); \
-	done; \
-	if [ $$timeout -eq 0 ]; then \
-		echo "❌ MLflow server failed to start"; \
-		exit 1; \
-	fi; \
-	MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1); \
-	echo "✅ MLflow server started (PID: $$MLFLOW_PID)"; \
-	echo "🌐 Access MLflow at: http://$(MLFLOW_HOST):$(MLFLOW_PORT)"; \
-	echo ""; \
-	echo ">>> Running main experiments..."; \
-	conda run -n $(CONDA_ENV_NAME) --no-capture-output $(PYTHON_INTERPRETER) -u -m $(SRC_DIR).main; \
-	echo ""; \
-	echo "✅ Experiments complete! MLflow server is still running."; \
-	echo "🔍 Review results at: http://$(MLFLOW_HOST):$(MLFLOW_PORT)"; \
-	echo ""; \
-	echo "Press [Enter] to stop MLflow server and exit..."; \
-	read dummy < /dev/tty; \
-	kill $$MLFLOW_PID && echo "✅ MLflow server stopped"
+    @echo "=== Running QPERA Pipeline (Interactive Mode) ==="
+    @echo ""
+    @echo ">>> Starting MLflow server..."
+    @if ! conda run -n $(CONDA_ENV_NAME) python -c "import mlflow" 2>/dev/null; then \
+        echo "Installing MLflow..."; \
+        conda run -n $(CONDA_ENV_NAME) pip install mlflow; \
+    fi
+    @conda run -n $(CONDA_ENV_NAME) mlflow server \
+        --host $(MLFLOW_HOST) \
+        --port $(MLFLOW_PORT) \
+        --backend-store-uri sqlite:///mlflow.db \
+        --default-artifact-root ./mlruns & \
+    echo ">>> Waiting for MLflow server to start..." && \
+    timeout=30; \
+    while [ $$timeout -gt 0 ] && ! curl -s --fail http://$(MLFLOW_HOST):$(MLFLOW_PORT) >/dev/null 2>&1; do \
+        sleep 1; \
+        timeout=$$((timeout - 1)); \
+    done; \
+    if [ $$timeout -eq 0 ]; then \
+        echo "❌ MLflow server failed to start"; \
+        exit 1; \
+    fi; \
+    MLFLOW_PID=$$(lsof -t -i:$(MLFLOW_PORT) | head -n 1); \
+    echo "✅ MLflow server started (PID: $$MLFLOW_PID)"; \
+    echo "🌐 Access MLflow at: http://$(MLFLOW_HOST):$(MLFLOW_PORT)"; \
+    echo ""; \
+    echo ">>> Running main experiments..."; \
+    conda run -n $(CONDA_ENV_NAME) --no-capture-output $(PYTHON_INTERPRETER) -u -m $(SRC_DIR).main; \
+    echo ""; \
+    echo "✅ Experiments complete! MLflow server is still running."; \
+    echo "🔍 Review results at: http://$(MLFLOW_HOST):$(MLFLOW_PORT)"; \
+    echo ""; \
+    echo "Press [Enter] to stop MLflow server and exit..."; \
+    read dummy < /dev/tty; \
+    kill $$MLFLOW_PID && echo "✅ MLflow server stopped"
 
 ## Quick start: install environment and run complete pipeline
 quickstart:
-	@echo "=== PPERA Quick Start ==="
-	@echo "This will set up everything and run the complete pipeline."
-	@echo ""
-	@make install-dev
-	@echo ""
-	@make download-datasets
-	@echo ""
-	@make run-all
+    @echo "=== QPERA Quick Start ==="
+    @echo "This will set up everything and run the complete pipeline."
+    @echo ""
+    @make install-dev
+    @echo ""
+    @make download-datasets
+    @echo ""
+    @make run-all
 
 #################################################################################
 # DEVELOPMENT HELPERS                                                          #
@@ -370,42 +370,42 @@ quickstart:
 
 ## Show project status and diagnostics
 status:
-	@echo "=== PPERA Project Status ==="
-	@echo ""
-	@echo "Environment:"
-	@if conda env list | grep -q "^$(CONDA_ENV_NAME) "; then \
-		echo "  ✅ Conda environment: $(CONDA_ENV_NAME)"; \
-		echo -n "  🔧 Dev tools: "; \
-		if conda run -n $(CONDA_ENV_NAME) python -c "import ruff, pytest" 2>/dev/null; then \
-			echo "✅ installed"; \
-		else \
-			echo "❌ missing (run 'make install-dev')"; \
-		fi; \
-		echo -n "  📊 MLflow: "; \
-		if conda run -n $(CONDA_ENV_NAME) python -c "import mlflow" 2>/dev/null; then \
-			echo "✅ installed"; \
-		else \
-			echo "⭕ not installed"; \
-		fi; \
-	else \
-		echo "  ❌ Conda environment: $(CONDA_ENV_NAME) (not found)"; \
-	fi
-	@echo ""
-	@echo "Datasets:"
-	@for dataset in AmazonSales MovieLens PostRecommendations; do \
-		if [ -d "datasets/$$dataset" ] && [ "$$(find datasets/$$dataset -name "*.csv" 2>/dev/null | wc -l)" -gt 0 ]; then \
-			echo "  ✅ $$dataset"; \
-		else \
-			echo "  ❌ $$dataset (missing or empty)"; \
-		fi; \
-	done
-	@echo ""
-	@echo "Services:"
-	@if lsof -Pi :$(MLFLOW_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
-		echo "  ✅ MLflow server (running on port $(MLFLOW_PORT))"; \
-	else \
-		echo "  ⭕ MLflow server (not running)"; \
-	fi
+    @echo "=== QPERA Project Status ==="
+    @echo ""
+    @echo "Environment:"
+    @if conda env list | grep -q "^$(CONDA_ENV_NAME) "; then \
+        echo "  ✅ Conda environment: $(CONDA_ENV_NAME)"; \
+        echo -n "  🔧 Dev tools: "; \
+        if conda run -n $(CONDA_ENV_NAME) python -c "import ruff, pytest" 2>/dev/null; then \
+            echo "✅ installed"; \
+        else \
+            echo "❌ missing (run 'make install-dev')"; \
+        fi; \
+        echo -n "  📊 MLflow: "; \
+        if conda run -n $(CONDA_ENV_NAME) python -c "import mlflow" 2>/dev/null; then \
+            echo "✅ installed"; \
+        else \
+            echo "⭕ not installed"; \
+        fi; \
+    else \
+        echo "  ❌ Conda environment: $(CONDA_ENV_NAME) (not found)"; \
+    fi
+    @echo ""
+    @echo "Datasets:"
+    @for dataset in AmazonSales MovieLens PostRecommendations; do \
+        if [ -d "datasets/$$dataset" ] && [ "$$(find datasets/$$dataset -name "*.csv" 2>/dev/null | wc -l)" -gt 0 ]; then \
+            echo "  ✅ $$dataset"; \
+        else \
+            echo "  ❌ $$dataset (missing or empty)"; \
+        fi; \
+    done
+    @echo ""
+    @echo "Services:"
+    @if lsof -Pi :$(MLFLOW_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+        echo "  ✅ MLflow server (running on port $(MLFLOW_PORT))"; \
+    else \
+        echo "  ⭕ MLflow server (not running)"; \
+    fi
 
 ## Remove conda environment completely
 uninstall:
@@ -417,26 +417,26 @@ uninstall:
 reset: uninstall clean
 	@echo ">>> Performing full project reset..."
 	@echo "Cleaning dataset contents (preserving folder structure)..."
-	@for dataset in AmazonSales MovieLens PostRecommendations; do \
-		if [ -d "datasets/$$dataset" ]; then \
-			echo "  Cleaning datasets/$$dataset/..."; \
-			find "datasets/$$dataset" -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
-		fi; \
-	done
-	@echo "Cleaning ppera directories..."
-	@if [ -d "ppera/datasets" ]; then \
-		echo "  Cleaning ppera/datasets/..."; \
-		find ppera/datasets -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
-	fi
-	@if [ -d "ppera/metrics" ]; then \
-		echo "  Cleaning ppera/metrics/ (removing subfolders)..."; \
-		find ppera/metrics -mindepth 1 -type d ! -name '.gitkeep' -exec rm -rf {} + 2>/dev/null || true; \
-		find ppera/metrics -mindepth 1 -type f ! -name '.gitkeep' -delete 2>/dev/null || true; \
-	fi
-	@if [ -d "ppera/plots" ]; then \
-		echo "  Cleaning ppera/plots/..."; \
-		find ppera/plots -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
-	fi
-	@echo "Removing ML artifacts and logs..."
-	@rm -rf mlruns/ mlartifacts/ mlflow.db ppera/rl_tmp/ experiment_runner.log
-	@echo "✅ Full reset complete! Run 'make quickstart' to set up again."
+    @for dataset in AmazonSales MovieLens PostRecommendations; do \
+        if [ -d "datasets/$$dataset" ]; then \
+            echo "  Cleaning datasets/$$dataset/..."; \
+            find "datasets/$$dataset" -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
+        fi; \
+    done
+    @echo "Cleaning qpera directories..."
+    @if [ -d "qpera/datasets" ]; then \
+        echo "  Cleaning qpera/datasets/..."; \
+        find qpera/datasets -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
+    fi
+    @if [ -d "qpera/metrics" ]; then \
+        echo "  Cleaning qpera/metrics/ (removing subfolders)..."; \
+        find qpera/metrics -mindepth 1 -type d ! -name '.gitkeep' -exec rm -rf {} + 2>/dev/null || true; \
+        find qpera/metrics -mindepth 1 -type f ! -name '.gitkeep' -delete 2>/dev/null || true; \
+    fi
+    @if [ -d "qpera/plots" ]; then \
+        echo "  Cleaning qpera/plots/..."; \
+        find qpera/plots -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
+    fi
+    @echo "Removing ML artifacts and logs..."
+    @rm -rf mlruns/ mlartifacts/ mlflow.db qpera/rl_tmp/ experiment_runner.log
+    @echo "✅ Full reset complete! Run 'make quickstart' to set up again."

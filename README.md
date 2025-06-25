@@ -88,7 +88,7 @@ If you use this framework or our findings in your research, please cite our work
 
 ```bibtex
 @software{podsadna_chwilkowski_qpera2025,
-  title={QPERA: A Framework for Evaluating Quality of Personalization, Explainability, and Robustness of Recommendation Algorithms},
+  title={Quality of Personalization, Explainability and Robustness of Recommendation Algorithms},
   author={Podsadna, Julia and Chwi{\l}kowski, Bartosz},
   year={2025},
   url={https://github.com/PUT-RecSys-Research/qpera-thesis},
