@@ -3,13 +3,13 @@
 <div align="center">
 
 [![CCDS Project Template](https://img.shields.io/badge/CCDS-Project--template-328F97)](https://cookiecutter-data-science.drivendata.org/)
-[![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://github.com/Master-s-thesis-PPERA/personalization-privacy-and-explainability-of-recommendation-algorithms/pulse)
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://github.com/PUT-RecSys-Research/qpera-thesis/pulse)
 [![Python Version](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/documentation-view-blue.svg)](https://master-s-thesis-ppera.github.io/personalization-privacy-and-explainability-of-recommendation-algorithms/)
+[![Documentation](https://img.shields.io/badge/documentation-view-blue.svg)](https://put-recsys-research.github.io/qpera-thesis/)
 [![MLflow Tracking](https://img.shields.io/badge/MLflow-Tracking-blue.svg)](https://mlflow.org/)
 
-**A Master's Thesis Project comparing recommendation algorithms across personalization, privacy, and explainability dimensions.**
+**A Master's Thesis Project for evaluating recommendation algorithms on Quality, Personalization, Explainability, and Robustness.**
 </div>
 
 ## 👥 Authors & Supervision
@@ -55,8 +55,8 @@ This framework provides a novel, unified platform for evaluating recommendation 
 
 **1. Clone the repository:**
 ```bash
-git clone https://github.com/Master-s-thesis-PPERA/Quality-of-Personalization-Explainability-and-Robustness-of-Recommendation-Algorithms.git
-cd Quality-of-Personalization-Explainability-and-Robustness-of-Recommendation-Algorithms
+git clone https://github.com/PUT-RecSys-Research/qpera-thesis.git
+cd qpera-thesis
 ```
 
 **2. Configure Kaggle API (required for dataset downloads)**
@@ -87,11 +87,11 @@ For detailed setup instructions, including API key configuration, please see the
 If you use this framework or our findings in your research, please cite our work.
 
 ```bibtex
-@software{podsadna_chwilkowski_ppera2025,
-  title={PPERA: Personalization, Privacy, and Explainability of Recommendation Algorithms Framework},
+@software{podsadna_chwilkowski_qpera2025,
+  title={QPERA: A Framework for Evaluating Quality of Personalization, Explainability, and Robustness of Recommendation Algorithms},
   author={Podsadna, Julia and Chwi{\l}kowski, Bartosz},
   year={2025},
-  url={https://github.com/Master-s-thesis-PPERA/Quality-of-Personalization-Explainability-and-Robustness-of-Recommendation-Algorithms},
+  url={https://github.com/PUT-RecSys-Research/qpera-thesis},
   version={1.0.0},
   license={MIT},
   note={Open-source framework for comprehensive recommendation algorithm evaluation}
@@ -111,4 +111,4 @@ This research was made possible by the guidance of our supervisor, the resources
 
 We welcome contributions and feedback! Please see our [**Contributing Guidelines**](docs/contributing.md) for details on our development workflow and how to submit pull requests.
 
-For bugs, feature requests, or questions, please use [**GitHub Issues**](https://github.com/Master-s-thesis-PPERA/Quality-of-Personalization-Explainability-and-Robustness-of-Recommendation-Algorithms/issues) or [**Discussions**](https://github.com/Master-s-thesis-PPERA/Quality-of-Personalization-Explainability-and-Robustness-of-Recommendation-Algorithms/discussions).
+For bugs, feature requests, or questions, please use [**GitHub Issues**](https://github.com/PUT-RecSys-Research/qpera-thesis/issues) or [**Discussions**](https://github.com/PUT-RecSys-Research/qpera-thesis/discussions).
