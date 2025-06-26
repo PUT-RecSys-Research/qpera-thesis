@@ -2,11 +2,12 @@
 # GLOBALS                                                                       #
 #################################################################################
 
-CONDA_ENV_NAME = ppera-env
-SRC_DIR = ppera
+CONDA_ENV_NAME = qpera-env
+SRC_DIR = qpera
 PYTHON_INTERPRETER = python
 MLFLOW_HOST = 127.0.0.1
 MLFLOW_PORT = 8080
+DOCS_PORT ?= 8000
 
 # Shell configuration for better error handling
 SHELL := /bin/bash
@@ -16,7 +17,7 @@ SHELL := /bin/bash
 .PHONY: help install install-dev install-full setup requirements lint format clean \
 		download-datasets kaggle-setup-help verify-datasets \
 		run-all run-interactive run-mlflow stop-mlflow check-env \
-		status uninstall reset quickstart
+		status uninstall reset quickstart docs
 
 #################################################################################
 # HELP                                                                          #
@@ -28,12 +29,12 @@ define PRINT_HELP_PYSCRIPT
 import re, sys
 lines = '\n'.join([line for line in sys.stdin])
 matches = re.findall(r'\n## (.*)\n[\s\S]+?\n([a-zA-Z_-]+):', lines)
-print('PPERA - Personalization, Privacy and Explainability of Recommendation Algorithms')
+print('QPERA - Quality of Personalization, Explainability and Robustness of Recommendation Algorithms')
 print('=' * 80)
 print('\nAvailable commands:\n')
 for target, description in matches:
 	print(f'{target:25} {description}')
-print('\nFor more information, visit: https://github.com/your-repo/ppera')
+print('\nFor more information, visit: https://github.com/PUT-RecSys-Research/qpera-thesis')
 endef
 export PRINT_HELP_PYSCRIPT
 
@@ -47,7 +48,7 @@ help:
 
 ## Create conda environment and install core dependencies
 install:
-	@echo "=== Setting up PPERA Environment (Core) ==="
+	@echo "=== Setting up QPERA Environment (Core) ==="
 	@echo "Step 1/3: Creating conda environment '$(CONDA_ENV_NAME)'..."
 	@if conda env list | grep -q "^$(CONDA_ENV_NAME) "; then \
 		echo "Environment '$(CONDA_ENV_NAME)' already exists. Use 'make requirements' to update."; \
@@ -199,6 +200,24 @@ kaggle-setup-help:
 	@echo ""
 	@echo "Then run: make download-datasets"
 
+## Kaggle API automatic configuration
+kaggle-autoconfig:
+	@echo ">>> Kaggle API Autoconfig <<<"
+	@echo ""
+	@echo "1. Looking for kaggle.json in ~/Downloads..."
+	@if [ -f ~/Downloads/kaggle.json ]; then \
+		echo "2. Creating ~/.kaggle directory..."; \
+		mkdir -p ~/.kaggle; \
+		echo "3. Moving kaggle.json to ~/.kaggle/..."; \
+		mv ~/Downloads/kaggle.json ~/.kaggle/; \
+		echo "4. Setting permissions to 600..."; \
+		chmod 600 ~/.kaggle/kaggle.json; \
+		echo ""; \
+		echo "✅ Kaggle API has been successfully configured!"; \
+	else \
+		echo "❌ kaggle.json not found in ~/Downloads. Please download it from Kaggle first."; \
+	fi
+
 ## Verify all datasets are downloaded and complete
 verify-datasets:
 	@echo ">>> Verifying dataset downloads..."
@@ -278,7 +297,7 @@ stop-mlflow:
 
 ## Run complete pipeline: download data, start MLflow, execute experiments
 run-all: check-env verify-datasets
-	@echo "=== Running Complete PPERA Pipeline ==="
+	@echo "=== Running Complete QPERA Pipeline ==="
 	@echo ""
 	@echo ">>> Starting MLflow server..."
 	@if ! conda run -n $(CONDA_ENV_NAME) python -c "import mlflow" 2>/dev/null; then \
@@ -317,7 +336,7 @@ run-all: check-env verify-datasets
 
 ## Run pipeline interactively (MLflow stays open for inspection)
 run-interactive: check-env verify-datasets
-	@echo "=== Running PPERA Pipeline (Interactive Mode) ==="
+	@echo "=== Running QPERA Pipeline (Interactive Mode) ==="
 	@echo ""
 	@echo ">>> Starting MLflow server..."
 	@if ! conda run -n $(CONDA_ENV_NAME) python -c "import mlflow" 2>/dev/null; then \
@@ -355,7 +374,7 @@ run-interactive: check-env verify-datasets
 
 ## Quick start: install environment and run complete pipeline
 quickstart:
-	@echo "=== PPERA Quick Start ==="
+	@echo "=== QPERA Quick Start ==="
 	@echo "This will set up everything and run the complete pipeline."
 	@echo ""
 	@make install-dev
@@ -365,12 +384,44 @@ quickstart:
 	@make run-all
 
 #################################################################################
+# DOCUMENTATION                                                                #
+#################################################################################
+
+## Install documentation dependencies
+install-docs:
+	@echo ">>> Installing documentation dependencies..."
+	@conda run -n $(CONDA_ENV_NAME) pip install -e ".[docs]"
+	@echo "✅ Documentation dependencies installed."
+
+## Build and serve the documentation locally
+docs: check-env
+	@echo ">>> Building and serving documentation locally..."
+	@conda run -n $(CONDA_ENV_NAME) mkdocs serve --dev-addr=127.0.0.1:$(DOCS_PORT) & \
+	echo ">>> Waiting for MkDocs server to start..." && \
+	timeout=30; \
+	while [ $$timeout -gt 0 ] && ! curl -s --fail http://127.0.0.1:$(DOCS_PORT) >/dev/null 2>&1; do \
+		sleep 1; \
+		timeout=$$((timeout - 1)); \
+	done; \
+	if [ $$timeout -eq 0 ]; then \
+		echo "❌ MkDocs server failed to start"; \
+		exit 1; \
+	fi; \
+	DOCS_PID=$$(lsof -t -i:$(DOCS_PORT) | head -n 1); \
+	echo "✅ MkDocs server started (PID: $$DOCS_PID)"; \
+	echo "🌐 Access documentation at: http://127.0.0.1:$(DOCS_PORT)"; \
+	echo ""; \
+	echo "Press [Enter] to stop the server and exit..."; \
+	read dummy < /dev/tty; \
+	kill $$DOCS_PID && echo "✅ MkDocs server stopped" \
+
+#################################################################################
 # DEVELOPMENT HELPERS                                                          #
 #################################################################################
 
 ## Show project status and diagnostics
 status:
-	@echo "=== PPERA Project Status ==="
+	@echo "=== QPERA Project Status ==="
 	@echo ""
 	@echo "Environment:"
 	@if conda env list | grep -q "^$(CONDA_ENV_NAME) "; then \
@@ -423,20 +474,20 @@ reset: uninstall clean
 			find "datasets/$$dataset" -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
 		fi; \
 	done
-	@echo "Cleaning ppera directories..."
-	@if [ -d "ppera/datasets" ]; then \
-		echo "  Cleaning ppera/datasets/..."; \
-		find ppera/datasets -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
+	@echo "Cleaning qpera directories..."
+	@if [ -d "qpera/datasets" ]; then \
+		echo "  Cleaning qpera/datasets/..."; \
+		find qpera/datasets -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
 	fi
-	@if [ -d "ppera/metrics" ]; then \
-		echo "  Cleaning ppera/metrics/ (removing subfolders)..."; \
-		find ppera/metrics -mindepth 1 -type d ! -name '.gitkeep' -exec rm -rf {} + 2>/dev/null || true; \
-		find ppera/metrics -mindepth 1 -type f ! -name '.gitkeep' -delete 2>/dev/null || true; \
+	@if [ -d "qpera/metrics" ]; then \
+		echo "  Cleaning qpera/metrics/ (removing subfolders)..."; \
+		find qpera/metrics -mindepth 1 -type d ! -name '.gitkeep' -exec rm -rf {} + 2>/dev/null || true; \
+		find qpera/metrics -mindepth 1 -type f ! -name '.gitkeep' -delete 2>/dev/null || true; \
 	fi
-	@if [ -d "ppera/plots" ]; then \
-		echo "  Cleaning ppera/plots/..."; \
-		find ppera/plots -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
+	@if [ -d "qpera/plots" ]; then \
+		echo "  Cleaning qpera/plots/..."; \
+		find qpera/plots -mindepth 1 ! -name '.gitkeep' -delete 2>/dev/null || true; \
 	fi
 	@echo "Removing ML artifacts and logs..."
-	@rm -rf mlruns/ mlartifacts/ mlflow.db ppera/rl_tmp/ experiment_runner.log
+	@rm -rf mlruns/ mlartifacts/ mlflow.db qpera/rl_tmp/ experiment_runner.log
 	@echo "✅ Full reset complete! Run 'make quickstart' to set up again."

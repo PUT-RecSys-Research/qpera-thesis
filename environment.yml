@@ -1,4 +1,4 @@
-name: ppera-env
+name: qpera-env
 channels:
   - conda-forge
   - pytorch

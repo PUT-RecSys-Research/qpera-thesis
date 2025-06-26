@@ -1,0 +1,132 @@
+site_name: QPERA Documentation
+site_description: Quality of Personalization, Explainability and Robustness of Recommendation Algorithms
+site_author: Julia Podsadna, Bartosz Chwiłkowski
+site_url: https://put-recsys-research.github.io/qpera-thesis/
+copyright: Copyright &copy; 2024-2025 Julia Podsadna, Bartosz Chwiłkowski
+
+# --- Repository ---
+repo_name: qpera-thesis
+repo_url: https://github.com/PUT-RecSys-Research/qpera-thesis
+
+# --- Build Directories ---
+docs_dir: docs
+site_dir: site
+
+# --- Theme Configuration ---
+theme:
+  name: material
+  language: en
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: blue
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: blue
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.share
+    - toc.integrate
+    - content.code.copy
+    - content.code.annotate
+
+# --- Navigation Structure ---
+# This section defines the top-level navigation tabs and the page tree.
+# It has been reorganized for a more logical flow suitable for a research project.
+nav:
+  - Home: index.md
+  - Guide:
+      - Getting Started: getting-started.md
+      - Datasets: datasets.md
+      - Running Experiments: experiments.md
+      - Troubleshooting: troubleshooting.md
+  - Research:
+      - Architecture: architecture.md
+      - Results & Analysis: results.md
+  - Reference:
+      - API Reference: api.md
+      - Citation: citation.md
+      - Acknowledgments: acknowledgments.md
+  - Contributing: contributing.md
+
+# --- Markdown Extensions ---
+# These extensions add features like admonitions, code highlighting, and diagrams.
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# --- Plugins ---
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [qpera]
+          options:
+            docstring_style: google
+            show_source: true
+            show_bases: true
+
+# --- Extra Configuration ---
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/PUT-RecSys-Research/qpera-thesis
+    - icon: fontawesome/solid/paper-plane
+      link: mailto:julia.podsadna@student.put.poznan.pl
+
+# Additional CSS
+extra_css:
+  - stylesheets/extra.css
+
+# Additional JavaScript for MathJax support
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

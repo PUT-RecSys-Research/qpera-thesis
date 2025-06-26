@@ -3,9 +3,9 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "ppera"
+name = "qpera"
 version = "1.0.0"
-description = "Personalization, Privacy, and Explainability of Recommendation Algorithms"
+description = "Quality of Personalization, Explainability and Robustness of Recommendation Algorithms"
 long_description = """
 An in-depth analysis of three main families of recommendation algorithms 
 (collaborative filtering, content-based, reinforcement learning) in terms of:
@@ -24,10 +24,13 @@ license = { file = "LICENSE" }
 readme = "README.md"
 keywords = [
     "recommendation-systems",
+    "content-based filtering",
+    "collaborative filtering",
     "reinforcement-learning", 
     "privacy",
     "explainability",
     "personalization",
+    "robustness",
     "ai-ethics"
 ]
 classifiers = [
@@ -52,6 +55,9 @@ dependencies = [
     "pandera",
     "fastapi",
     "gunicorn",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
 ]
 
 [project.optional-dependencies]
@@ -73,7 +79,7 @@ ml-extra = [
     "optuna>=3.0.0",
 ]
 
-all = ["ppera[dev,ml-extra]"]
+all = ["qpera[dev,ml-extra]"]
 
 [tool.ruff]
 line-length = 160
@@ -84,7 +90,7 @@ exclude = [
     "build",
     "dist",
     "*.egg-info",
-    "ppera/rl_tmp",
+    "qpera/rl_tmp",
 ]
 
 [tool.ruff.lint]
@@ -108,16 +114,16 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
 "tests/*" = ["ALL"]
-"ppera/rl_*.py" = ["E501", "C901", "E402", "F841", "E722"]
-"ppera/*_train*.py" = ["E501", "C901", "E402", "F841"]
-"ppera/*_test*.py" = ["E501", "C901", "E402", "F841"]
-"ppera/main.py" = ["E501", "C901"]
-"ppera/datasets_*.py" = ["E501", "F841"]
+"qpera/rl_*.py" = ["E501", "C901", "E402", "F841", "E722"]
+"qpera/*_train*.py" = ["E501", "C901", "E402", "F841"]
+"qpera/*_test*.py" = ["E501", "C901", "E402", "F841"]
+"qpera/main.py" = ["E501", "C901"]
+"qpera/datasets_*.py" = ["E501", "F841"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["ppera"]
-force-single-line = false
-split-on-trailing-comma = true
+known_first_party = ["qpera"]
+force_single_line = false
+split-on-trailing_comma = true
 combine-as-imports = true
 
 [tool.black]
@@ -126,7 +132,7 @@ target-version = ["py39"]
 skip-string-normalization = true
 force-exclude = '''
 /(
-    ppera/rl_tmp
+    qpera/rl_tmp
     | \.git
     | \.mypy_cache
     | \.pytest_cache
@@ -137,12 +143,12 @@ force-exclude = '''
 [tool.isort]
 profile = "black"
 line_length = 160
-known_first_party = ["ppera"]
+known_first_party = ["qpera"]
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
-skip_glob = ["ppera/rl_tmp/*"]
+skip_glob = ["qpera/rl_tmp/*"]
 float_to_top = true
 force_sort_within_sections = false
 
@@ -151,7 +157,7 @@ minversion = "7.0"
 testpaths = ["tests"]
 addopts = [
     "--strict-markers",
-    "--cov=ppera",
+    "--cov=qpera",
     "--cov-report=term-missing",
 ]
 markers = [
@@ -161,12 +167,12 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["ppera"]
+source = ["qpera"]
 omit = [
     "*/tests/*",
     "*/test_*",
     "setup.py",
-    "ppera/rl_tmp/*",
+    "qpera/rl_tmp/*",
 ]
 
 [tool.coverage.report]
