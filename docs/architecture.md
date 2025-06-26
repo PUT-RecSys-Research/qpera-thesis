@@ -66,10 +66,10 @@ The repository is organized using a structure inspired by the Cookiecutter Data 
 
 This section details the key modules within the `qpera/` source directory.
 
-### Main Entry Point ([`qpera/main.py`](../qpera/main.py))
+### Main Entry Point ([`qpera/main.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/main.py))
 The central orchestration script that manages experiment execution based on command-line arguments. It iterates through predefined experiment configurations to run tests for different algorithms, datasets, and scenarios (clear, privacy, personalization).
 
-### Dataset Loading ([`qpera/datasets_loader.py`](../qpera/datasets_loader.py))
+### Dataset Loading ([`qpera/datasets_loader.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/datasets_loader.py))
 Implements a unified, class-based system for loading and preprocessing datasets.
 - **`BaseDatasetLoader`**: An abstract base class defining the loading interface.
 - **Concrete Loaders**: `MovieLensDataset`, `AmazonSalesDataset`, and `PostRecommendationsDataset` handle the specifics of each data source, including column normalization, data cleaning, and merging.
@@ -77,27 +77,27 @@ Implements a unified, class-based system for loading and preprocessing datasets.
 ### Algorithm Implementations
 Each algorithm is encapsulated in its own module with a consistent experiment loop function.
 
-- **Collaborative Filtering ([`qpera/CF.py`](../qpera/CF.py))**: Implements a BPR (Bayesian Personalized Ranking) model using the Cornac library.
-- **Content-Based Filtering ([`qpera/CBF.py`](../qpera/CBF.py))**: Implements a `TfidfRecommender` using item features (e.g., genres) and cosine similarity.
-- **Reinforcement Learning ([`qpera/RL.py`](../qpera/RL.py))**: Orchestrates the complex, multi-stage RL pipeline, including knowledge graph creation, model training, and evaluation.
+- **Collaborative Filtering ([`qpera/CF.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/CF.py))**: Implements a BPR (Bayesian Personalized Ranking) model using the Cornac library.
+- **Content-Based Filtering ([`qpera/CBF.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/CBF.py))**: Implements a `TfidfRecommender` using item features (e.g., genres) and cosine similarity.
+- **Reinforcement Learning ([`qpera/RL.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/RL.py))**: Orchestrates the complex, multi-stage RL pipeline, including knowledge graph creation, model training, and evaluation.
 
 ### Reinforcement Learning Pipeline
 The RL approach is broken down into several specialized modules.
 
-- **Preprocessing ([`qpera/rl_preprocess.py`](../qpera/rl_preprocess.py))**: Extracts entities (users, items, genres) and relations from the raw data to build a knowledge graph.
-- **KG Environment ([`qpera/rl_kg_env.py`](../qpera/rl_kg_env.py))**: Defines the `BatchKGEnvironment` where the agent interacts with the knowledge graph, managing state transitions and rewards.
-- **TransE Model ([`qpera/rl_transe_model.py`](../qpera/rl_transe_model.py))**: An implementation of the TransE algorithm to learn low-dimensional embeddings for entities and relations in the knowledge graph.
-- **Agent ([`qpera/rl_train_agent.py`](../qpera/rl_train_agent.py))**: Contains the `ActorCritic` model (PPO agent) that learns a policy for navigating the knowledge graph to find recommendations.
-- **Inference ([`qpera/rl_test_agent.py`](../qpera/rl_test_agent.py))**: Uses a `batch_beam_search` function to generate recommendation paths from the trained agent and knowledge graph.
+- **Preprocessing ([`qpera/rl_preprocess.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rl_preprocess.py))**: Extracts entities (users, items, genres) and relations from the raw data to build a knowledge graph.
+- **KG Environment ([`qpera/rl_kg_env.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rl_kg_env.py))**: Defines the `BatchKGEnvironment` where the agent interacts with the knowledge graph, managing state transitions and rewards.
+- **TransE Model ([`qpera/rl_transe_model.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rl_transe_model.py))**: An implementation of the TransE algorithm to learn low-dimensional embeddings for entities and relations in the knowledge graph.
+- **Agent ([`qpera/rl_train_agent.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rl_train_agent.py))**: Contains the `ActorCritic` model (PPO agent) that learns a policy for navigating the knowledge graph to find recommendations.
+- **Inference ([`qpera/rl_test_agent.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rl_test_agent.py))**: Uses a `batch_beam_search` function to generate recommendation paths from the trained agent and knowledge graph.
 
-### Data Manipulation ([`qpera/data_manipulation.py`](../qpera/data_manipulation.py))
+### Data Manipulation ([`qpera/data_manipulation.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/data_manipulation.py))
 Provides functions to simulate different scenarios for robustness testing.
 - **`hide_information_in_dataframe`**: Simulates privacy attacks by removing or obscuring values in specified columns or entire records.
 - **`change_items_in_dataframe`**: Simulates personalization shifts by substituting items in a user's history based on global popularity.
 
 ### Evaluation Framework
-- **Metrics ([`qpera/metrics.py`](../qpera/metrics.py))**: A comprehensive collection of metrics, including accuracy (`precision_at_k`, `ndcg_at_k`), coverage (`user_coverage`), and diversity (`personalization`, `intra_list_similarity`).
-- **MLflow Logging ([`qpera/log_mlflow.py`](../qpera/log_mlflow.py))**: A centralized function to log all experiment parameters, metrics, and artifacts to MLflow, ensuring reproducibility.
+- **Metrics ([`qpera/metrics.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/metrics.py))**: A comprehensive collection of metrics, including accuracy (`precision_at_k`, `ndcg_at_k`), coverage (`user_coverage`), and diversity (`personalization`, `intra_list_similarity`).
+- **MLflow Logging ([`qpera/log_mlflow.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/log_mlflow.py))**: A centralized function to log all experiment parameters, metrics, and artifacts to MLflow, ensuring reproducibility.
 
 ---
 

@@ -21,7 +21,7 @@ Then, navigate to `http://127.0.0.1:8080` in your browser.
 
 ## 2. Experiment Configuration
 
-This project uses a **configuration-driven** approach. Instead of passing many command-line arguments, experiments are defined in a list within [`qpera/main.py`](../qpera/main.py).
+This project uses a **configuration-driven** approach. Instead of passing many command-line arguments, experiments are defined in a list within [`qpera/main.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/main.py).
 
 ### Predefined Experiment Matrix
 The `EXPERIMENT_CONFIGS` list defines the core combinations of algorithms and datasets to be tested:
@@ -79,7 +79,7 @@ The project computes a comprehensive set of metrics, all logged to MLflow.
 
 ## 5. Reinforcement Learning Pipeline
 
-The RL algorithm follows a distinct, multi-stage pipeline orchestrated by [`qpera/RL.py`](../qpera/RL.py).
+The RL algorithm follows a distinct, multi-stage pipeline orchestrated by [`qpera/RL.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/RL.py).
 
 1.  **Preprocessing**: Extracts entities and relations from the raw data to build a knowledge graph structure.
 2.  **TransE Training**: Trains a TransE model on the graph to learn embeddings for all entities and relations.

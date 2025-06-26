@@ -110,4 +110,4 @@ If you encounter any issues or have questions about the research, please feel fr
 
 - **Open an Issue**: For bugs or unexpected behavior, please [open a new issue](https://github.com/PUT-RecSys-Research/qpera-thesis/issues).
 - **Start a Discussion**: For general questions or ideas, [start a discussion](https://github.com/PUT-RecSys-Research/qpera-thesis/discussions).
-- **Contact the Authors**: You can also reach out to the authors listed in the main [README.md](../README.md).
+- **Contact the Authors**: You can also reach out to the authors listed in the main [README.md](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/README.md).

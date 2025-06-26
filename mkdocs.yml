@@ -54,7 +54,6 @@ nav:
       - Getting Started: getting-started.md
       - Datasets: datasets.md
       - Running Experiments: experiments.md
-      - Troubleshooting: troubleshooting.md
   - Research:
       - Architecture: architecture.md
       - Results & Analysis: results.md

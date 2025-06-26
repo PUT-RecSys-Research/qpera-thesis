@@ -6,7 +6,7 @@ This document provides detailed API documentation for the QPERA project componen
 
 ## 1. Main Entry Point
 
-### [`qpera.main`](../qpera/main.py)
+### [`qpera.main`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/main.py)
 
 This is the central orchestration module for running all experiments. It parses command-line arguments to select and execute predefined experiment configurations.
 
@@ -37,7 +37,7 @@ This section details the core recommendation algorithm experiment loops.
 
 ### Collaborative Filtering
 
-#### [`qpera.CF`](../qpera/CF.py)
+#### [`qpera.CF`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/CF.py)
 
 Implements the collaborative filtering experiment loop using the Cornac library.
 
@@ -56,7 +56,7 @@ def cf_experiment_loop(
 
 ### Content-Based Filtering
 
-#### [`qpera.CBF`](../qpera/CBF.py)
+#### [`qpera.CBF`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/CBF.py)
 
 Implements the content-based filtering experiment loop.
 
@@ -76,7 +76,7 @@ def cbf_experiment_loop(
 
 The RL implementation is distributed across several modules, orchestrated by `RL.py`.
 
-#### [`qpera.RL`](../qpera/RL.py)
+#### [`qpera.RL`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/RL.py)
 
 This module contains the main experiment loop for the Reinforcement Learning approach.
 
@@ -97,7 +97,7 @@ def rl_experiment_loop(
 
 ### Dataset Loading
 
-#### [`qpera.datasets_loader`](../qpera/datasets_loader.py)
+#### [`qpera.datasets_loader`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/datasets_loader.py)
 
 Handles loading and basic preprocessing of datasets.
 
@@ -110,7 +110,7 @@ def loader(dataset: str, want_col: list, num_rows: int = None, seed: int = 42) -
 
 ### Data Manipulation
 
-#### [`qpera.data_manipulation`](../qpera/data_manipulation.py)
+#### [`qpera.data_manipulation`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/data_manipulation.py)
 
 Contains functions to apply privacy and personalization transformations to the data.
 
@@ -131,7 +131,7 @@ Simulates personalization scenarios by modifying user interaction data.
 
 ### Metrics
 
-#### [`qpera.metrics`](../qpera/metrics.py)
+#### [`qpera.metrics`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/metrics.py)
 
 A collection of custom and third-party evaluation metrics.
 
@@ -148,7 +148,7 @@ A collection of custom and third-party evaluation metrics.
 
 ### MLflow Integration
 
-#### [`qpera.log_mlflow`](../qpera/log_mlflow.py)
+#### [`qpera.log_mlflow`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/log_mlflow.py)
 
 Handles all logging of experiments to the MLflow Tracking server.
 
@@ -173,7 +173,7 @@ This section details the modules specific to the RL-based recommendation approac
 
 ### Knowledge Graph Utilities
 
-#### [`qpera.rl_utils`](../qpera/rl_utils.py)
+#### [`qpera.rl_utils`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rl_utils.py)
 
 Provides constants and helper functions for the RL pipeline.
 
@@ -191,7 +191,7 @@ Provides constants and helper functions for the RL pipeline.
 
 ### RL Environment
 
-#### [`qpera.rl_kg_env`](../qpera/rl_kg_env.py)
+#### [`qpera.rl_kg_env`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rl_kg_env.py)
 
 Defines the reinforcement learning environment built on the knowledge graph.
 
@@ -201,7 +201,7 @@ Defines the reinforcement learning environment built on the knowledge graph.
 
 ### RL Agent & Evaluation
 
-#### [`qpera.rl_test_agent`](../qpera/rl_test_agent.py)
+#### [`qpera.rl_test_agent`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rl_test_agent.py)
 
 Contains the core PPO agent and evaluation logic.
 

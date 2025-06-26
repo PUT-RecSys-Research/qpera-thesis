@@ -103,4 +103,4 @@ Used for calculating the `personalization` and `intra_list_similarity` metrics.
 
 ## 4. License
 
-This project is licensed under the **MIT License**. You are free to use, modify, and distribute the code, but you must include the original copyright notice and license file in any derivative works. Please see the [LICENSE](../LICENSE) file for full details.
+This project is licensed under the **MIT License**. You are free to use, modify, and distribute the code, but you must include the original copyright notice and license file in any derivative works. Please see the [LICENSE](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/LICENSE) file for full details.

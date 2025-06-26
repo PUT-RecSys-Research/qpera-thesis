@@ -44,7 +44,7 @@ This project uses three main datasets to evaluate recommendation algorithms acro
 
 ## 2. Dataset Details & Processing
 
-The project uses a unified loading system ([`qpera/datasets_loader.py`](../qpera/datasets_loader.py)) that standardizes column names and applies specific preprocessing for each dataset.
+The project uses a unified loading system ([`qpera/datasets_loader.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/datasets_loader.py)) that standardizes column names and applies specific preprocessing for each dataset.
 
 ### MovieLens
 - **Source**: `grouplens/movielens-20m-dataset`
@@ -76,7 +76,7 @@ The project uses a unified loading system ([`qpera/datasets_loader.py`](../qpera
 
 ## 3. Data Loading & Caching
 
-The `loader` function in [`qpera/datasets_loader.py`](../qpera/datasets_loader.py) provides a single, consistent interface for accessing all datasets.
+The `loader` function in [`qpera/datasets_loader.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/datasets_loader.py) provides a single, consistent interface for accessing all datasets.
 
 ### Caching Mechanism
 To speed up repeated experiments, the loader uses a caching system:
