@@ -55,9 +55,9 @@ dependencies = [
     "pandera",
     "fastapi",
     "gunicorn",
-    "mkdocs>=1.5.0",
-    "mkdocs-material>=9.0.0",
-    "mkdocstrings[python]>=0.23.0",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
 ]
 
 [project.optional-dependencies]
