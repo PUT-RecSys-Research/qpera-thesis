@@ -24,10 +24,13 @@ license = { file = "LICENSE" }
 readme = "README.md"
 keywords = [
     "recommendation-systems",
+    "content-based filtering",
+    "collaborative filtering",
     "reinforcement-learning", 
     "privacy",
     "explainability",
     "personalization",
+    "robustness",
     "ai-ethics"
 ]
 classifiers = [
@@ -52,6 +55,9 @@ dependencies = [
     "pandera",
     "fastapi",
     "gunicorn",
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.23.0",
 ]
 
 [project.optional-dependencies]
@@ -73,7 +79,7 @@ ml-extra = [
     "optuna>=3.0.0",
 ]
 
-all = ["ppera[dev,ml-extra]"]
+all = ["qpera[dev,ml-extra]"]
 
 [tool.ruff]
 line-length = 160

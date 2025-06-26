@@ -81,6 +81,11 @@ For detailed setup instructions, including API key configuration, please see the
 
 ### **[https://put-recsys-research.github.io/qpera-thesis/](https://put-recsys-research.github.io/qpera-thesis/)**
 
+or run it locally:
+```bash
+make docs
+```
+
 ---
 
 ## 📄 How to Cite
