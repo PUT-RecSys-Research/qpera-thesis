@@ -1,16 +1,14 @@
 # Quality of Personalization, Explainability and Robustness of Recommendation Algorithms
 
-<div align="center">
-<a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
-    <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
-</a>
+<p style="text-align: center;">
+<a target="_blank" href="https://cookiecutter-data-science.drivendata.org/"><img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" /></a>
 <a href="https://github.com/PUT-RecSys-Research/qpera-thesis/pulse"><img src="https://img.shields.io/badge/Status-Active-brightgreen.svg" /></a>
 <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.9+-blue.svg" /></a>
 <a href="https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" /></a>
 <a href="https://mlflow.org/"><img src="https://img.shields.io/badge/MLflow-Tracking-blue.svg" /></a>
+</p>
 
 **A Master's Thesis Project for evaluating recommendation algorithms on Quality, Personalization, Explainability, and Robustness.**
-</div>
 
 ---
 
