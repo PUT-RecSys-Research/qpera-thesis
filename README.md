@@ -25,29 +25,33 @@
 
 ## 📖 Abstract
 
-This Master's thesis presents an in-depth analysis of three main families of recommendation algorithms (**collaborative filtering**, **content-based filtering**, and **reinforcement learning**). The evaluation focuses on their resilience to data-related stresses, resistance to anonymization, explainability, and the ethical risks associated with their implementation. This research is particularly relevant given the recently adopted **EU AI Act** and the **Omnibus Directive**. The project provides a framework for comprehensive, multi-dimensional evaluation of recommender systems across diverse datasets and domains.
+The aim of this study was to investigate how recommendation algorithms — **Content-Based Filtering**, **Collaborative Filtering**, and **Reinforcement Learning** — perform in terms of three key aspects: robustness to the privatization of user history, the ability to personalize recommendations, and the explainability of the generated results. The algorithms were tested using three datasets: **AmazonSales** (high-cost decisions), **MovieLens** (moderate-cost decisions), and **PostRecommendations** (low-cost decisions). Their performance was assessed across defined scenarios using recommendation quality metrics and feedback from survey participants. The results indicated that none of the evaluated algorithms consistently outperformed the others in terms of robustness and personalization. However, with regard to explainability, respondents generally favored Content-Based Filtering. This research is particularly relevant given the recently adopted **EU AI Act** and the **Omnibus Directive**.
 
 ---
 
 ## ❓ Research Questions
 
-This research addresses the following key questions:
+The underlying rapid literature review addressed four research questions:
 
-1.  **Robustness Analysis**: How do different recommendation algorithm families compare in terms of resilience to data anonymization and perturbation techniques?
-2.  **Privacy-Personalization Trade-off**: What is the relationship between recommendation accuracy, personalization quality, and user privacy preservation for each algorithm family?
-3.  **Explainability Assessment**: To what extent can each algorithm generate meaningful explanations for its recommendations, and how does this capability affect user trust and system transparency?
-4.  **Ethical Risk Evaluation**: How can ethical risks associated with each recommender system be identified, measured, and mitigated in accordance with EU AI Act requirements?
+1.  **RQ1**: What kind of algorithms are used in recommendation systems?
+2.  **RQ2**: What kind of metrics can be used to evaluate algorithms' quality of personalization?
+3.  **RQ3**: What kind of metrics can be used to evaluate algorithms' explainability?
+4.  **RQ4**: What kind of metrics can be used to evaluate algorithms' robustness?
+
+The empirical study evaluated three concrete aspects:
+
+-   **Personalization**: The extent to which the algorithm can provide personalized recommendations despite the aggregation of user history with that of others.
+-   **Robustness**: The extent to which the algorithm can deliver accurate recommendations even when the user's history is partially concealed or removed.
+-   **Explainability**: The extent to which the recommendation explanation is satisfactory for the user, assessed using the SAGES framework (Simple, Adaptable, Grounded, Extendable, Source-based).
 
 ---
 
 ## 🔬 Key Contributions
 
-This framework provides a novel, unified platform for evaluating recommendation algorithms across multiple, often conflicting, dimensions. Our key contributions include:
-
--   **Comprehensive Evaluation Framework**: A standardized pipeline to evaluate algorithms across personalization, privacy, explainability, and robustness.
--   **Trade-off Quantification**: Systematic analysis of the performance degradation under privacy constraints and personalization adjustments.
--   **Cross-Domain Analysis**: Evidence-based guidelines for algorithm selection based on performance across different application domains (e-commerce, social media, entertainment).
--   **Reproducible Research**: An open-source implementation with MLflow tracking and containerization to ensure full reproducibility of our findings.
+-   **Comprehensive Evaluation Framework**: A standardized pipeline to evaluate disparate recommendation algorithms across personalization, privacy robustness, and explainability using consistent metrics.
+-   **Empirical Trade-off Analysis**: Quantitative evidence of the trade-offs between personalization, privacy, and explainability across three algorithm families and three datasets representing different decision-making costs.
+-   **Explainability Survey**: A user study with 36 participants evaluating recommendation explanations using the SAGES framework, providing empirical evidence that item-to-item (CBF) explanations are preferred.
+-   **Reproducible Research**: An open-source implementation with MLflow tracking to ensure full reproducibility of all findings.
 
 ---
 
@@ -62,9 +66,9 @@ cd qpera-thesis
 **2. Configure Kaggle API:**
   This project requires the Kaggle API for downloading datasets.
   - Download your `kaggle.json` API token from your Kaggle account page.
-  - For automated setup instructions, run:
+  - For automated setup (places `kaggle.json` from `~/Downloads` to `~/.kaggle/`), run:
   ```bash
-  kaggle-autoconfig
+  make kaggle-autoconfig
   ```
 
 **3. Run the main pipeline**

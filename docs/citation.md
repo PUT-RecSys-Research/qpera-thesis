@@ -19,7 +19,7 @@ If you use this project, its findings, or its code in your research, please cite
   address   = {Poznan, Poland},
   supervisor= {Morzy, Miko{\l}aj},
   type      = {Master's Thesis},
-  note      = {Faculty of Computing and Telecommunications},
+  note      = {Faculty of Computing and Telecommunication},
   url       = {https://github.com/PUT-RecSys-Research/qpera-thesis}
 }
 ```
@@ -41,8 +41,6 @@ To cite the software implementation directly, you can use the following format.
   version   = {1.0.0},
   url       = {https://github.com/PUT-RecSys-Research/qpera-thesis},
   license   = {MIT}
-  // TODO: When a Zenodo release is created, add the DOI here.
-  // doi    = {10.5281/zenodo.XXXXXXX}
 }
 ```
 

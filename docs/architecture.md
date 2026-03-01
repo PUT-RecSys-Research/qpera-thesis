@@ -26,33 +26,39 @@ The repository is organized using a structure inspired by the Cookiecutter Data 
 │
 ├── qpera/              # 🐍 Main source code package
 │   ├── __init__.py
-│   ├── main.py         # Main CLI entry point and experiment orchestrator
+│   ├── main.py         # ExperimentRunner class and experiment orchestrator
 │   │
 │   ├── datasets/       # 💾 Processed & cached datasets (e.g., merge_file.csv)
 │   │
 │   ├── rl_tmp/         # ⚙️ Cached artifacts for the RL pipeline (e.g., kg.pkl)
 │   │
 │   ├── # --- Data Handling ---
-│   ├── datasets_loader.py
-│   ├── data_manipulation.py
+│   ├── datasets_loader.py          # Unified dataset loading with caching
+│   ├── datasets_downloader.py      # KaggleDatasetDownloader for auto-download
+│   ├── data_manipulation.py        # Privacy/personalization data transformations
+│   ├── frequency_based_rating_gen.py  # Synthetic rating generation for PostRecommendations
+│   ├── rating_timestamp_gen.py     # Timestamp and rating generation for AmazonSales
 │   │
 │   ├── # --- Core Algorithms ---
-│   ├── CBF.py
-│   ├── CF.py
+│   ├── CBF.py          # Content-Based Filtering experiment loop
+│   ├── CF.py           # Collaborative Filtering (BPR) experiment loop
 │   ├── RL.py           # Reinforcement Learning orchestrator
 │   │
 │   ├── # --- Reinforcement Learning Components ---
-│   ├── rl_preprocess.py
-│   ├── rl_knowledge_graph.py
-│   ├── rl_kg_env.py
-│   ├── rl_transe_model.py
-│   ├── rl_train_agent.py
-│   ├── rl_test_agent.py
-│   └── rl_utils.py
+│   ├── rl_preprocess.py            # KG entity/relation extraction
+│   ├── rl_knowledge_graph.py       # KnowledgeGraph class
+│   ├── rl_kg_env.py                # KGState and BatchKGEnvironment
+│   ├── rl_transe_model.py          # KnowledgeEmbedding (TransE) model
+│   ├── rl_train_transe_model.py    # TransE/KGE training loop
+│   ├── rl_train_agent.py           # ActorCritic agent and PPO training
+│   ├── rl_test_agent.py            # Beam search inference and evaluation
+│   ├── rl_decoder.py               # RLRecommenderDecoder
+│   ├── rl_prediction.py            # Prediction and scoring
+│   └── rl_utils.py                 # I/O, TF-IDF, logging, seed utilities
 │   │
-│   ├── # --- Utilities & Tooling ---
-│   ├── metrics.py
-│   └── log_mlflow.py
+│   ├── # --- Evaluation & Tracking ---
+│   ├── metrics.py      # All evaluation metrics
+│   └── log_mlflow.py   # MLflow experiment logging
 │
 ├── references/         # 📄 Research papers, articles, and reference materials
 │
@@ -67,7 +73,7 @@ The repository is organized using a structure inspired by the Cookiecutter Data 
 This section details the key modules within the `qpera/` source directory.
 
 ### Main Entry Point ([`qpera/main.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/main.py))
-The central orchestration script that manages experiment execution based on command-line arguments. It iterates through predefined experiment configurations to run tests for different algorithms, datasets, and scenarios (clear, privacy, personalization).
+The central orchestration module built around the `ExperimentRunner` class. It defines all algorithm–dataset combinations in `_define_experiments()` and generates scenario configurations (Clean, Privacy, Personalization) in `_build_configurations()`. The script runs all experiments without requiring command-line arguments.
 
 ### Dataset Loading ([`qpera/datasets_loader.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/datasets_loader.py))
 Implements a unified, class-based system for loading and preprocessing datasets.
@@ -91,13 +97,22 @@ The RL approach is broken down into several specialized modules.
 - **Inference ([`qpera/rl_test_agent.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rl_test_agent.py))**: Uses a `batch_beam_search` function to generate recommendation paths from the trained agent and knowledge graph.
 
 ### Data Manipulation ([`qpera/data_manipulation.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/data_manipulation.py))
-Provides functions to simulate different scenarios for robustness testing.
-- **`hide_information_in_dataframe`**: Simulates privacy attacks by removing or obscuring values in specified columns or entire records.
-- **`change_items_in_dataframe`**: Simulates personalization shifts by substituting items in a user's history based on global popularity.
+Provides functions to simulate different scenarios for robustness and personalization testing.
+- **`hide_information_in_dataframe`**: Simulates privacy-preserving scenarios with four modes: hiding entire columns, removing random records, removing specific records, or replacing values within columns with NaN.
+- **`change_items_in_dataframe`**: Simulates personalization shifts by replacing a fraction of each user's items with others drawn from a global item frequency distribution, updating metadata and ratings accordingly.
+
+### Data Generation
+- **[`qpera/rating_timestamp_gen.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/rating_timestamp_gen.py)**: Generates timestamps (randomly within 2018–2022) and ratings (via VADER sentiment analysis) for the AmazonSales dataset.
+- **[`qpera/frequency_based_rating_gen.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/frequency_based_rating_gen.py)**: Generates synthetic ratings for the PostRecommendations dataset based on user interaction frequency with categories.
 
 ### Evaluation Framework
-- **Metrics ([`qpera/metrics.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/metrics.py))**: A comprehensive collection of metrics, including accuracy (`precision_at_k`, `ndcg_at_k`), coverage (`user_coverage`), and diversity (`personalization`, `intra_list_similarity`).
-- **MLflow Logging ([`qpera/log_mlflow.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/log_mlflow.py))**: A centralized function to log all experiment parameters, metrics, and artifacts to MLflow, ensuring reproducibility.
+- **Metrics ([`qpera/metrics.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/metrics.py))**: A comprehensive collection of metrics including:
+    - Accuracy: `precision_at_k`, `recall_at_k`, `f1_score`, `accuracy`
+    - Error: `mae`, `rmse` (from Microsoft Recommenders)
+    - Ranking: `mrr`
+    - Coverage: `user_coverage`, `item_coverage`
+    - Diversity: `intra_list_dissimilarity`, `intra_list_similarity_score`, `personalization_score`
+- **MLflow Logging ([`qpera/log_mlflow.py`](https://github.com/PUT-RecSys-Research/qpera-thesis/blob/main/qpera/log_mlflow.py))**: A centralized function to log all experiment parameters, metrics, and artifacts (including representative data samples) to MLflow, ensuring reproducibility.
 
 ---
 
@@ -107,17 +122,13 @@ The project follows distinct data flows for standard experiments and the RL pipe
 
 **1. General Experiment Flow**
 ```
-CLI Arguments → Main Orchestrator → Dataset Loading → Data Manipulation (Privacy/Personalization) → Algorithm Training & Prediction → Evaluation → MLflow Logging
+ExperimentRunner Configuration → Main Orchestrator → Dataset Loading → Data Manipulation (Privacy/Personalization) → Algorithm Training & Prediction → Evaluation → MLflow Logging
 ```
 
 **2. RL Pipeline Flow**
 ```
 Raw DataFrame → KG Preprocessing → TransE Embedding Training → Agent Policy Training → Beam Search Inference → Path-based Recommendations → Evaluation
 ```
-<!--
-  TODO: Authors could add a note here explaining the rationale behind choosing a multi-stage pipeline for RL instead of an end-to-end model.
--->
-
 ---
 
 ## 4. Key Design Patterns
@@ -125,10 +136,7 @@ Raw DataFrame → KG Preprocessing → TransE Embedding Training → Agent Polic
 The project employs several key design patterns to promote modularity and robustness.
 
 - **Modular Algorithm Interface**: All main algorithm loops (`cf_experiment_loop`, etc.) share a consistent function signature, allowing the main orchestrator to call them interchangeably.
-- **Configuration-Driven Experiments**: Experiments are defined in a central list of dictionaries (`EXPERIMENT_CONFIGS`), making it easy to add or modify test runs without changing the core logic.
+- **Configuration-Driven Experiments**: Experiments are defined within the `ExperimentRunner` class — algorithm–dataset combinations in `_define_experiments()` and scenario parameters in `_build_configurations()` — making it easy to add or modify test runs without changing the core logic.
 - **Defensive Programming**: Metric calculations are wrapped in `try...except` blocks to prevent a single failure from halting an entire experiment batch.
 - **Caching and Persistence**: The RL pipeline extensively caches intermediate artifacts (processed data, knowledge graphs, trained embeddings) to speed up subsequent runs and debugging.
 
-<!--
-  TODO: This section could be expanded with details on other patterns, such as the use of the Factory or Strategy pattern if applicable in the dataset loaders or algorithm selection.
--->

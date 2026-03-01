@@ -22,9 +22,9 @@ This is the fastest way to get started. The `quickstart` command automates the e
 2.  **Configure Kaggle API:**
     This project requires the Kaggle API for downloading datasets.
     - Download your `kaggle.json` API token from your Kaggle account page.
-    - For automated setup instructions, run:
+    - For automated setup (places `kaggle.json` from `~/Downloads` to `~/.kaggle/`), run:
     ```bash
-    kaggle-autoconfig
+    make kaggle-autoconfig
     ```
 
 3.  **Run the Quick Start command:**
@@ -58,7 +58,7 @@ cd qpera-thesis
 make install
 
 # Activate the new environment
-conda activate ppera-env
+conda activate qpera-env
 
 # Install the project package in editable mode
 make setup

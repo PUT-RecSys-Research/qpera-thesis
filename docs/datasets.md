@@ -4,13 +4,16 @@ This document provides a comprehensive guide to the datasets used in the QPERA p
 
 ## Overview
 
-This project uses three main datasets to evaluate recommendation algorithms across different domains.
+This project uses three main datasets to evaluate recommendation algorithms across domains representing varying levels of **decision-making consequences**.
 
-| Dataset | Domain | Raw Size | Users | Items | Ratings | Kaggle Source |
-|---------|--------|----------|-------|-------|---------|---------------|
-| [MovieLens](#movielens) | Movies | ~20M | ~138K | ~27K | ~20M | `grouplens/movielens-20m-dataset` |
-| [Amazon Sales](#amazon-sales) | E-commerce | ~1.4M | ~1M | ~200K | Generated | `karkavelrajaj/amazon-sales-dataset` |
-| [Post Recs](#post-recommendations) | Social Media | ~150K | ~10K | ~50K | Generated | `vatsalparsaniya/post-pecommendation` |
+| Dataset | Domain | Decision Cost | Records | Ratings | Kaggle Source |
+|---------|--------|:------------:|--------:|:-------:|---------------|
+| [Amazon Sales](#amazon-sales) | E-commerce | **High** | 1,351 | Generated (VADER) | `karkavelrajaj/amazon-sales-dataset` |
+| [MovieLens 20M](#movielens) | Movies | **Moderate** | 20,000,263 | Explicit | `grouplens/movielens-20m-dataset` |
+| [Post Recs](#post-recommendations) | Social Media | **Low** | 70,616 | Generated (frequency) | `vatsalparsaniya/post-pecommendation` |
+
+!!! info "Decision-Making Context"
+    The datasets were selected to represent a spectrum of user decision-making commitment: **AmazonSales** involves financial commitment (high-cost), **MovieLens** involves time investment (moderate-cost), and **PostRecommendations** involves minimal effort (low-cost). All experiments limit data to a maximum of **14,000 rows** per run.
 
 ---
 
@@ -27,18 +30,27 @@ This project uses three main datasets to evaluate recommendation algorithms acro
     pip install kaggle
     ```
 
-2.  **Auto Configure Kaggle Credentials**:
-    Places your `kaggle.json` file in the `~/.kaggle/` directory.
+2.  **Configure Kaggle Credentials**:
+    Place your `kaggle.json` file in the `~/.kaggle/` directory. For automated setup (moves `kaggle.json` from `~/Downloads` to `~/.kaggle/`):
     ```bash
     make kaggle-autoconfig
     ```
+    Or for manual setup instructions:
+    ```bash
+    make kaggle-setup-help
+    ```
 
 3.  **Download All Datasets**:
-    Use the `Makefile` command to download and extract all required datasets automatically.
+    Use the `Makefile` command to download all required datasets automatically.
     ```bash
-    make check-datasets
+    make download-datasets
     ```
-    This command checks for existing files and only downloads what is missing.
+
+4.  **Verify Downloads**:
+    Check that all datasets were downloaded correctly.
+    ```bash
+    make verify-datasets
+    ```
 
 ---
 
@@ -49,26 +61,31 @@ The project uses a unified loading system ([`qpera/datasets_loader.py`](https://
 ### MovieLens
 - **Source**: `grouplens/movielens-20m-dataset`
 - **Raw Files**: `rating.csv`, `movie.csv`, `tag.csv`
+- **Records**: 20,000,263
 - **Key Processing Steps**:
     - Columns are mapped to standard names (e.g., `movieId` -> `itemID`).
     - Genres are converted from `Action|Adventure` to `Action Adventure`.
     - Timestamps are converted to a standard Unix format.
     - Duplicate user-item interactions are removed.
+    - The dataset length is controlled by specifying the number of initial rows (up to 14,000) in the experiment configuration.
 
 ### Amazon Sales
 - **Source**: `karkavelrajaj/amazon-sales-dataset`
 - **Raw Files**: `amazon.csv`
+- **Records**: 1,351
 - **Key Processing Steps**:
     - Columns are mapped (e.g., `product_id` -> `itemID`).
     - `category` and `about_product` are combined to create a `genres` field.
-    - Missing timestamps are generated based on user interaction order.
+    - **Ratings are generated** from sentiment analysis of reviews using the VADER (Valence Aware Dictionary and sEntiment Reasoner) lexicon.
+    - **Timestamps are generated** randomly within the range from 2018 to 2022.
     - Unnecessary columns (e.g., `discounted_price`, `img_link`) are dropped.
 
 ### Post Recommendations
 - **Source**: `vatsalparsaniya/post-pecommendation`
 - **Raw Files**: `user_data.csv`, `view_data.csv`, `post_data.csv`
+- **Records**: 70,616
 - **Key Processing Steps**:
-    - **Rating Generation**: This dataset lacks explicit ratings. They are generated based on user interaction frequency with different post categories.
+    - **Rating Generation**: This dataset lacks explicit ratings. They are generated using a **frequency-based algorithm** that uses categories to assess user interest.
     - Columns are mapped (e.g., `post_id` -> `itemID`, `category` -> `genres`).
     - User, post, and view data are merged into a single interaction table.
 
@@ -104,10 +121,6 @@ The Reinforcement Learning (RL) algorithm uses a separate, more complex data pip
 - **Process**: It builds a knowledge graph by extracting entities (users, items, genres) and relations (watched, belongs_to).
 - **Output & Cache**: The processed graph, embeddings, and labels are cached as `.pkl` files in the `qpera/rl_tmp/<DatasetName>/` directory. This cache is separate from the main dataset cache.
 
-<!--
-  TODO: Authors can add a note here explaining why the RL pipeline requires a separate caching and processing mechanism, e.g., due to the need for graph structures and embeddings not used by other models.
--->
-
 ---
 
 ## 5. Adding a New Dataset
@@ -116,13 +129,13 @@ To integrate a new dataset into the project, follow these steps:
 
 1.  **Create a Loader Class**: In `qpera/datasets_loader.py`, create a new class that inherits from `BaseDatasetLoader`. Implement the `_check_local_files_exist` and `merge_datasets` methods to handle your specific files and processing logic.
 2.  **Register the Loader**: Add your new class to the `dataset_loaders` dictionary inside the `loader` function.
-3.  **Add Downloader Support (Optional)**: In `qpera/datasets_downloader.py`, add your dataset's information to the `DATASET_CONFIG` dictionary to enable automatic downloads with `make check-datasets`.
+3.  **Add Downloader Support (Optional)**: In `qpera/datasets_downloader.py`, add your dataset's information to the `DATASET_CONFIG` dictionary to enable automatic downloads with `make download-datasets`.
 4.  **Add RL Support (Optional)**: If the dataset should be used with the RL algorithm, update the path dictionaries (`DATASET_DIR`, `TMP_DIR`, `LABELS`) in `qpera/rl_utils.py`.
 
 ---
 
 ## 6. Troubleshooting
 
-- **`FileNotFoundError`**: Ensure you have run `make check-datasets` to download all raw data.
+- **`FileNotFoundError`**: Ensure you have run `make download-datasets` to download all raw data.
 - **Kaggle API `401 Unauthorized`**: Verify your `~/.kaggle/kaggle.json` file is correctly placed and has the right permissions (`chmod 600`).
 - **RL Pipeline Errors**: If you encounter issues with the RL pipeline, try clearing its specific cache by deleting the `qpera/rl_tmp/<DatasetName>` directory and re-running the experiment.

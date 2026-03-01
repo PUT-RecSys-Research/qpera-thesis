@@ -14,7 +14,7 @@
 
 ## 📖 Overview
 
-This project provides a in-depth analysis of recommendation algorithms, focusing on their resilience to data stress, resistance to anonymization, explainability, and the ethical risks associated with their implementation. The research is particularly relevant given the recently adopted **EU AI Act** and the **Omnibus Directive**.
+This project investigates how three families of recommendation algorithms — **Content-Based Filtering (CBF)**, **Collaborative Filtering (CF)**, and **Reinforcement Learning (RL)** — perform in terms of three key aspects: **robustness** to the privatization of user history, the ability to **personalize** recommendations, and the **explainability** of the generated results. The algorithms were tested using three datasets representing varying levels of decision-making consequences: AmazonSales (high-cost), MovieLens (moderate-cost), and PostRecommendations (low-cost). This research is particularly relevant given the recently adopted **EU AI Act** and the **Omnibus Directive**.
 
 !!! note "Built on Open Source"
     This project extends and unifies implementations from the [Microsoft Recommenders](https://github.com/recommenders-team/recommenders) library and [PGPR](https://github.com/orcax/PGPR), providing a custom dataset loader and evaluation pipeline for comparative analysis.
@@ -65,12 +65,18 @@ Use the cards below to navigate to the section you need.
 
 ## ❓ Research Questions
 
-This research addresses the following key questions:
+The underlying rapid literature review addressed four research questions:
 
-1.  **Robustness Analysis**: How do different recommendation algorithm families compare in terms of resilience to data anonymization and perturbation techniques?
-2.  **Privacy-Personalization Trade-off**: What is the relationship between recommendation accuracy, personalization quality, and user privacy preservation?
-3.  **Explainability Assessment**: To what extent can each algorithm generate meaningful explanations for its recommendations?
-4.  **Ethical Risk Evaluation**: How can ethical risks be identified, measured, and mitigated in accordance with EU AI Act requirements?
+1.  **RQ1**: What kind of algorithms are used in recommendation systems?
+2.  **RQ2**: What kind of metrics can be used to evaluate algorithms' quality of personalization?
+3.  **RQ3**: What kind of metrics can be used to evaluate algorithms' explainability?
+4.  **RQ4**: What kind of metrics can be used to evaluate algorithms' robustness?
+
+The empirical study then evaluated three concrete aspects:
+
+-   **Personalization**: The extent to which the algorithm can provide personalized recommendations despite the aggregation of user history with that of others.
+-   **Robustness**: The extent to which the algorithm can deliver accurate recommendations even when the user's history is partially concealed or removed.
+-   **Explainability**: The extent to which the recommendation explanation is satisfactory for the user, assessed using the SAGES framework (Simple, Adaptable, Grounded, Extendable, Source-based).
 
 ---
 

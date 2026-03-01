@@ -52,10 +52,9 @@ We use `ruff` for fast linting and formatting.
 - **Automatically format code**: `make format`
 
 ### Testing
-Before committing, run a small-scale experiment to ensure your changes haven't broken the pipeline.
+Before committing, verify that the project imports correctly and run a quick check:
 ```bash
-# Run a quick test on the MovieLens dataset
-python -m qpera.main --algo CF --dataset movielens --rows 1000
+make check-env
 ```
 
 ---
@@ -67,7 +66,7 @@ This section provides a high-level overview of how to add new components.
 ### Adding a New Algorithm
 1.  Create a new file (e.g., `qpera/NEW_ALGORITHM.py`) with an experiment loop function that matches the signature of existing algorithms (like `cf_experiment_loop`).
 2.  Implement the data loading, training, prediction, and evaluation logic.
-3.  Register the new algorithm in the `EXPERIMENT_CONFIGS` list in `qpera/main.py`.
+3.  Register the new algorithm in `ExperimentRunner._define_experiments()` in `qpera/main.py`.
 
 ### Adding a New Metric
 1.  Add the metric calculation function to `qpera/metrics.py`.
